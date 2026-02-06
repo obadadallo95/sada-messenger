@@ -227,8 +227,8 @@ class _MeshDebugScreenState extends ConsumerState<MeshDebugScreen> {
                 padding: EdgeInsets.all(12.w),
                 decoration: BoxDecoration(
                   color: _connectionInfo!.isConnected
-                      ? Colors.green.withOpacity(0.2)
-                      : Colors.grey.withOpacity(0.2),
+                      ? Colors.green.withValues(alpha: 0.2)
+                      : Colors.grey.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(8.r),
                 ),
                 child: Row(
@@ -256,7 +256,7 @@ class _MeshDebugScreenState extends ConsumerState<MeshDebugScreen> {
                 margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
                 padding: EdgeInsets.all(12.w),
                 decoration: BoxDecoration(
-                  color: Colors.red.withOpacity(0.2),
+                  color: Colors.red.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(8.r),
                 ),
                 child: Row(

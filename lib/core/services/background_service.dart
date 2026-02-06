@@ -1,8 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
-import 'package:flutter_background_service_android/flutter_background_service_android.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../models/power_mode.dart';
 import '../utils/log_service.dart';
 
@@ -18,7 +16,6 @@ class BackgroundService {
   BackgroundService._();
 
   static const String _notificationChannelId = 'sada_background_service';
-  static const String _notificationChannelName = 'Sada Background Service';
   static const int _notificationId = 999;
 
   PowerMode _currentPowerMode = PowerMode.balanced;
@@ -140,12 +137,9 @@ void onStart(ServiceInstance service) async {
 /// بدء Duty Cycle
 void _startDutyCycle(ServiceInstance service, PowerMode mode) {
   bool isScanning = false;
-  Timer? dutyCycleTimer;
 
-  // إلغاء Timer السابق إن وجد
-  dutyCycleTimer?.cancel();
-
-  dutyCycleTimer = Timer.periodic(Duration(seconds: 1), (timer) async {
+  // بدء Timer للـ Duty Cycle
+  Timer.periodic(Duration(seconds: 1), (timer) async {
     if (service is AndroidServiceInstance) {
       // تحديث الإشعار
       if (isScanning) {

@@ -574,6 +574,86 @@
   "apkShareError": "Failed to share APK file",
   "@apkShareError": {
     "description": "Error message for APK sharing"
+  },
+  "myQrCode": "My QR Code",
+  "@myQrCode": {
+    "description": "Title for user's QR code display screen"
+  },
+  "scanQrCode": "Scan QR Code",
+  "@scanQrCode": {
+    "description": "Title for QR code scanning screen"
+  },
+  "invalidQrCode": "Invalid QR Code",
+  "@invalidQrCode": {
+    "description": "Error message when scanning invalid QR code"
+  },
+  "invalidQrCodeFormat": "Invalid QR Code format",
+  "@invalidQrCodeFormat": {
+    "description": "Error message when failing to parse JSON from QR code"
+  },
+  "invalidQrCodeFields": "Invalid QR Code: Missing required fields",
+  "@invalidQrCodeFields": {
+    "description": "Error message when required fields are missing in QR code"
+  },
+  "cameraPermissionRequired": "Camera permission is required",
+  "@cameraPermissionRequired": {
+    "description": "Message when camera permission is denied"
+  },
+  "cameraPermissionDenied": "Camera permission denied",
+  "@cameraPermissionDenied": {
+    "description": "Message when camera permission is denied"
+  },
+  "grantPermission": "Grant Permission",
+  "@grantPermission": {
+    "description": "Button to grant permission"
+  },
+  "placeQrInFrame": "Position the QR code within the frame",
+  "@placeQrInFrame": {
+    "description": "Instructions for user when scanning QR code"
+  },
+  "processing": "Processing...",
+  "@processing": {
+    "description": "Message while processing QR code"
+  },
+  "friendAddedSuccessfully": "Friend added successfully",
+  "@friendAddedSuccessfully": {
+    "description": "Success message when adding a friend"
+  },
+  "cannotAddYourself": "You cannot add yourself as a contact",
+  "@cannotAddYourself": {
+    "description": "Error message when trying to add yourself"
+  },
+  "contactAlreadyExists": "Contact already exists",
+  "@contactAlreadyExists": {
+    "description": "Message when contact already exists"
+  },
+  "errorProcessingQrCode": "Error processing QR Code",
+  "@errorProcessingQrCode": {
+    "description": "Generic error message when processing QR code"
+  },
+  "shareQrCodeDescription": "Share this QR code to add you as a contact",
+  "@shareQrCodeDescription": {
+    "description": "Description of QR code when sharing"
+  },
+  "qrCodeSecurityInfo": "This QR code contains your public key for secure messaging.",
+  "@qrCodeSecurityInfo": {
+    "description": "Security information about QR code"
+  },
+  "home": "Home",
+  "@home": {
+    "description": "Home screen title"
+  },
+  "notifications": "Notifications",
+  "@notifications": {
+    "description": "Notifications screen title"
+  },
+  "markAllAsRead": "Mark All as Read",
+  "@markAllAsRead": {
+    "description": "Button to mark all notifications as read"
+  },
+  "noNotifications": "No notifications",
+  "@noNotifications": {
+    "description": "Message when there are no notifications"
   }
 }
 

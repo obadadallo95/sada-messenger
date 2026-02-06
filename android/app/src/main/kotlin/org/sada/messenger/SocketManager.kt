@@ -185,7 +185,7 @@ class SocketManager private constructor() {
             try {
                 Log.d(TAG, "Read loop started")
                 
-                while (isConnected && !isCancelled) {
+                while (isConnected && coroutineContext.isActive) {
                     try {
                         val bytesRead = inputStream?.read(buffer) ?: -1
                         

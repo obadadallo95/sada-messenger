@@ -24,7 +24,7 @@ class UserAvatar extends StatelessWidget {
   Widget build(BuildContext context) {
     final defaultRadius = radius ?? 24.r;
     final defaultBgColor = backgroundColor ??
-        _generateColorFromName(userName).withOpacity(0.2);
+        _generateColorFromName(userName).withValues(alpha: 0.2);
     final defaultFgColor = foregroundColor ?? _generateColorFromName(userName);
 
     // إذا كانت هناك صورة Base64 صالحة، عرضها

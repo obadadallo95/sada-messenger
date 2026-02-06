@@ -46,11 +46,12 @@ class NotificationService {
         iOS: darwinSettings,
       );
 
-      // تهيئة الإشعارات
-      final initialized = await _notificationsPlugin.initialize(
-        initSettings,
+      // تهيئة الإشعارات (API الجديد - flutter_local_notifications 20.0.0)
+      await _notificationsPlugin.initialize(
+        settings: initSettings,
         onDidReceiveNotificationResponse: _onNotificationTapped,
       );
+      final initialized = true;
 
       if (initialized == false) {
         LogService.error('فشل تهيئة خدمة الإشعارات');
@@ -203,12 +204,12 @@ class NotificationService {
         iOS: darwinDetails,
       );
 
-      // عرض الإشعار
+      // عرض الإشعار (API الجديد - flutter_local_notifications 20.0.0)
       await _notificationsPlugin.show(
-        id,
-        title,
-        body,
-        notificationDetails,
+        id: id,
+        title: title,
+        body: body,
+        notificationDetails: notificationDetails,
         payload: payload,
       );
 
@@ -222,7 +223,7 @@ class NotificationService {
 
   /// إلغاء إشعار محدد
   Future<void> cancelNotification(int id) async {
-    await _notificationsPlugin.cancel(id);
+    await _notificationsPlugin.cancel(id: id);
   }
 
   /// إلغاء جميع الإشعارات

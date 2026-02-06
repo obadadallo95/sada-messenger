@@ -574,6 +574,86 @@
   "apkShareError": "فشل مشاركة ملف APK",
   "@apkShareError": {
     "description": "رسالة خطأ مشاركة APK"
+  },
+  "myQrCode": "رمز QR الخاص بي",
+  "@myQrCode": {
+    "description": "عنوان شاشة عرض رمز QR الخاص بالمستخدم"
+  },
+  "scanQrCode": "مسح رمز QR",
+  "@scanQrCode": {
+    "description": "عنوان شاشة مسح رمز QR"
+  },
+  "invalidQrCode": "رمز QR غير صحيح",
+  "@invalidQrCode": {
+    "description": "رسالة خطأ عند مسح رمز QR غير صحيح"
+  },
+  "invalidQrCodeFormat": "تنسيق رمز QR غير صحيح",
+  "@invalidQrCodeFormat": {
+    "description": "رسالة خطأ عند فشل تحليل JSON من رمز QR"
+  },
+  "invalidQrCodeFields": "رمز QR ناقص: الحقول المطلوبة مفقودة",
+  "@invalidQrCodeFields": {
+    "description": "رسالة خطأ عند عدم وجود الحقول المطلوبة في رمز QR"
+  },
+  "cameraPermissionRequired": "صلاحية الكاميرا مطلوبة",
+  "@cameraPermissionRequired": {
+    "description": "رسالة عند رفض صلاحية الكاميرا"
+  },
+  "cameraPermissionDenied": "تم رفض صلاحية الكاميرا",
+  "@cameraPermissionDenied": {
+    "description": "رسالة عند رفض صلاحية الكاميرا"
+  },
+  "grantPermission": "منح الصلاحية",
+  "@grantPermission": {
+    "description": "زر منح الصلاحية"
+  },
+  "placeQrInFrame": "ضع رمز QR في الإطار",
+  "@placeQrInFrame": {
+    "description": "تعليمات للمستخدم عند مسح رمز QR"
+  },
+  "processing": "جاري المعالجة...",
+  "@processing": {
+    "description": "رسالة أثناء معالجة رمز QR"
+  },
+  "friendAddedSuccessfully": "تم إضافة الصديق بنجاح",
+  "@friendAddedSuccessfully": {
+    "description": "رسالة نجاح إضافة صديق"
+  },
+  "cannotAddYourself": "لا يمكنك إضافة نفسك كصديق",
+  "@cannotAddYourself": {
+    "description": "رسالة خطأ عند محاولة إضافة نفسك"
+  },
+  "contactAlreadyExists": "جهة الاتصال موجودة بالفعل",
+  "@contactAlreadyExists": {
+    "description": "رسالة عند وجود جهة الاتصال مسبقاً"
+  },
+  "errorProcessingQrCode": "خطأ في معالجة رمز QR",
+  "@errorProcessingQrCode": {
+    "description": "رسالة خطأ عامة عند معالجة رمز QR"
+  },
+  "shareQrCodeDescription": "شارك هذا الرمز لإضافة نفسك كجهة اتصال",
+  "@shareQrCodeDescription": {
+    "description": "وصف رمز QR عند المشاركة"
+  },
+  "qrCodeSecurityInfo": "يحتوي هذا الرمز على مفتاحك العام للرسائل المشفرة.",
+  "@qrCodeSecurityInfo": {
+    "description": "معلومات أمنية عن رمز QR"
+  },
+  "home": "الرئيسية",
+  "@home": {
+    "description": "عنوان شاشة الرئيسية"
+  },
+  "notifications": "الإشعارات",
+  "@notifications": {
+    "description": "عنوان شاشة الإشعارات"
+  },
+  "markAllAsRead": "تحديد الكل كمقروء",
+  "@markAllAsRead": {
+    "description": "زر تحديد جميع الإشعارات كمقروءة"
+  },
+  "noNotifications": "لا توجد إشعارات",
+  "@noNotifications": {
+    "description": "رسالة عدم وجود إشعارات"
   }
 }
 

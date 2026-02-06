@@ -82,7 +82,7 @@ class SettingsScreen extends ConsumerWidget {
                   ),
                 ],
               ),
-              error: (_, __) => SettingsSection(
+              error: (_, _) => SettingsSection(
                 children: [
                   Padding(
                     padding: EdgeInsets.all(16.w),
@@ -118,14 +118,14 @@ class SettingsScreen extends ConsumerWidget {
                 SettingsTile(
                   icon: Icons.info_outline,
                   iconColor: Colors.blue,
-                  iconBackgroundColor: Colors.blue.withOpacity(0.1),
+                  iconBackgroundColor: Colors.blue.withValues(alpha: 0.1),
                   title: l10n.aboutUs,
                   onTap: () => context.push(AppRoutes.about),
                 ),
                 SettingsTile(
                   icon: Icons.share,
                   iconColor: Colors.teal,
-                  iconBackgroundColor: Colors.teal.withOpacity(0.1),
+                  iconBackgroundColor: Colors.teal.withValues(alpha: 0.1),
                   title: l10n.shareAppOffline,
                   subtitle: l10n.shareAppOfflineDescription,
                   onTap: () => _shareApp(context, ref),
@@ -133,14 +133,14 @@ class SettingsScreen extends ConsumerWidget {
                 SettingsTile(
                   icon: Icons.privacy_tip_outlined,
                   iconColor: Colors.purple,
-                  iconBackgroundColor: Colors.purple.withOpacity(0.1),
+                  iconBackgroundColor: Colors.purple.withValues(alpha: 0.1),
                   title: l10n.privacyPolicy,
                   onTap: () => context.push(AppRoutes.privacy),
                 ),
                 SettingsTile(
                   icon: Icons.description_outlined,
                   iconColor: Colors.orange,
-                  iconBackgroundColor: Colors.orange.withOpacity(0.1),
+                  iconBackgroundColor: Colors.orange.withValues(alpha: 0.1),
                   title: l10n.openSourceLicenses,
                   onTap: () => _showLicensePage(context),
                 ),
@@ -157,6 +157,7 @@ class SettingsScreen extends ConsumerWidget {
   /// بناء قسم Avatar
   Widget _buildAvatarSection(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final profileState = ref.watch(profileServiceProvider);
     final authService = ref.read(authServiceProvider.notifier);
     final currentUser = authService.currentUser;
@@ -233,6 +234,18 @@ class SettingsScreen extends ConsumerWidget {
                 fontWeight: FontWeight.bold,
               ),
             ),
+          SizedBox(height: 16.h),
+          // Show My QR Button
+          OutlinedButton.icon(
+            onPressed: () {
+              context.push(AppRoutes.myQr);
+            },
+            icon: Icon(Icons.qr_code, size: 18.sp),
+            label: Text(l10n.myQrCode),
+            style: OutlinedButton.styleFrom(
+              padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
+            ),
+          ),
         ],
       ),
     );
@@ -248,7 +261,7 @@ class SettingsScreen extends ConsumerWidget {
     return SettingsTile(
       icon: Icons.palette_outlined,
       iconColor: Colors.pink,
-      iconBackgroundColor: Colors.pink.withOpacity(0.1),
+      iconBackgroundColor: Colors.pink.withValues(alpha: 0.1),
       title: l10n.theme,
       trailing: SegmentedButton<ThemeModeOption>(
         segments: [
@@ -288,7 +301,7 @@ class SettingsScreen extends ConsumerWidget {
       data: (locale) => SettingsTile(
         icon: Icons.language_outlined,
         iconColor: Colors.green,
-        iconBackgroundColor: Colors.green.withOpacity(0.1),
+        iconBackgroundColor: Colors.green.withValues(alpha: 0.1),
         title: l10n.language,
         trailing: SegmentedButton<String>(
           segments: [
@@ -314,7 +327,7 @@ class SettingsScreen extends ConsumerWidget {
         trailing: CircularProgressIndicator(),
         showArrow: false,
       ),
-      error: (_, __) => SettingsTile(
+      error: (_, _) => SettingsTile(
         icon: Icons.language_outlined,
         title: l10n.language,
         trailing: Icon(Icons.error_outline),
@@ -340,7 +353,7 @@ class SettingsScreen extends ConsumerWidget {
     return SettingsTile(
       icon: Icons.battery_charging_full_outlined,
       iconColor: Colors.amber,
-      iconBackgroundColor: Colors.amber.withOpacity(0.1),
+      iconBackgroundColor: Colors.amber.withValues(alpha: 0.1),
       title: l10n.powerUsage,
       subtitle: getPowerModeName(powerMode),
       trailing: PopupMenuButton<PowerMode>(
@@ -405,7 +418,7 @@ class SettingsScreen extends ConsumerWidget {
     return SettingsTile(
       icon: Icons.battery_saver_outlined,
       iconColor: Colors.red,
-      iconBackgroundColor: Colors.red.withOpacity(0.1),
+      iconBackgroundColor: Colors.red.withValues(alpha: 0.1),
       title: l10n.disableBatteryOptimization,
       subtitle: l10n.batteryOptimizationDescription,
       onTap: () async {
@@ -436,7 +449,7 @@ class SettingsScreen extends ConsumerWidget {
       return SettingsTile(
         icon: Icons.fingerprint_outlined,
         iconColor: Colors.grey,
-        iconBackgroundColor: Colors.grey.withOpacity(0.1),
+        iconBackgroundColor: Colors.grey.withValues(alpha: 0.1),
         title: l10n.appLock,
         subtitle: l10n.biometricNotAvailable,
         showArrow: false,
@@ -446,7 +459,7 @@ class SettingsScreen extends ConsumerWidget {
     return SettingsSwitchTile(
       icon: Icons.fingerprint,
       iconColor: Colors.indigo,
-      iconBackgroundColor: Colors.indigo.withOpacity(0.1),
+      iconBackgroundColor: Colors.indigo.withValues(alpha: 0.1),
       title: l10n.appLock,
       subtitle: l10n.appLockDescription,
       value: biometricState.isAppLockEnabled,
@@ -473,7 +486,7 @@ class SettingsScreen extends ConsumerWidget {
     return SettingsTile(
       icon: Icons.lock,
       iconColor: Colors.blue,
-      iconBackgroundColor: Colors.blue.withOpacity(0.1),
+      iconBackgroundColor: Colors.blue.withValues(alpha: 0.1),
       title: l10n.changeMasterPin,
       onTap: () => _showChangePinDialog(context, ref, l10n, isMaster: true),
     );
@@ -488,7 +501,7 @@ class SettingsScreen extends ConsumerWidget {
     return SettingsTile(
       icon: Icons.security,
       iconColor: Colors.red,
-      iconBackgroundColor: Colors.red.withOpacity(0.1),
+      iconBackgroundColor: Colors.red.withValues(alpha: 0.1),
       title: l10n.setDuressPin,
       onTap: () => _showSetDuressPinDialog(context, ref, l10n),
     );
@@ -613,7 +626,7 @@ class SettingsScreen extends ConsumerWidget {
       ),
     );
 
-    if (proceed == true) {
+    if (proceed == true && context.mounted) {
       await _showChangePinDialog(context, ref, l10n, isMaster: false);
     }
   }

@@ -12,6 +12,10 @@
   "@welcomeMessage": {
     "description": "Welcome message on home screen"
   },
+  "home": "Home",
+  "@home": {
+    "description": "Home screen title"
+  },
   "settings": "Settings",
   "@settings": {
     "description": "Settings screen title"
@@ -574,6 +578,18 @@
   "apkShareError": "Failed to share APK file",
   "@apkShareError": {
     "description": "Error message for APK sharing"
+  },
+  "notifications": "Notifications",
+  "@notifications": {
+    "description": "Notifications screen title"
+  },
+  "noNotifications": "No notifications",
+  "@noNotifications": {
+    "description": "Message when there are no notifications"
+  },
+  "markAllAsRead": "Mark all as read",
+  "@markAllAsRead": {
+    "description": "Button to mark all notifications as read"
   }
 }
 

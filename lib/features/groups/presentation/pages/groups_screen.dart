@@ -53,7 +53,7 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen> {
                       child: Icon(
                         Icons.radar,
                         size: 80.sp,
-                        color: Colors.white.withOpacity(0.8),
+                        color: Colors.white.withValues(alpha: 0.8),
                       ),
                     ),
                   ),
@@ -235,7 +235,7 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen> {
                 width: 60.w,
                 height: 60.h,
                 decoration: BoxDecoration(
-                  color: Color(group.avatarColor).withOpacity(0.2),
+                  color: Color(group.avatarColor).withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12.r),
                 ),
                 child: Icon(

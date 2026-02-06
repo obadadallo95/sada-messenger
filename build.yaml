@@ -1,0 +1,18 @@
+targets:
+  $default:
+    builders:
+      # تعطيل custom_lint builders
+      custom_lint:custom_lint:
+        enabled: false
+      custom_lint_builder:custom_lint_builder:
+        enabled: false
+      # تفعيل drift builders فقط
+      drift_dev:drift_dev:
+        enabled: true
+      riverpod_generator:riverpod_generator:
+        enabled: true
+      json_serializable:json_serializable:
+        enabled: true
+      freezed:freezed:
+        enabled: true
+

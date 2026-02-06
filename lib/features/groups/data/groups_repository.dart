@@ -7,7 +7,7 @@ import 'package:uuid/uuid.dart';
 import '../../chat/domain/models/chat_model.dart';
 import '../../../core/utils/log_service.dart';
 
-// part 'groups_repository.g.dart'; // TODO: Uncomment after running build_runner
+// part 'groups_repository.g.dart'; // سيتم تفعيله لاحقاً عند إضافة Riverpod generators
 
 /// Provider لـ Groups Repository
 final groupsRepositoryProvider = Provider<GroupsRepository>((ref) {
@@ -31,7 +31,7 @@ class GroupsRepository {
       // الحصول على معرف المستخدم الحالي (من AuthService)
       // في الوقت الحالي، سنستخدم معرف مؤقت
       final groupId = 'group_${_uuid.v4()}';
-      final ownerId = 'user_${_uuid.v4()}'; // TODO: من AuthService
+      final ownerId = 'user_${_uuid.v4()}'; // سيتم الحصول عليه من AuthService لاحقاً
 
       final now = DateTime.now();
 
@@ -44,7 +44,7 @@ class GroupsRepository {
         groupOwnerId: ownerId,
         isPublic: isPublic,
         time: now,
-        avatarColor: _generateColorFromName(name).value,
+        avatarColor: _generateColorFromName(name).toARGB32(),
         memberCount: 1, // المنشئ هو أول عضو
       );
 
@@ -59,78 +59,11 @@ class GroupsRepository {
     }
   }
 
-  /// الحصول على المجموعات القريبة (Mock Implementation)
+  /// الحصول على المجموعات القريبة
+  /// سيتم تنفيذها عند إضافة منطق اكتشاف Mesh
   Stream<List<ChatModel>> getNearbyGroups() async* {
-    // محاكاة اكتشاف المجموعات القريبة
-    final mockGroups = _generateMockNearbyGroups();
-    
-    // إرسال المجموعات تدريجياً (محاكاة الاكتشاف)
-    for (var i = 0; i < mockGroups.length; i++) {
-      await Future.delayed(const Duration(milliseconds: 500));
-      yield mockGroups.sublist(0, i + 1);
-    }
-    
-    // إرسال تحديثات دورية (محاكاة اكتشاف مستمر)
-    while (true) {
-      await Future.delayed(const Duration(seconds: 5));
-      yield mockGroups;
-    }
-  }
-
-  /// إنشاء مجموعات تجريبية قريبة
-  List<ChatModel> _generateMockNearbyGroups() {
-    final now = DateTime.now();
-    
-    return [
-      ChatModel(
-        id: 'group_nearby_1',
-        name: 'محادثة عامة',
-        groupName: 'محادثة عامة',
-        groupDescription: 'مجموعة عامة للمناقشة والتفاعل',
-        isGroup: true,
-        groupOwnerId: 'owner_1',
-        isPublic: true,
-        time: now.subtract(const Duration(minutes: 10)),
-        avatarColor: Colors.blue.value,
-        memberCount: 5,
-      ),
-      ChatModel(
-        id: 'group_nearby_2',
-        name: 'مراقبة الحي',
-        groupName: 'مراقبة الحي',
-        groupDescription: 'مجموعة لمراقبة الأمان في الحي',
-        isGroup: true,
-        groupOwnerId: 'owner_2',
-        isPublic: true,
-        time: now.subtract(const Duration(minutes: 30)),
-        avatarColor: Colors.green.value,
-        memberCount: 12,
-      ),
-      ChatModel(
-        id: 'group_nearby_3',
-        name: 'فريق الجامعة',
-        groupName: 'فريق الجامعة',
-        groupDescription: 'مجموعة طلاب الجامعة للتواصل',
-        isGroup: true,
-        groupOwnerId: 'owner_3',
-        isPublic: false,
-        time: now.subtract(const Duration(hours: 1)),
-        avatarColor: Colors.purple.value,
-        memberCount: 8,
-      ),
-      ChatModel(
-        id: 'group_nearby_4',
-        name: 'مساعدة الجيران',
-        groupName: 'مساعدة الجيران',
-        groupDescription: 'مجموعة لمساعدة الجيران في المنطقة',
-        isGroup: true,
-        groupOwnerId: 'owner_4',
-        isPublic: true,
-        time: now.subtract(const Duration(hours: 2)),
-        avatarColor: Colors.orange.value,
-        memberCount: 15,
-      ),
-    ];
+    // إرجاع قائمة فارغة - سيتم ملؤها من Mesh Network عند إضافة منطق الاكتشاف
+    yield [];
   }
 
   /// الانضمام إلى مجموعة
@@ -175,7 +108,7 @@ class GroupsRepository {
       
       // تحويل المجموعة إلى JSON
       final groupJson = group.toJson();
-      final groupJsonString = groupJson.toString(); // TODO: استخدام jsonEncode
+      final groupJsonString = groupJson.toString(); // سيتم استخدام jsonEncode لاحقاً
       
       // إضافة المجموعة إذا لم تكن موجودة
       if (!groupsJson.contains(groupJsonString)) {
@@ -190,8 +123,9 @@ class GroupsRepository {
   /// تحميل جميع المجموعات المحفوظة
   Future<List<ChatModel>> _loadAllGroups() async {
     try {
-      // TODO: تحميل المجموعات من SharedPreferences
-      // TODO: تحويل JSON strings إلى ChatModel objects
+      // تحميل المجموعات من SharedPreferences
+      // تحويل JSON strings إلى ChatModel objects
+      // سيتم تنفيذها لاحقاً عند إكمال منطق الحفظ والتحميل
       // في الوقت الحالي، نعيد قائمة فارغة
       return [];
     } catch (e) {

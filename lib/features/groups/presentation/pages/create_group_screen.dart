@@ -164,7 +164,7 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12.r),
                       side: BorderSide(
-                        color: theme.colorScheme.outline.withOpacity(0.2),
+                        color: theme.colorScheme.outline.withValues(alpha: 0.2),
                       ),
                     ),
                     child: SwitchListTile(

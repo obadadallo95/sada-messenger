@@ -1,48 +1,81 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../../core/router/routes.dart';
+import '../../data/repositories/chat_repository.dart';
+import '../widgets/chat_tile.dart';
 
-/// شاشة الدردشة (Placeholder)
-/// ستتم إضافة منطق Mesh/Bluetooth لاحقاً
-class ChatPage extends StatelessWidget {
+/// شاشة الدردشة - قائمة المحادثات
+class ChatPage extends ConsumerWidget {
   const ChatPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    
+    final chatsAsync = ref.watch(chatRepositoryProvider);
+
     return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 24.w),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.chat_bubble_outline,
-                  size: 64.sp,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                SizedBox(height: 24.h),
-                Text(
-                  l10n.chat,
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        fontSize: 24.sp,
-                        fontWeight: FontWeight.bold,
-                      ),
-                ),
-                SizedBox(height: 16.h),
-                Text(
-                  l10n.comingSoon,
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        fontSize: 16.sp,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
+      appBar: AppBar(
+        title: Text(l10n.chat),
+        centerTitle: true,
+      ),
+      body: chatsAsync.when(
+        data: (chats) {
+          if (chats.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.chat_bubble_outline,
+                    size: 64.sp,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                  SizedBox(height: 16.h),
+                  Text(
+                    l10n.noChats,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontSize: 18.sp,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                  ),
+                ],
+              ),
+            );
+          }
+          return ListView.builder(
+            padding: EdgeInsets.symmetric(vertical: 8.h),
+            itemCount: chats.length,
+            itemBuilder: (context, index) {
+              final chat = chats[index];
+              return ChatTile(
+                chat: chat,
+                onTap: () => context.push('${AppRoutes.chat}/${chat.id}', extra: chat),
+              );
+            },
+          );
+        },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, stack) => Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.error_outline,
+                size: 64.sp,
+                color: Theme.of(context).colorScheme.error,
+              ),
+              SizedBox(height: 16.h),
+              Text(
+                l10n.errorLoadingChats,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontSize: 18.sp,
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+              ),
+            ],
           ),
         ),
       ),

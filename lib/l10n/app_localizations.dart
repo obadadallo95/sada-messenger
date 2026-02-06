@@ -344,25 +344,25 @@ abstract class AppLocalizations {
   /// **'Camera permission denied'**
   String get cameraPermissionDenied;
 
-  /// Message requesting camera permission
+  /// Message when camera permission is denied
   ///
   /// In en, this message translates to:
-  /// **'We need camera permission to scan QR codes'**
+  /// **'Camera permission is required'**
   String get cameraPermissionRequired;
 
-  /// Grant permission button
+  /// Button to grant permission
   ///
   /// In en, this message translates to:
   /// **'Grant Permission'**
   String get grantPermission;
 
-  /// Instruction text in scanner screen
+  /// Instructions for user when scanning QR code
   ///
   /// In en, this message translates to:
-  /// **'Place QR code inside the frame'**
+  /// **'Position the QR code within the frame'**
   String get placeQrInFrame;
 
-  /// Success message when friend is added
+  /// Success message when adding a friend
   ///
   /// In en, this message translates to:
   /// **'Friend added successfully'**
@@ -937,6 +937,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Failed to share APK file'**
   String get apkShareError;
+
+  /// Title for user's QR code display screen
+  ///
+  /// In en, this message translates to:
+  /// **'My QR Code'**
+  String get myQrCode;
+
+  /// Title for QR code scanning screen
+  ///
+  /// In en, this message translates to:
+  /// **'Scan QR Code'**
+  String get scanQrCode;
+
+  /// Error message when scanning invalid QR code
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid QR Code'**
+  String get invalidQrCode;
+
+  /// Error message when failing to parse JSON from QR code
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid QR Code format'**
+  String get invalidQrCodeFormat;
+
+  /// Error message when required fields are missing in QR code
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid QR Code: Missing required fields'**
+  String get invalidQrCodeFields;
+
+  /// Message while processing QR code
+  ///
+  /// In en, this message translates to:
+  /// **'Processing...'**
+  String get processing;
+
+  /// Error message when trying to add yourself
+  ///
+  /// In en, this message translates to:
+  /// **'You cannot add yourself as a contact'**
+  String get cannotAddYourself;
+
+  /// Message when contact already exists
+  ///
+  /// In en, this message translates to:
+  /// **'Contact already exists'**
+  String get contactAlreadyExists;
+
+  /// Generic error message when processing QR code
+  ///
+  /// In en, this message translates to:
+  /// **'Error processing QR Code'**
+  String get errorProcessingQrCode;
+
+  /// Description of QR code when sharing
+  ///
+  /// In en, this message translates to:
+  /// **'Share this QR code to add you as a contact'**
+  String get shareQrCodeDescription;
+
+  /// Security information about QR code
+  ///
+  /// In en, this message translates to:
+  /// **'This QR code contains your public key for secure messaging.'**
+  String get qrCodeSecurityInfo;
+
+  /// Home screen title
+  ///
+  /// In en, this message translates to:
+  /// **'Home'**
+  String get home;
+
+  /// Notifications screen title
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications'**
+  String get notifications;
+
+  /// Button to mark all notifications as read
+  ///
+  /// In en, this message translates to:
+  /// **'Mark All as Read'**
+  String get markAllAsRead;
+
+  /// Message when there are no notifications
+  ///
+  /// In en, this message translates to:
+  /// **'No notifications'**
+  String get noNotifications;
 }
 
 class _AppLocalizationsDelegate

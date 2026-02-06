@@ -271,7 +271,7 @@ class _AboutScreenState extends State<AboutScreen> {
         color: color,
       ),
       style: IconButton.styleFrom(
-        backgroundColor: color.withOpacity(0.1),
+        backgroundColor: color.withValues(alpha: 0.1),
         padding: EdgeInsets.all(12.w),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12.r),

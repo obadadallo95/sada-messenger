@@ -3,7 +3,6 @@ import 'dart:typed_data';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:sodium_libs/sodium_libs.dart' hide SodiumInit;
 import 'package:sodium_libs/sodium_libs.dart' as sodium_libs show SodiumInit;
-import 'package:sodium/sodium.dart';
 import '../utils/log_service.dart';
 
 /// زوج المفاتيح (Public/Private)
@@ -33,7 +32,7 @@ class KeyManager {
 
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage(
     aOptions: AndroidOptions(
-      encryptedSharedPreferences: true,
+      // encryptedSharedPreferences deprecated - removed
     ),
     iOptions: IOSOptions(
       accessibility: KeychainAccessibility.first_unlock_this_device,

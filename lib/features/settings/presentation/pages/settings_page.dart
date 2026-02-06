@@ -47,30 +47,40 @@ class SettingsPage extends ConsumerWidget {
                 context,
                 title: l10n.theme,
                 children: [
+                  // ignore: deprecated_member_use
+                  // RadioGroup is not available in current Flutter version
                   RadioListTile<ThemeModeOption>(
                     title: Text(l10n.light),
                     value: ThemeModeOption.light,
+                    // ignore: deprecated_member_use
                     groupValue: themeMode,
+                    // ignore: deprecated_member_use
                     onChanged: (value) {
                       if (value != null) {
                         themeNotifier.setThemeMode(value);
                       }
                     },
                   ),
+                  // ignore: deprecated_member_use
                   RadioListTile<ThemeModeOption>(
                     title: Text(l10n.dark),
                     value: ThemeModeOption.dark,
+                    // ignore: deprecated_member_use
                     groupValue: themeMode,
+                    // ignore: deprecated_member_use
                     onChanged: (value) {
                       if (value != null) {
                         themeNotifier.setThemeMode(value);
                       }
                     },
                   ),
+                  // ignore: deprecated_member_use
                   RadioListTile<ThemeModeOption>(
                     title: Text(l10n.system),
                     value: ThemeModeOption.system,
+                    // ignore: deprecated_member_use
                     groupValue: themeMode,
+                    // ignore: deprecated_member_use
                     onChanged: (value) {
                       if (value != null) {
                         themeNotifier.setThemeMode(value);
@@ -80,7 +90,7 @@ class SettingsPage extends ConsumerWidget {
                 ],
               ),
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (_, __) => Text('خطأ في تحميل الثيم'),
+              error: (_, _) => Text('خطأ في تحميل الثيم'),
             ),
             
             SizedBox(height: 24.h),
@@ -91,20 +101,27 @@ class SettingsPage extends ConsumerWidget {
                 context,
                 title: l10n.language,
                 children: [
+                  // ignore: deprecated_member_use
+                  // RadioGroup is not available in current Flutter version
                   RadioListTile<String>(
                     title: Text(l10n.english),
                     value: 'en',
+                    // ignore: deprecated_member_use
                     groupValue: locale.languageCode,
+                    // ignore: deprecated_member_use
                     onChanged: (value) {
                       if (value != null) {
                         localeNotifier.setLocale(Locale(value));
                       }
                     },
                   ),
+                  // ignore: deprecated_member_use
                   RadioListTile<String>(
                     title: Text(l10n.arabic),
                     value: 'ar',
+                    // ignore: deprecated_member_use
                     groupValue: locale.languageCode,
+                    // ignore: deprecated_member_use
                     onChanged: (value) {
                       if (value != null) {
                         localeNotifier.setLocale(Locale(value));
@@ -114,7 +131,7 @@ class SettingsPage extends ConsumerWidget {
                 ],
               ),
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (_, __) => Text('خطأ في تحميل اللغة'),
+              error: (_, _) => Text('خطأ في تحميل اللغة'),
             ),
 
             SizedBox(height: 24.h),
@@ -146,6 +163,8 @@ class SettingsPage extends ConsumerWidget {
       context,
       title: l10n.powerUsage,
       children: [
+        // ignore: deprecated_member_use
+        // RadioGroup is not available in current Flutter version
         RadioListTile<PowerMode>(
           title: Text(
             isArabic
@@ -162,13 +181,16 @@ class SettingsPage extends ConsumerWidget {
                 ),
           ),
           value: PowerMode.highPerformance,
+          // ignore: deprecated_member_use
           groupValue: powerMode,
+          // ignore: deprecated_member_use
           onChanged: (value) {
             if (value != null) {
               powerModeNotifier.setPowerMode(value);
             }
           },
         ),
+        // ignore: deprecated_member_use
         RadioListTile<PowerMode>(
           title: Text(
             isArabic
@@ -185,13 +207,16 @@ class SettingsPage extends ConsumerWidget {
                 ),
           ),
           value: PowerMode.balanced,
+          // ignore: deprecated_member_use
           groupValue: powerMode,
+          // ignore: deprecated_member_use
           onChanged: (value) {
             if (value != null) {
               powerModeNotifier.setPowerMode(value);
             }
           },
         ),
+        // ignore: deprecated_member_use
         RadioListTile<PowerMode>(
           title: Text(
             isArabic
@@ -208,7 +233,9 @@ class SettingsPage extends ConsumerWidget {
                 ),
           ),
           value: PowerMode.lowPower,
+          // ignore: deprecated_member_use
           groupValue: powerMode,
+          // ignore: deprecated_member_use
           onChanged: (value) {
             if (value != null) {
               powerModeNotifier.setPowerMode(value);

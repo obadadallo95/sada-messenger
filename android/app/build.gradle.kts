@@ -18,12 +18,14 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace = "org.sada.messenger"
-    compileSdk = flutter.compileSdkVersion
+    // Modern 2026 Standards: Android SDK 36 (required by plugins)
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        isCoreLibraryDesugaringEnabled = true
     }
 
     kotlin {
@@ -32,8 +34,10 @@ android {
 
     defaultConfig {
         applicationId = "org.sada.messenger"
+        // Modern 2026 Standards: minSdk 23 (Android 6.0) for modern crypto support
         minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        // Modern 2026 Standards: targetSdk 35 (Android 16)
+        targetSdk = 35
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
@@ -80,4 +84,7 @@ dependencies {
     // Kotlin Coroutines for async operations
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+    
+    // Core library desugaring for flutter_local_notifications (requires 2.1.4+)
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }

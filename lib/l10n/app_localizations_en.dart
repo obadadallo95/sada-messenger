@@ -137,14 +137,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cameraPermissionDenied => 'Camera permission denied';
 
   @override
-  String get cameraPermissionRequired =>
-      'We need camera permission to scan QR codes';
+  String get cameraPermissionRequired => 'Camera permission is required';
 
   @override
   String get grantPermission => 'Grant Permission';
 
   @override
-  String get placeQrInFrame => 'Place QR code inside the frame';
+  String get placeQrInFrame => 'Position the QR code within the frame';
 
   @override
   String get friendAddedSuccessfully => 'Friend added successfully';
@@ -455,4 +454,51 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get apkShareError => 'Failed to share APK file';
+
+  @override
+  String get myQrCode => 'My QR Code';
+
+  @override
+  String get scanQrCode => 'Scan QR Code';
+
+  @override
+  String get invalidQrCode => 'Invalid QR Code';
+
+  @override
+  String get invalidQrCodeFormat => 'Invalid QR Code format';
+
+  @override
+  String get invalidQrCodeFields => 'Invalid QR Code: Missing required fields';
+
+  @override
+  String get processing => 'Processing...';
+
+  @override
+  String get cannotAddYourself => 'You cannot add yourself as a contact';
+
+  @override
+  String get contactAlreadyExists => 'Contact already exists';
+
+  @override
+  String get errorProcessingQrCode => 'Error processing QR Code';
+
+  @override
+  String get shareQrCodeDescription =>
+      'Share this QR code to add you as a contact';
+
+  @override
+  String get qrCodeSecurityInfo =>
+      'This QR code contains your public key for secure messaging.';
+
+  @override
+  String get home => 'Home';
+
+  @override
+  String get notifications => 'Notifications';
+
+  @override
+  String get markAllAsRead => 'Mark All as Read';
+
+  @override
+  String get noNotifications => 'No notifications';
 }

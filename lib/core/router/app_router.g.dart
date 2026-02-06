@@ -6,11 +6,14 @@ part of 'app_router.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$appRouterHash() => r'c1d2e3f4g5h6i7j8k9l0m1n2o3p4q5';
+String _$appRouterHash() => r'e910d65768e04bd2a9cfc2465db4d48c92e01e7f';
 
-/// See also [appRouter].
+/// Provider لـ GoRouter
+/// يستخدم ShellRoute لعرض BottomNavBar بشكل دائم
+///
+/// Copied from [appRouter].
 @ProviderFor(appRouter)
-final appRouterProvider = Provider<GoRouter>.internal(
+final appRouterProvider = AutoDisposeProvider<GoRouter>.internal(
   appRouter,
   name: r'appRouterProvider',
   debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
@@ -20,5 +23,8 @@ final appRouterProvider = Provider<GoRouter>.internal(
   allTransitiveDependencies: null,
 );
 
-typedef AppRouterRef = ProviderRef<GoRouter>;
-
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef AppRouterRef = AutoDisposeProviderRef<GoRouter>;
+// ignore_for_file: type=lint
+// ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

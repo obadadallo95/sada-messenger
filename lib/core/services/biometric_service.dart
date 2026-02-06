@@ -139,10 +139,6 @@ class BiometricService extends StateNotifier<BiometricState> {
       final result = await _localAuth.authenticate(
         localizedReason: reason ??
             'Scan your fingerprint to enter Sada',
-        options: const AuthenticationOptions(
-          stickyAuth: true,
-          biometricOnly: true,
-        ),
       );
 
       if (result) {

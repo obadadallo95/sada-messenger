@@ -1,4 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_launcher_background">#0D9488</color>
+    <!-- Cyber-Stealth Color Palette -->
+    <!-- Deep Midnight Blue: Primary background for Adaptive Icon -->
+    <color name="ic_launcher_background">#050A14</color>
+    
+    <!-- Additional Cyber-Stealth colors -->
+    <!-- Electric Cyan: Primary accent -->
+    <color name="primaryAccent">#00E5FF</color>
+    <!-- Neon Purple: Secondary accent -->
+    <color name="secondaryAccent">#D500F9</color>
 </resources>

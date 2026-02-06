@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../features/splash/presentation/pages/splash_screen.dart';
 import '../../features/onboarding/presentation/pages/onboarding_screen.dart';
 import '../../features/home/presentation/pages/home_screen.dart';
@@ -11,13 +12,17 @@ import '../../features/settings/presentation/pages/settings_screen.dart';
 import '../../features/settings/presentation/pages/about_screen.dart';
 import '../../features/settings/presentation/pages/privacy_screen.dart';
 import '../../features/contacts/presentation/pages/add_friend_screen.dart';
+import '../../features/contacts/presentation/scan_qr_screen.dart';
+import '../../features/contacts/presentation/my_qr_screen.dart';
 import '../../features/auth/presentation/pages/register_screen.dart';
 import '../../features/auth/presentation/pages/lock_screen.dart';
 import '../../features/groups/presentation/pages/create_group_screen.dart';
 import '../../features/groups/presentation/pages/groups_screen.dart';
 import '../../features/mesh/presentation/pages/mesh_debug_screen.dart';
+import '../../features/notifications/presentation/pages/notifications_screen.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/biometric_service.dart';
+import '../../l10n/app_localizations.dart';
 import 'routes.dart';
 
 part 'app_router.g.dart';
@@ -25,7 +30,7 @@ part 'app_router.g.dart';
 /// Provider لـ GoRouter
 /// يستخدم ShellRoute لعرض BottomNavBar بشكل دائم
 @riverpod
-GoRouter appRouter(AppRouterRef ref) {
+GoRouter appRouter(Ref ref) {
   final authStatus = ref.watch(authServiceProvider);
   final biometricState = ref.watch(biometricServiceProvider);
 
@@ -149,6 +154,16 @@ GoRouter appRouter(AppRouterRef ref) {
             builder: (context, state) => const AddFriendScreen(),
           ),
           GoRoute(
+            path: AppRoutes.scanQr,
+            name: 'scan-qr',
+            builder: (context, state) => const ScanQrScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.myQr,
+            name: 'my-qr',
+            builder: (context, state) => const MyQrScreen(),
+          ),
+          GoRoute(
             path: AppRoutes.createGroup,
             name: 'create-group',
             builder: (context, state) => const CreateGroupScreen(),
@@ -162,6 +177,11 @@ GoRouter appRouter(AppRouterRef ref) {
             path: AppRoutes.meshDebug,
             name: 'mesh-debug',
             builder: (context, state) => const MeshDebugScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.notifications,
+            name: 'notifications',
+            builder: (context, state) => const NotificationsScreen(),
           ),
         ],
       ),
@@ -183,7 +203,9 @@ class ScaffoldWithNavBar extends StatelessWidget {
   int _calculateSelectedIndex(String location) {
     if (location.startsWith(AppRoutes.home)) return 0;
     if (location.startsWith(AppRoutes.chat)) return 1;
-    if (location.startsWith(AppRoutes.settings)) return 2;
+    if (location.startsWith(AppRoutes.groups)) return 2;
+    if (location.startsWith(AppRoutes.addFriend)) return 3;
+    if (location.startsWith(AppRoutes.settings)) return 4;
     return 0;
   }
 
@@ -196,6 +218,12 @@ class ScaffoldWithNavBar extends StatelessWidget {
         context.go(AppRoutes.chat);
         break;
       case 2:
+        context.go(AppRoutes.groups);
+        break;
+      case 3:
+        context.go(AppRoutes.addFriend);
+        break;
+      case 4:
         context.go(AppRoutes.settings);
         break;
     }
@@ -204,27 +232,38 @@ class ScaffoldWithNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final selectedIndex = _calculateSelectedIndex(location);
+    final l10n = AppLocalizations.of(context);
     
     return Scaffold(
       body: child,
       bottomNavigationBar: NavigationBar(
         selectedIndex: selectedIndex,
         onDestinationSelected: (index) => _onItemTapped(index, context),
-        destinations: const [
+        destinations: [
           NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'Home',
+            icon: const Icon(Icons.home_outlined),
+            selectedIcon: const Icon(Icons.home),
+            label: l10n?.home ?? 'Home',
           ),
           NavigationDestination(
-            icon: Icon(Icons.chat_bubble_outline),
-            selectedIcon: Icon(Icons.chat_bubble),
-            label: 'Chat',
+            icon: const Icon(Icons.chat_bubble_outline),
+            selectedIcon: const Icon(Icons.chat_bubble),
+            label: l10n?.chat ?? 'Chat',
           ),
           NavigationDestination(
-            icon: Icon(Icons.settings_outlined),
-            selectedIcon: Icon(Icons.settings),
-            label: 'Settings',
+            icon: const Icon(Icons.group_outlined),
+            selectedIcon: const Icon(Icons.group),
+            label: l10n?.nearbyCommunities ?? 'Groups',
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.person_add_outlined),
+            selectedIcon: const Icon(Icons.person_add),
+            label: l10n?.addFriend ?? 'Add Friend',
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.settings_outlined),
+            selectedIcon: const Icon(Icons.settings),
+            label: l10n?.settings ?? 'Settings',
           ),
         ],
       ),

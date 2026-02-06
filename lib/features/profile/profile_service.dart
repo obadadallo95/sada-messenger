@@ -44,10 +44,9 @@ class ProfileService extends StateNotifier<ProfileState> {
   static const String _avatarDuressKey = 'avatar_duress';
 
   final Ref _ref;
+  // Modern 2026: EncryptedSharedPreferences is deprecated, using default secure storage
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage(
-    aOptions: AndroidOptions(
-      encryptedSharedPreferences: true,
-    ),
+    aOptions: AndroidOptions(),
     iOptions: IOSOptions(
       accessibility: KeychainAccessibility.first_unlock_this_device,
     ),

@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:sodium_libs/sodium_libs.dart' hide SodiumInit;
 import 'package:sodium_libs/sodium_libs.dart' as sodium_libs show SodiumInit;
-import 'package:sodium/sodium.dart';
 import '../utils/log_service.dart';
 import 'key_manager.dart';
 

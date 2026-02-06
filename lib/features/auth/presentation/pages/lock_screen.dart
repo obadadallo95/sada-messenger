@@ -195,7 +195,7 @@ class _LockScreenState extends ConsumerState<LockScreen> {
                     width: 120.w,
                     height: 120.h,
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
+                      color: Colors.white.withValues(alpha: 0.2),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
@@ -223,7 +223,7 @@ class _LockScreenState extends ConsumerState<LockScreen> {
                     l10n.unlockToContinue,
                     style: theme.textTheme.bodyLarge?.copyWith(
                       fontSize: 16.sp,
-                      color: Colors.white.withOpacity(0.9),
+                      color: Colors.white.withValues(alpha: 0.9),
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -298,7 +298,7 @@ class _LockScreenState extends ConsumerState<LockScreen> {
                       child: Text(
                         l10n.enterPin,
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.9),
+                          color: Colors.white.withValues(alpha: 0.9),
                           fontSize: 14.sp,
                         ),
                       ),
@@ -326,7 +326,7 @@ class _LockScreenState extends ConsumerState<LockScreen> {
             shape: BoxShape.circle,
             color: index < _enteredPin.length
                 ? Colors.white
-                : Colors.white.withOpacity(0.3),
+                : Colors.white.withValues(alpha: 0.3),
           ),
         ),
       ),
@@ -371,7 +371,7 @@ class _LockScreenState extends ConsumerState<LockScreen> {
       height: 70.h,
       margin: EdgeInsets.symmetric(horizontal: 8.w),
       child: Material(
-        color: Colors.white.withOpacity(0.2),
+        color: Colors.white.withValues(alpha: 0.2),
         shape: const CircleBorder(),
         child: InkWell(
           onTap: () {

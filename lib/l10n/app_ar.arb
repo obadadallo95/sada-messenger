@@ -12,6 +12,10 @@
   "@welcomeMessage": {
     "description": "رسالة الترحيب في الشاشة الرئيسية"
   },
+  "home": "الرئيسية",
+  "@home": {
+    "description": "عنوان الشاشة الرئيسية"
+  },
   "settings": "الإعدادات",
   "@settings": {
     "description": "عنوان شاشة الإعدادات"
@@ -574,6 +578,18 @@
   "apkShareError": "فشل مشاركة ملف APK",
   "@apkShareError": {
     "description": "رسالة خطأ مشاركة APK"
+  },
+  "notifications": "الإشعارات",
+  "@notifications": {
+    "description": "عنوان شاشة الإشعارات"
+  },
+  "noNotifications": "لا توجد إشعارات",
+  "@noNotifications": {
+    "description": "رسالة عندما لا توجد إشعارات"
+  },
+  "markAllAsRead": "تعليم الكل كمقروء",
+  "@markAllAsRead": {
+    "description": "زر تعليم جميع الإشعارات كمقروءة"
   }
 }
 

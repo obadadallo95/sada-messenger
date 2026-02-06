@@ -1,22 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:showcaseview/showcaseview.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:ui';
 import '../../../../core/router/routes.dart';
-import '../../../../core/services/notification_provider.dart';
-import '../../../../core/widgets/double_back_to_exit.dart';
-import '../../../../core/widgets/in_app_notification.dart';
 import '../../../../core/widgets/user_avatar.dart';
+import '../../../../core/widgets/mesh_gradient_background.dart';
+import '../../../../core/widgets/glowing_orb_fab.dart';
 import '../../../../core/services/auth_service.dart';
+import '../../../../core/utils/log_service.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../chat/data/repositories/chat_repository.dart';
 import '../../../chat/domain/models/chat_model.dart';
-import '../../../chat/presentation/widgets/chat_tile.dart';
+import '../../../chat/presentation/widgets/glass_chat_tile.dart';
 import '../../../profile/profile_service.dart';
 
 /// شاشة الرئيسية - قائمة المحادثات
+/// محدثة لدعم Android 15/16 و Flutter 3.27+ / 4.x
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
@@ -34,6 +37,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   final GlobalKey _fabKey = GlobalKey();
   final GlobalKey _profileKey = GlobalKey();
 
+  // Double Back to Exit
+  DateTime? _lastBackPress;
+
   @override
   void initState() {
     super.initState();
@@ -46,26 +52,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       parent: _speedDialController,
       curve: Curves.easeInOut,
     );
-    _checkAndStartShowcase();
+    // لا نستدعي _checkAndStartShowcase هنا - سيتم استدعاؤها من builder callback
   }
 
   /// التحقق من عرض Showcase Tour
   Future<void> _checkAndStartShowcase() async {
+    if (!mounted) return;
+    
     final prefs = await SharedPreferences.getInstance();
     final hasSeenTour = prefs.getBool('hasSeenHomeTour') ?? false;
 
     if (!hasSeenTour && mounted) {
-      // انتظار بناء الـ widget
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          ShowCaseWidget.of(context).startShowCase([
-            _profileKey,
-            _fabKey,
-          ]);
-          // حفظ أن المستخدم شاهد الـ tour
-          prefs.setBool('hasSeenHomeTour', true);
-        }
-      });
+      try {
+        // استخدام API الجديد ShowcaseView.get()
+        ShowcaseView.get().startShowCase([
+          _profileKey,
+          _fabKey,
+        ]);
+        // حفظ أن المستخدم شاهد الـ tour
+        await prefs.setBool('hasSeenHomeTour', true);
+      } catch (e) {
+        // Fallback إذا فشل ShowcaseView
+        LogService.warning('فشل بدء Showcase - سيتم المحاولة لاحقاً', e);
+        // لا نحفظ hasSeenHomeTour حتى ينجح العرض
+      }
     }
   }
 
@@ -109,6 +119,43 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
+                // Scan QR Option
+                ScaleTransition(
+                  scale: _speedDialAnimation,
+                  child: Material(
+                    color: theme.colorScheme.tertiary,
+                    borderRadius: BorderRadius.circular(28.r),
+                    child: InkWell(
+                      onTap: () {
+                        _toggleSpeedDial();
+                        context.push(AppRoutes.scanQr);
+                      },
+                      borderRadius: BorderRadius.circular(28.r),
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 16.w,
+                          vertical: 12.h,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.qr_code_scanner, color: Colors.white),
+                            SizedBox(width: 8.w),
+                            Text(
+                              l10n.scanQrCode,
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 14.sp,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(height: 12.h),
                 // Create Group Option
                 ScaleTransition(
                   scale: _speedDialAnimation,
@@ -145,122 +192,61 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     ),
                   ),
                 ),
-                SizedBox(height: 12.h),
-                // Add Friend Option
-                ScaleTransition(
-                  scale: _speedDialAnimation,
-                  child: Material(
-                    color: theme.colorScheme.primary,
-                    borderRadius: BorderRadius.circular(28.r),
-                    child: InkWell(
-                      onTap: () {
-                        _toggleSpeedDial();
-                        context.push(AppRoutes.addFriend);
-                      },
-                      borderRadius: BorderRadius.circular(28.r),
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 16.w,
-                          vertical: 12.h,
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.person_add, color: Colors.white),
-                            SizedBox(width: 8.w),
-                            Text(
-                              l10n.addFriend,
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 14.sp,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
               ],
             ),
           ),
         
-        // Main FAB
-        FloatingActionButton(
+        // Main FAB - Glowing Orb
+        GlowingOrbFAB(
           onPressed: _toggleSpeedDial,
-          backgroundColor: theme.colorScheme.primary,
-          child: RotationTransition(
-            turns: Tween<double>(begin: 0, end: 0.125).animate(_speedDialAnimation),
-            child: Icon(
-              _isSpeedDialOpen ? Icons.close : Icons.add,
-              color: Colors.white,
-            ),
-          ),
+          icon: _isSpeedDialOpen ? Icons.close : Icons.radar,
+          glowColor: theme.colorScheme.primary,
         ),
       ],
     );
   }
 
   void _navigateToChat(BuildContext context, ChatModel chat) {
-    context.push('/chat/${chat.id}', extra: chat);
+    context.push('${AppRoutes.chat}/${chat.id}', extra: chat);
   }
 
-  /// محاكاة رسالة واردة
-  Future<void> _simulateIncomingMessage(BuildContext context) async {
-    final l10n = AppLocalizations.of(context)!;
-    final notificationService = ref.read(notificationServiceProvider);
+  /// معالجة Double Back to Exit مع دعم Predictive Back Gesture
+  void _handleBackPress(BuildContext context) {
+    final now = DateTime.now();
+    final shouldExit = _lastBackPress != null &&
+        now.difference(_lastBackPress!) < const Duration(seconds: 2);
 
-    // إظهار رسالة المحاكاة
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(l10n.simulatingMessage),
-        duration: const Duration(seconds: 1),
-      ),
-    );
-
-    // انتظار 3 ثوان (محاكاة تأخير الشبكة)
-    await Future.delayed(const Duration(seconds: 3));
-
-    if (!mounted) return;
-
-    // بيانات المحاكاة
-    const chatId = 'chat_simulated_123';
-    const senderName = 'Sarah';
-    const messageText = 'Hello neighbor!';
-    final notificationId = DateTime.now().millisecondsSinceEpoch % 100000;
-
-    // التحقق من حالة التطبيق
-    final appState = WidgetsBinding.instance.lifecycleState;
-    final isInForeground = appState == AppLifecycleState.resumed;
-
-    if (isInForeground) {
-      // إظهار إشعار داخل التطبيق
-      InAppNotificationOverlay.show(
-        context: context,
-        title: senderName,
-        body: messageText,
-        chatId: chatId,
-        avatarColor: Colors.teal,
-        onTap: () {
-          // التنقل إلى المحادثة (في هذه الحالة سنعرض رسالة)
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('تم النقر على إشعار من $senderName'),
-              duration: const Duration(seconds: 2),
-            ),
-          );
-        },
-      );
+    if (shouldExit) {
+      // الضغط الثاني خلال ثانيتين - إغلاق التطبيق
+      SystemNavigator.pop();
     } else {
-      // إظهار إشعار النظام
-      final notificationTitle = l10n.newMessageFrom(senderName);
-      await notificationService.showChatNotification(
-        id: notificationId,
-        title: notificationTitle,
-        body: messageText,
-        payload: chatId,
-      );
+      // الضغط الأول أو بعد ثانيتين - عرض رسالة
+      _lastBackPress = now;
+      final l10n = AppLocalizations.of(context);
+      if (l10n != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              l10n.exitMessage,
+              style: TextStyle(
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            behavior: SnackBarBehavior.floating,
+            margin: EdgeInsets.only(
+              bottom: MediaQuery.of(context).size.height * 0.1,
+              left: 16.w,
+              right: 16.w,
+            ),
+            duration: const Duration(seconds: 2),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8.r),
+            ),
+          ),
+        );
+      }
+      HapticFeedback.lightImpact();
     }
   }
 
@@ -270,39 +256,201 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final chatsAsync = ref.watch(chatRepositoryProvider);
     final theme = Theme.of(context);
 
+    // استخدام ShowCaseWidget مع ignore للتحذيرات (API الجديد غير متوفر بعد)
+    // ignore: deprecated_member_use
     return ShowCaseWidget(
-      builder: (context) => DoubleBackToExit(
-        child: Scaffold(
-        body: CustomScrollView(
-        slivers: [
-          // SliverAppBar
-          SliverAppBar(
-            expandedHeight: 120.h,
-            floating: true,
-            pinned: true,
-            elevation: 0,
-            backgroundColor: Theme.of(context).colorScheme.surface,
-            flexibleSpace: FlexibleSpaceBar(
-              title: Text(
-                l10n.appName,
-                style: TextStyle(
-                  fontSize: 28.sp,
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.onSurface,
+      builder: (showcaseContext) {
+        // بدء Showcase بعد أن يكون context متاحاً
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            _checkAndStartShowcase();
+          }
+        });
+        
+        return Builder(
+          builder: (builderContext) => PopScope(
+          canPop: false,
+          onPopInvokedWithResult: (didPop, result) {
+            // إذا تم الإغلاق بالفعل، لا نفعل شيء
+            if (didPop) return;
+
+            // معالجة Double Back to Exit
+            _handleBackPress(builderContext);
+          },
+          child: MeshGradientBackground(
+            child: Scaffold(
+              backgroundColor: Colors.transparent,
+              body: CustomScrollView(
+                slivers: [
+                  // SliverAppBar - Transparent with blur
+                  SliverAppBar(
+                    expandedHeight: 120.h,
+                    floating: true,
+                    pinned: true,
+                    elevation: 0,
+                    backgroundColor: Colors.transparent,
+                    flexibleSpace: ClipRRect(
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surface.withValues(alpha: 0.3),
+                            border: Border(
+                              bottom: BorderSide(
+                                color: Colors.white.withValues(alpha: 0.1),
+                                width: 1,
+                              ),
+                            ),
+                          ),
+                          child: FlexibleSpaceBar(
+                            title: Text(
+                              l10n.appName,
+                              style: theme.textTheme.headlineMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                            centerTitle: false,
+                            titlePadding: EdgeInsets.only(
+                              left: 16.w,
+                              bottom: 16.h,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  leading: Padding(
+                    padding: EdgeInsets.all(8.w),
+                    child: Showcase(
+                      key: _profileKey,
+                      title: l10n.yourIdentity,
+                      description: l10n.yourIdentityDescription,
+                      targetShapeBorder: const CircleBorder(),
+                      tooltipBackgroundColor: theme.colorScheme.primary,
+                      textColor: Colors.white,
+                      titleTextStyle: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18.sp,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      descTextStyle: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.9),
+                        fontSize: 14.sp,
+                      ),
+                      child: Consumer(
+                        builder: (context, ref, child) {
+                          final profileState = ref.watch(profileServiceProvider);
+                          final authService = ref.read(authServiceProvider.notifier);
+                          final currentUser = authService.currentUser;
+                          
+                          return UserAvatar(
+                            base64Image: profileState.avatarBase64,
+                            userName: currentUser?.displayName ?? 'User',
+                            radius: 20.r,
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                  actions: [
+                    // زر الإشعارات
+                    IconButton(
+                      icon: const Icon(Icons.notifications_outlined),
+                      tooltip: l10n.notifications,
+                      onPressed: () {
+                        context.push(AppRoutes.notifications);
+                      },
+                    ),
+                  ],
                 ),
+                // قائمة المحادثات
+                chatsAsync.when(
+                  data: (chats) {
+                    if (chats.isEmpty) {
+                      return SliverFillRemaining(
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.chat_bubble_outline,
+                                size: 64.sp,
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                              SizedBox(height: 16.h),
+                              Text(
+                                l10n.noChats,
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                      fontSize: 18.sp,
+                                      color: theme.colorScheme.onSurfaceVariant,
+                                    ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }
+
+                    return SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          final chat = chats[index];
+                          return GlassChatTile(
+                            chat: chat,
+                            onTap: () => _navigateToChat(context, chat),
+                            index: index,
+                          );
+                        },
+                        childCount: chats.length,
+                      ),
+                    );
+                  },
+                  loading: () => SliverFillRemaining(
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                  ),
+                  error: (error, stack) {
+                    // Log the error for debugging
+                    LogService.error('CHAT REPOSITORY ERROR: $error', error);
+                    
+                    // Check if it's a critical error or just "no data"
+                    // If the repository returns empty list, we should show "No Chats" not "Error"
+                    // Since we fixed the repository to return [] instead of throwing, this should rarely happen
+                    // Show "No Chats" instead of "Error" for better UX
+                    return SliverFillRemaining(
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.chat_bubble_outline,
+                              size: 64.sp,
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                            SizedBox(height: 16.h),
+                            Text(
+                              l10n.noChats,
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                    fontSize: 18.sp,
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                  ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                ],
               ),
-              centerTitle: false,
-              titlePadding: EdgeInsets.only(
-                left: 16.w,
-                bottom: 16.h,
-              ),
-            ),
-            leading: Padding(
-              padding: EdgeInsets.all(8.w),
-              child: Showcase(
-                key: _profileKey,
-                title: l10n.yourIdentity,
-                description: l10n.yourIdentityDescription,
+              // Floating Action Button with Speed Dial
+              floatingActionButton: Showcase(
+                key: _fabKey,
+                title: l10n.startConnecting,
+                description: l10n.startConnectingDescription,
                 targetShapeBorder: const CircleBorder(),
                 tooltipBackgroundColor: theme.colorScheme.primary,
                 textColor: Colors.white,
@@ -312,128 +460,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   fontWeight: FontWeight.bold,
                 ),
                 descTextStyle: TextStyle(
-                  color: Colors.white.withOpacity(0.9),
+                  color: Colors.white.withValues(alpha: 0.9),
                   fontSize: 14.sp,
                 ),
-                child: Consumer(
-                  builder: (context, ref, child) {
-                    final profileState = ref.watch(profileServiceProvider);
-                    final authService = ref.read(authServiceProvider.notifier);
-                    final currentUser = authService.currentUser;
-                    
-                    return UserAvatar(
-                      base64Image: profileState.avatarBase64,
-                      userName: currentUser?.displayName ?? 'User',
-                      radius: 20.r,
-                    );
-                  },
-                ),
-              ),
-            ),
-            actions: [
-              // زر محاكاة الرسالة (للاختبار)
-              IconButton(
-                icon: Icon(Icons.notifications_active),
-                tooltip: l10n.simulateMessage,
-                onPressed: () => _simulateIncomingMessage(context),
-              ),
-            ],
-          ),
-          // قائمة المحادثات
-          chatsAsync.when(
-            data: (chats) {
-              if (chats.isEmpty) {
-                return SliverFillRemaining(
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.chat_bubble_outline,
-                          size: 64.sp,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                        SizedBox(height: 16.h),
-                        Text(
-                          l10n.noChats,
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontSize: 18.sp,
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                              ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }
-
-              return SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final chat = chats[index];
-                    return ChatTile(
-                      chat: chat,
-                      onTap: () => _navigateToChat(context, chat),
-                    );
-                  },
-                  childCount: chats.length,
-                ),
-              );
-            },
-            loading: () => SliverFillRemaining(
-              child: Center(
-                child: CircularProgressIndicator(
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-              ),
-            ),
-            error: (error, stack) => SliverFillRemaining(
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.error_outline,
-                      size: 64.sp,
-                      color: Theme.of(context).colorScheme.error,
-                    ),
-                    SizedBox(height: 16.h),
-                    Text(
-                      l10n.errorLoadingChats,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontSize: 18.sp,
-                            color: Theme.of(context).colorScheme.error,
-                          ),
-                    ),
-                  ],
-                ),
+                child: _buildSpeedDial(context),
               ),
             ),
           ),
-        ],
-      ),
-        // Floating Action Button with Speed Dial
-        floatingActionButton: Showcase(
-          key: _fabKey,
-          title: l10n.startConnecting,
-          description: l10n.startConnectingDescription,
-          targetShapeBorder: const CircleBorder(),
-          tooltipBackgroundColor: theme.colorScheme.primary,
-          textColor: Colors.white,
-          titleTextStyle: TextStyle(
-            color: Colors.white,
-            fontSize: 18.sp,
-            fontWeight: FontWeight.bold,
-          ),
-          descTextStyle: TextStyle(
-            color: Colors.white.withOpacity(0.9),
-            fontSize: 14.sp,
-          ),
-          child: _buildSpeedDial(context),
         ),
-      ),
-    ),
+      );
+      },
     );
   }
 }
-

@@ -114,56 +114,49 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Theme.of(context).colorScheme.primary,
-              Theme.of(context).colorScheme.primaryContainer,
-            ],
-          ),
+        decoration: const BoxDecoration(
+          // Cyber-Stealth: Deep Midnight Blue background (matches native splash)
+          color: Color(0xFF050A14),
         ),
         child: SafeArea(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // شعار التطبيق مع FadeIn و Scale Up animations
-              FadeTransition(
-                opacity: _fadeAnimation,
-                child: ScaleTransition(
-                  scale: _scaleAnimation,
-                  child: AppLogo(
-                    width: 200.w,
-                    height: 200.h,
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // شعار التطبيق مع FadeIn و Scale Up animations
+                FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: ScaleTransition(
+                    scale: _scaleAnimation,
+                    child: AppLogo(
+                      width: 200.w,
+                      height: 200.h,
+                    ),
                   ),
                 ),
-              ),
-              SizedBox(height: 32.h),
-              // اسم التطبيق
-              FadeTransition(
-                opacity: _fadeAnimation,
-                child: Text(
-                  'Sada',
-                  style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                        fontSize: 48.sp,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
+                SizedBox(height: 32.h),
+                // اسم التطبيق
+                FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: Text(
+                    'Sada',
+                    style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                          fontSize: 48.sp,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                  ),
                 ),
-              ),
-              const Spacer(),
-              // Loading indicator في الأسفل
-              Padding(
-                padding: EdgeInsets.only(bottom: 40.h),
-                child: FadeTransition(
+                SizedBox(height: 60.h),
+                // Loading indicator
+                FadeTransition(
                   opacity: _fadeAnimation,
                   child: const CircularProgressIndicator(
                     valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

@@ -9,6 +9,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../../../core/router/routes.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../core/utils/log_service.dart';
+import '../../../../core/services/auth_service.dart';
 
 /// شاشة إضافة صديق
 /// تحتوي على تبويبين: رمز QR الخاص بي ومسح رمز QR
@@ -26,9 +27,16 @@ class _AddFriendScreenState extends ConsumerState<AddFriendScreen>
   bool _flashEnabled = false;
   bool _hasPermission = false;
 
-  // بيانات المستخدم الحالي (Mock Data)
-  final String _currentUserId = 'user_12345';
-  final String _currentUserName = 'أحمد';
+  // الحصول على بيانات المستخدم الحالي من AuthService
+  String get _currentUserId {
+    final authService = ref.read(authServiceProvider.notifier);
+    return authService.currentUser?.userId ?? 'unknown';
+  }
+
+  String get _currentUserName {
+    final authService = ref.read(authServiceProvider.notifier);
+    return authService.currentUser?.displayName ?? 'User';
+  }
 
   @override
   void initState() {
@@ -61,15 +69,15 @@ class _AddFriendScreenState extends ConsumerState<AddFriendScreen>
 
   /// توليد بيانات QR Code
   String _generateQRData() {
-    return 'sada://user/${_currentUserId}';
+    return 'sada://user/$_currentUserId';
   }
 
   /// مشاركة رمز QR
   Future<void> _shareQRCode() async {
     try {
+      // ignore: deprecated_member_use
       await Share.share(
-        'sada://user/${_currentUserId}',
-        subject: 'Sada - Add me as a friend',
+        'sada://user/$_currentUserId',
       );
     } catch (e) {
       LogService.error('خطأ في مشاركة رمز QR', e);
@@ -115,7 +123,7 @@ class _AddFriendScreenState extends ConsumerState<AddFriendScreen>
               width: 40.w,
               height: 4.h,
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.3),
+                color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(2.r),
               ),
             ),
@@ -148,7 +156,7 @@ class _AddFriendScreenState extends ConsumerState<AddFriendScreen>
             Container(
               padding: EdgeInsets.all(16.w),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.5),
+                color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(12.r),
               ),
               child: Column(
@@ -304,7 +312,14 @@ class _AddFriendScreenState extends ConsumerState<AddFriendScreen>
                       version: QrVersions.auto,
                       size: 250.w,
                       backgroundColor: Colors.white,
-                      foregroundColor: theme.colorScheme.primary,
+                      eyeStyle: QrEyeStyle(
+                        eyeShape: QrEyeShape.square,
+                        color: theme.colorScheme.primary,
+                      ),
+                      dataModuleStyle: QrDataModuleStyle(
+                        dataModuleShape: QrDataModuleShape.square,
+                        color: theme.colorScheme.primary,
+                      ),
                       errorCorrectionLevel: QrErrorCorrectLevel.H,
                     ),
                     SizedBox(height: 24.h),
@@ -455,7 +470,7 @@ class _AddFriendScreenState extends ConsumerState<AddFriendScreen>
         // طبقة سوداء شفافة تغطي الشاشة بالكامل
         Positioned.fill(
           child: Container(
-            color: Colors.black.withOpacity(0.5),
+            color: Colors.black.withValues(alpha: 0.5),
           ),
         ),
         // فتحة شفافة في الوسط (Cut-out)

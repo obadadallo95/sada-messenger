@@ -7,6 +7,7 @@ import '../security/security_providers.dart';
 import '../security/encryption_service.dart';
 import '../services/notification_provider.dart';
 import '../services/notification_service.dart';
+import '../database/database_provider.dart';
 
 /// خدمة Mesh لإدارة الاتصالات والرسائل
 class MeshService {
@@ -67,7 +68,35 @@ class MeshService {
   }
 
   /// إرسال رسالة عبر Socket
-  Future<bool> sendMessage(String message) async {
+  /// [peerId]: معرف الطرف المستقبل
+  /// [encryptedContent]: المحتوى المشفر (Base64)
+  Future<bool> sendMessage(String peerId, String encryptedContent) async {
+    try {
+      // إنشاء JSON payload
+      final payload = jsonEncode({
+        'peerId': peerId,
+        'content': encryptedContent,
+        'timestamp': DateTime.now().toIso8601String(),
+      });
+      
+      final result = await _methodChannel.invokeMethod<bool>(
+        'socket_write',
+        {
+          'peerId': peerId,
+          'message': payload,
+        },
+      );
+      LogService.info('تم إرسال الرسالة إلى $peerId');
+      return result ?? false;
+    } catch (e) {
+      LogService.error('خطأ في إرسال الرسالة', e);
+      return false;
+    }
+  }
+  
+  /// إرسال رسالة (Legacy method - للتوافق مع الكود القديم)
+  @Deprecated('Use sendMessage(peerId, encryptedContent) instead')
+  Future<bool> sendMessageLegacy(String message) async {
     try {
       final result = await _methodChannel.invokeMethod<bool>(
         'sendMessage',
@@ -107,6 +136,7 @@ final messageHandlerProvider = Provider<MessageHandler>((ref) {
     meshService: meshService,
     encryptionService: encryptionService,
     notificationService: notificationService,
+    ref: ref,
   );
 });
 
@@ -115,6 +145,7 @@ class MessageHandler {
   final MeshService meshService;
   final EncryptionService encryptionService;
   final NotificationService notificationService;
+  final Ref ref;
   
   StreamSubscription<String>? _messageSubscription;
 
@@ -122,6 +153,7 @@ class MessageHandler {
     required this.meshService,
     required this.encryptionService,
     required this.notificationService,
+    required this.ref,
   }) {
     _startListening();
   }
@@ -139,16 +171,56 @@ class MessageHandler {
     );
   }
 
-  Future<void> _handleMessage(String encryptedMessage) async {
+  Future<void> _handleMessage(String messageJson) async {
     try {
-      LogService.info('تم استقبال رسالة مشفرة: ${encryptedMessage.substring(0, encryptedMessage.length > 50 ? 50 : encryptedMessage.length)}...');
+      LogService.info('تم استقبال رسالة: ${messageJson.substring(0, messageJson.length > 50 ? 50 : messageJson.length)}...');
       
-      // TODO: فك التشفير باستخدام EncryptionService
-      // حالياً نتعامل مع الرسالة كنص عادي للاختبار
-      String decryptedMessage = encryptedMessage;
+      // تحليل JSON
+      final Map<String, dynamic> messageData = jsonDecode(messageJson);
+      final String? senderId = messageData['senderId'] as String?;
+      final String? encryptedContent = messageData['content'] as String?;
+      final String? chatId = messageData['chatId'] as String?;
       
-      // TODO: حفظ الرسالة في قاعدة البيانات
-      // await chatRepository.saveMessage(...);
+      if (senderId == null || encryptedContent == null) {
+        LogService.error('رسالة غير صحيحة: senderId أو content مفقود');
+        return;
+      }
+      
+      // فك التشفير
+      String decryptedMessage;
+      try {
+        // الحصول على قاعدة البيانات
+        final database = await ref.read(appDatabaseProvider.future);
+        
+        // الحصول على المفتاح العام للمرسل من قاعدة البيانات
+        final contact = await database.getContactById(senderId);
+        if (contact?.publicKey != null) {
+          try {
+            // تحويل المفتاح العام من Base64 إلى Uint8List
+            final remotePublicKeyBytes = base64Decode(contact!.publicKey!);
+            
+            // حساب Shared Secret
+            final sharedKey = await encryptionService.calculateSharedSecret(remotePublicKeyBytes);
+            
+            // فك التشفير
+            decryptedMessage = encryptionService.decryptMessage(encryptedContent, sharedKey);
+            LogService.info('تم فك تشفير الرسالة بنجاح');
+          } catch (e) {
+            LogService.error('خطأ في فك تشفير الرسالة', e);
+            decryptedMessage = encryptedContent; // استخدام النص المشفر كنص عادي
+          }
+        } else {
+          LogService.warning('لا يوجد مفتاح عام للمرسل - استخدام النص المشفر');
+          decryptedMessage = encryptedContent;
+        }
+      } catch (e) {
+        LogService.error('خطأ في فك تشفير الرسالة', e);
+        decryptedMessage = encryptedContent; // استخدام النص المشفر كنص عادي
+      }
+      
+      // حفظ الرسالة في قاعدة البيانات
+      // سيتم تنفيذها في MessageHandlerProvider
+      // await _saveIncomingMessage(senderId, chatId, decryptedMessage);
       
       // إظهار إشعار محلي
       await notificationService.showChatNotification(
@@ -157,7 +229,12 @@ class MessageHandler {
         body: decryptedMessage.length > 50 
             ? '${decryptedMessage.substring(0, 50)}...' 
             : decryptedMessage,
-        payload: jsonEncode({'type': 'message', 'text': decryptedMessage}),
+        payload: jsonEncode({
+          'type': 'message',
+          'senderId': senderId,
+          'chatId': chatId,
+          'text': decryptedMessage,
+        }),
       );
       
       LogService.info('تم معالجة الرسالة بنجاح');

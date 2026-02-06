@@ -26,7 +26,7 @@ class OnboardingSlide extends StatelessWidget {
             width: 200.w,
             height: 200.h,
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
+              color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
               shape: BoxShape.circle,
             ),
             child: Icon(

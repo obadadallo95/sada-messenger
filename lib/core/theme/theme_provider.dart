@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/constants.dart';
 import '../utils/log_service.dart';
@@ -73,7 +74,7 @@ class ThemeNotifier extends _$ThemeNotifier {
 
 /// Provider للحصول على الثيم الحالي
 @riverpod
-ThemeData theme(ThemeRef ref) {
+ThemeData theme(Ref ref) {
   final themeModeAsync = ref.watch(themeNotifierProvider);
   return themeModeAsync.when(
     data: (mode) {
@@ -81,7 +82,7 @@ ThemeData theme(ThemeRef ref) {
       return isLight ? AppTheme.lightTheme : AppTheme.darkTheme;
     },
     loading: () => AppTheme.lightTheme,
-    error: (_, __) => AppTheme.lightTheme,
+    error: (_, _) => AppTheme.lightTheme,
   );
 }
 

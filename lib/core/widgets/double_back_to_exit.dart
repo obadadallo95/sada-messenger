@@ -24,7 +24,7 @@ class _DoubleBackToExitState extends State<DoubleBackToExit> {
   Widget build(BuildContext context) {
     return PopScope(
       canPop: false,
-      onPopInvoked: (didPop) {
+      onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
 
         final now = DateTime.now();

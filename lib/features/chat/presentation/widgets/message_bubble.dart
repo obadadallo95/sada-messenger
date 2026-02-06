@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'dart:ui';
 import '../../domain/models/message_model.dart';
 
 /// Widget لعرض فقاعة الرسالة
+/// Cyber-Stealth aesthetic with glassmorphism
 class MessageBubble extends StatelessWidget {
   final MessageModel message;
 
@@ -19,25 +21,41 @@ class MessageBubble extends StatelessWidget {
   }
 
   /// أيقونة حالة الرسالة
-  Widget _buildStatusIcon(MessageStatus status) {
+  Widget _buildStatusIcon(MessageStatus status, BuildContext context) {
+    final theme = Theme.of(context);
     switch (status) {
+      case MessageStatus.sending:
+        return SizedBox(
+          width: 14.sp,
+          height: 14.sp,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            valueColor: AlwaysStoppedAnimation<Color>(Colors.white.withValues(alpha: 0.7)),
+          ),
+        );
       case MessageStatus.sent:
         return Icon(
           Icons.check,
           size: 14.sp,
-          color: Colors.white70,
+          color: Colors.white.withValues(alpha: 0.7),
         );
       case MessageStatus.delivered:
         return Icon(
           Icons.done_all,
           size: 14.sp,
-          color: Colors.white70,
+          color: Colors.white.withValues(alpha: 0.7),
         );
       case MessageStatus.read:
         return Icon(
           Icons.done_all,
           size: 14.sp,
-          color: Colors.blue.shade300,
+          color: theme.colorScheme.secondary,
+        );
+      case MessageStatus.failed:
+        return Icon(
+          Icons.error_outline,
+          size: 14.sp,
+          color: theme.colorScheme.error,
         );
     }
   }
@@ -47,7 +65,7 @@ class MessageBubble extends StatelessWidget {
     final theme = Theme.of(context);
 
     if (message.isMe) {
-      // رسالتي - لون Primary
+      // رسالتي - Gradient (Cyan to Blue) with rounded corners
       return Align(
         alignment: Alignment.centerRight,
         child: Container(
@@ -62,28 +80,42 @@ class MessageBubble extends StatelessWidget {
           ),
           padding: EdgeInsets.symmetric(
             horizontal: 16.w,
-            vertical: 10.h,
+            vertical: 12.h,
           ),
           decoration: BoxDecoration(
-            color: theme.colorScheme.primary,
+            gradient: LinearGradient(
+              colors: [
+                theme.colorScheme.primary, // Electric Cyan
+                theme.colorScheme.primary.withValues(alpha: 0.8),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
             borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(16.r),
-              topRight: Radius.circular(16.r),
-              bottomLeft: Radius.circular(16.r),
+              topLeft: Radius.circular(24.r),
+              topRight: Radius.circular(24.r),
+              bottomLeft: Radius.circular(24.r),
               bottomRight: Radius.circular(4.r),
             ),
+            boxShadow: [
+              BoxShadow(
+                color: theme.colorScheme.primary.withValues(alpha: 0.3),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
                 message.text,
-                style: TextStyle(
-                  fontSize: 15.sp,
-                  color: Colors.white,
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: Colors.black,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
-              SizedBox(height: 4.h),
+              SizedBox(height: 6.h),
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -91,11 +123,12 @@ class MessageBubble extends StatelessWidget {
                     _formatTime(message.timestamp),
                     style: TextStyle(
                       fontSize: 11.sp,
-                      color: Colors.white70,
+                      color: Colors.black.withValues(alpha: 0.7),
+                      fontFeatures: const [FontFeature.tabularFigures()],
                     ),
                   ),
-                  SizedBox(width: 4.w),
-                  _buildStatusIcon(message.status),
+                  SizedBox(width: 6.w),
+                  _buildStatusIcon(message.status, context),
                 ],
               ),
             ],
@@ -103,7 +136,7 @@ class MessageBubble extends StatelessWidget {
         ),
       );
     } else {
-      // رسالة الطرف الآخر - لون Surface
+      // رسالة الطرف الآخر - Glassmorphism dark container
       return Align(
         alignment: Alignment.centerLeft,
         child: Container(
@@ -116,42 +149,59 @@ class MessageBubble extends StatelessWidget {
             top: 4.h,
             bottom: 4.h,
           ),
-          padding: EdgeInsets.symmetric(
-            horizontal: 16.w,
-            vertical: 10.h,
-          ),
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surfaceVariant,
+          child: ClipRRect(
             borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(16.r),
-              topRight: Radius.circular(16.r),
+              topLeft: Radius.circular(24.r),
+              topRight: Radius.circular(24.r),
               bottomLeft: Radius.circular(4.r),
-              bottomRight: Radius.circular(16.r),
+              bottomRight: Radius.circular(24.r),
             ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                message.text,
-                style: TextStyle(
-                  fontSize: 15.sp,
-                  color: theme.colorScheme.onSurfaceVariant,
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+              child: Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: 16.w,
+                  vertical: 12.h,
+                ),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surface.withValues(alpha: 0.4),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.1),
+                    width: 1,
+                  ),
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(24.r),
+                    topRight: Radius.circular(24.r),
+                    bottomLeft: Radius.circular(4.r),
+                    bottomRight: Radius.circular(24.r),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      message.text,
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    SizedBox(height: 6.h),
+                    Text(
+                      _formatTime(message.timestamp),
+                      style: TextStyle(
+                        fontSize: 11.sp,
+                        color: Colors.white.withValues(alpha: 0.6),
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              SizedBox(height: 4.h),
-              Text(
-                _formatTime(message.timestamp),
-                style: TextStyle(
-                  fontSize: 11.sp,
-                  color: theme.colorScheme.onSurfaceVariant.withOpacity(0.7),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       );
     }
   }
 }
-

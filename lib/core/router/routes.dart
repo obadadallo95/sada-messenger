@@ -17,6 +17,8 @@ class AppRoutes {
   static const String chat = '/chat';
   static const String settings = '/settings';
   static const String addFriend = '/add_friend';
+  static const String scanQr = '/scan_qr';
+  static const String myQr = '/my_qr';
   
   // Settings sub-routes
   static const String about = '/settings/about';
@@ -29,6 +31,9 @@ class AppRoutes {
   
   // Mesh Debug route
   static const String meshDebug = '/mesh_debug';
+  
+  // Notifications route
+  static const String notifications = '/notifications';
 
   // المسار الافتراضي (يبدأ من Splash)
   static const String initial = splash;

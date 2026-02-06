@@ -137,17 +137,16 @@ class AppLocalizationsAr extends AppLocalizations {
   String get cameraPermissionDenied => 'تم رفض صلاحية الكاميرا';
 
   @override
-  String get cameraPermissionRequired =>
-      'نحتاج إلى صلاحية الكاميرا لمسح رمز QR';
+  String get cameraPermissionRequired => 'صلاحية الكاميرا مطلوبة';
 
   @override
   String get grantPermission => 'منح الصلاحية';
 
   @override
-  String get placeQrInFrame => 'ضع رمز QR داخل الإطار';
+  String get placeQrInFrame => 'ضع رمز QR في الإطار';
 
   @override
-  String get friendAddedSuccessfully => 'تمت إضافة الصديق بنجاح';
+  String get friendAddedSuccessfully => 'تم إضافة الصديق بنجاح';
 
   @override
   String get name => 'الاسم';
@@ -455,4 +454,50 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get apkShareError => 'فشل مشاركة ملف APK';
+
+  @override
+  String get myQrCode => 'رمز QR الخاص بي';
+
+  @override
+  String get scanQrCode => 'مسح رمز QR';
+
+  @override
+  String get invalidQrCode => 'رمز QR غير صحيح';
+
+  @override
+  String get invalidQrCodeFormat => 'تنسيق رمز QR غير صحيح';
+
+  @override
+  String get invalidQrCodeFields => 'رمز QR ناقص: الحقول المطلوبة مفقودة';
+
+  @override
+  String get processing => 'جاري المعالجة...';
+
+  @override
+  String get cannotAddYourself => 'لا يمكنك إضافة نفسك كصديق';
+
+  @override
+  String get contactAlreadyExists => 'جهة الاتصال موجودة بالفعل';
+
+  @override
+  String get errorProcessingQrCode => 'خطأ في معالجة رمز QR';
+
+  @override
+  String get shareQrCodeDescription => 'شارك هذا الرمز لإضافة نفسك كجهة اتصال';
+
+  @override
+  String get qrCodeSecurityInfo =>
+      'يحتوي هذا الرمز على مفتاحك العام للرسائل المشفرة.';
+
+  @override
+  String get home => 'الرئيسية';
+
+  @override
+  String get notifications => 'الإشعارات';
+
+  @override
+  String get markAllAsRead => 'تحديد الكل كمقروء';
+
+  @override
+  String get noNotifications => 'لا توجد إشعارات';
 }

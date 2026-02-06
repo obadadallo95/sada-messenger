@@ -101,7 +101,7 @@ class _AppState extends ConsumerState<App> {
                   body: Center(child: CircularProgressIndicator()),
                 ),
               ),
-              error: (_, __) => MaterialApp(
+              error: (_, _) => MaterialApp(
                 home: Scaffold(
                   body: Center(child: Text('خطأ في تحميل اللغة')),
                 ),
@@ -113,7 +113,7 @@ class _AppState extends ConsumerState<App> {
               body: Center(child: CircularProgressIndicator()),
             ),
           ),
-          error: (_, __) => MaterialApp(
+          error: (_, _) => MaterialApp(
             home: Scaffold(
               body: Center(child: Text('خطأ في تحميل الثيم')),
             ),

@@ -1,8 +1,10 @@
 /// حالة الرسالة
 enum MessageStatus {
-  sent,
-  delivered,
-  read,
+  sending,   // قيد الإرسال
+  sent,      // تم الإرسال
+  delivered, // تم التسليم
+  read,      // تم القراءة
+  failed,    // فشل الإرسال
 }
 
 /// نموذج الرسالة (Message)

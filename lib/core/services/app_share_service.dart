@@ -37,10 +37,10 @@ class AppShareService {
       LogService.info('تم نسخ ملف APK بنجاح');
 
       // 4. مشاركة الملف
+      // ignore: deprecated_member_use
       await Share.shareXFiles(
         [XFile(tempApkFile.path)],
         text: 'Install Sada - The Offline Mesh Messenger for Syria.',
-        subject: 'Sada Messenger APK',
       );
 
       LogService.info('تم فتح شاشة المشاركة بنجاح');
