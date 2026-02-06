@@ -1,0 +1,579 @@
+{
+  "@@locale": "en",
+  "appName": "Sada",
+  "@appName": {
+    "description": "The application name"
+  },
+  "hello": "Hello",
+  "@hello": {
+    "description": "Greeting message"
+  },
+  "welcomeMessage": "Welcome to Sada Foundation Layer",
+  "@welcomeMessage": {
+    "description": "Welcome message on home screen"
+  },
+  "settings": "Settings",
+  "@settings": {
+    "description": "Settings screen title"
+  },
+  "theme": "Theme",
+  "@theme": {
+    "description": "Theme section title"
+  },
+  "light": "Light",
+  "@light": {
+    "description": "Light theme option"
+  },
+  "dark": "Dark",
+  "@dark": {
+    "description": "Dark theme option"
+  },
+  "system": "System",
+  "@system": {
+    "description": "System theme option"
+  },
+  "language": "Language",
+  "@language": {
+    "description": "Language section title"
+  },
+  "english": "English",
+  "@english": {
+    "description": "English language option"
+  },
+  "arabic": "Arabic",
+  "@arabic": {
+    "description": "Arabic language option"
+  },
+  "chat": "Chat",
+  "@chat": {
+    "description": "Chat screen title"
+  },
+  "comingSoon": "Coming Soon",
+  "@comingSoon": {
+    "description": "Placeholder message for features not yet implemented"
+  },
+  "foundationLayer": "Foundation Layer - UI/UX Architecture",
+  "@foundationLayer": {
+    "description": "Description of the foundation layer"
+  },
+  "skip": "Skip",
+  "@skip": {
+    "description": "Skip button text in onboarding"
+  },
+  "next": "Next",
+  "@next": {
+    "description": "Next button text in onboarding"
+  },
+  "getStarted": "Get Started",
+  "@getStarted": {
+    "description": "Get started button text in onboarding"
+  },
+  "onboardingSlide1Title": "Connect Without Limits",
+  "@onboardingSlide1Title": {
+    "description": "Title for onboarding slide 1"
+  },
+  "onboardingSlide1Description": "Connect with your loved ones even when the internet is down through Mesh network.",
+  "@onboardingSlide1Description": {
+    "description": "Description for onboarding slide 1"
+  },
+  "onboardingSlide2Title": "Absolute Security",
+  "@onboardingSlide2Title": {
+    "description": "Title for onboarding slide 2"
+  },
+  "onboardingSlide2Description": "Full encryption for your messages. No central servers, no tracking.",
+  "@onboardingSlide2Description": {
+    "description": "Description for onboarding slide 2"
+  },
+  "onboardingSlide3Title": "Made for Us",
+  "@onboardingSlide3Title": {
+    "description": "Title for onboarding slide 3"
+  },
+  "onboardingSlide3Description": "Open source app, free, and designed for the Syrian reality.",
+  "@onboardingSlide3Description": {
+    "description": "Description for onboarding slide 3"
+  },
+  "noChats": "No chats",
+  "@noChats": {
+    "description": "Message when there are no chats"
+  },
+  "errorLoadingChats": "Error loading chats",
+  "@errorLoadingChats": {
+    "description": "Error message when loading chats fails"
+  },
+  "searchFeatureComingSoon": "Search feature coming soon",
+  "@searchFeatureComingSoon": {
+    "description": "Message for search feature not yet implemented"
+  },
+  "online": "Online",
+  "@online": {
+    "description": "Online status in chat screen"
+  },
+  "noMessages": "No messages yet",
+  "@noMessages": {
+    "description": "Message when there are no messages in chat"
+  },
+  "errorLoadingMessages": "Error loading messages",
+  "@errorLoadingMessages": {
+    "description": "Error message when loading messages fails"
+  },
+  "typeMessage": "Type a message...",
+  "@typeMessage": {
+    "description": "Placeholder text for message input field"
+  },
+  "yesterday": "Yesterday",
+  "@yesterday": {
+    "description": "Word for yesterday"
+  },
+  "daysAgo": "{count} days ago",
+  "@daysAgo": {
+    "description": "Number of days ago",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "addFriend": "Add Friend",
+  "@addFriend": {
+    "description": "Add friend screen title"
+  },
+  "myCode": "My Code",
+  "@myCode": {
+    "description": "Tab 1 title - My QR Code"
+  },
+  "scan": "Scan",
+  "@scan": {
+    "description": "Tab 2 title - Scan QR Code"
+  },
+  "userId": "User ID",
+  "@userId": {
+    "description": "User ID label"
+  },
+  "share": "Share",
+  "@share": {
+    "description": "Share button"
+  },
+  "friendFound": "Friend Found!",
+  "@friendFound": {
+    "description": "Message when friend is found"
+  },
+  "newFriend": "New Friend",
+  "@newFriend": {
+    "description": "Default name for new friend"
+  },
+  "addFriendButton": "Add Friend",
+  "@addFriendButton": {
+    "description": "Add friend button"
+  },
+  "cameraPermissionDenied": "Camera permission denied",
+  "@cameraPermissionDenied": {
+    "description": "Message when camera permission is denied"
+  },
+  "cameraPermissionRequired": "We need camera permission to scan QR codes",
+  "@cameraPermissionRequired": {
+    "description": "Message requesting camera permission"
+  },
+  "grantPermission": "Grant Permission",
+  "@grantPermission": {
+    "description": "Grant permission button"
+  },
+  "placeQrInFrame": "Place QR code inside the frame",
+  "@placeQrInFrame": {
+    "description": "Instruction text in scanner screen"
+  },
+  "friendAddedSuccessfully": "Friend added successfully",
+  "@friendAddedSuccessfully": {
+    "description": "Success message when friend is added"
+  },
+  "name": "Name",
+  "@name": {
+    "description": "Name label"
+  },
+  "id": "ID",
+  "@id": {
+    "description": "ID label"
+  },
+  "simulateMessage": "Simulate Message",
+  "@simulateMessage": {
+    "description": "Button to simulate incoming message"
+  },
+  "simulatingMessage": "Simulating...",
+  "@simulatingMessage": {
+    "description": "Message while simulating"
+  },
+  "newMessageFrom": "New message from {name}",
+  "@newMessageFrom": {
+    "description": "Notification title for new message",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationPermissionRequired": "We need notification permission to show alerts",
+  "@notificationPermissionRequired": {
+    "description": "Message requesting notification permission"
+  },
+  "powerUsage": "Power Usage",
+  "@powerUsage": {
+    "description": "Power usage section title"
+  },
+  "disableBatteryOptimization": "Disable Battery Optimization",
+  "@disableBatteryOptimization": {
+    "description": "Disable battery optimization button"
+  },
+  "batteryOptimizationDescription": "To ensure Sada works in the background, please disable battery optimization from system settings",
+  "@batteryOptimizationDescription": {
+    "description": "Description for battery optimization button"
+  },
+  "couldNotOpenSettings": "Could not open settings",
+  "@couldNotOpenSettings": {
+    "description": "Message when settings cannot be opened"
+  },
+  "serviceActive": "Sada is active",
+  "@serviceActive": {
+    "description": "Background service notification text - active"
+  },
+  "serviceScanning": "Sada: Scanning...",
+  "@serviceScanning": {
+    "description": "Background service notification text - scanning"
+  },
+  "serviceSleeping": "Sada: Sleeping",
+  "@serviceSleeping": {
+    "description": "Background service notification text - sleeping"
+  },
+  "appearance": "Appearance",
+  "@appearance": {
+    "description": "Appearance section title"
+  },
+  "performance": "Performance",
+  "@performance": {
+    "description": "Performance section title"
+  },
+  "aboutAndLegal": "About & Legal",
+  "@aboutAndLegal": {
+    "description": "About & Legal section title"
+  },
+  "aboutUs": "About Us",
+  "@aboutUs": {
+    "description": "About Us page title"
+  },
+  "privacyPolicy": "Privacy Policy",
+  "@privacyPolicy": {
+    "description": "Privacy Policy page title"
+  },
+  "openSourceLicenses": "Open Source Licenses",
+  "@openSourceLicenses": {
+    "description": "Open Source Licenses page title"
+  },
+  "version": "Version",
+  "@version": {
+    "description": "Version word"
+  },
+  "aboutDescription": "Sada is an open-source, free, offline mesh messaging application designed for the Syrian reality. It enables communication even when the internet is cut off through a wireless Mesh network.",
+  "@aboutDescription": {
+    "description": "App description in About page"
+  },
+  "website": "Website",
+  "@website": {
+    "description": "Website word"
+  },
+  "madeWithLove": "Made with ❤️ for Syria",
+  "@madeWithLove": {
+    "description": "Footer text in About page"
+  },
+  "lastUpdated": "Last updated: January 2024",
+  "@lastUpdated": {
+    "description": "Last update date for privacy policy"
+  },
+  "noDataCollection": "No Data Collection",
+  "@noDataCollection": {
+    "description": "No data collection section title"
+  },
+  "noDataCollectionDescription": "We do not collect or store any personal data on our servers. All data remains local on your device only.",
+  "@noDataCollectionDescription": {
+    "description": "No data collection description"
+  },
+  "localStorage": "Local Storage",
+  "@localStorage": {
+    "description": "Local storage section title"
+  },
+  "localStorageDescription": "All your messages and conversations are stored locally on your device. No data is sent to external servers.",
+  "@localStorageDescription": {
+    "description": "Local storage description"
+  },
+  "encryption": "Encryption",
+  "@encryption": {
+    "description": "Encryption section title"
+  },
+  "encryptionDescription": "All messages are end-to-end encrypted (E2E). Even if messages are intercepted, they cannot be read without the private keys.",
+  "@encryptionDescription": {
+    "description": "Encryption description"
+  },
+  "meshNetworking": "Mesh Networking",
+  "@meshNetworking": {
+    "description": "Mesh networking section title"
+  },
+  "meshNetworkingDescription": "Sada uses Mesh Networking technology to communicate directly between devices without the need for central servers or internet connection.",
+  "@meshNetworkingDescription": {
+    "description": "Mesh networking description"
+  },
+  "openSource": "Open Source",
+  "@openSource": {
+    "description": "Open source section title"
+  },
+  "openSourceDescription": "Sada is an open-source project. You can review the source code on GitHub and contribute to its development.",
+  "@openSourceDescription": {
+    "description": "Open source description"
+  },
+  "exitMessage": "Press back again to exit",
+  "@exitMessage": {
+    "description": "Exit message when pressing back button"
+  },
+  "createIdentity": "Create Your Identity",
+  "@createIdentity": {
+    "description": "Registration screen title"
+  },
+  "identityInfo": "Your identity is generated from this device's unique signature. No phone number required.",
+  "@identityInfo": {
+    "description": "Information about how identity is generated"
+  },
+  "nickname": "Nickname",
+  "@nickname": {
+    "description": "Nickname field label"
+  },
+  "nicknameHint": "Enter your nickname",
+  "@nicknameHint": {
+    "description": "Nickname field hint"
+  },
+  "nicknameRequired": "Nickname is required",
+  "@nicknameRequired": {
+    "description": "Error message when nickname is not entered"
+  },
+  "nicknameTooShort": "Nickname is too short (must be at least 2 characters)",
+  "@nicknameTooShort": {
+    "description": "Error message when nickname is too short"
+  },
+  "enterSada": "Enter Sada",
+  "@enterSada": {
+    "description": "Register button"
+  },
+  "securityNote": "Your identity is bound to this device only. No data is sent to external servers.",
+  "@securityNote": {
+    "description": "Security note in registration screen"
+  },
+  "registrationFailed": "Registration failed. Please try again.",
+  "@registrationFailed": {
+    "description": "Error message when registration fails"
+  },
+  "privacyAndSecurity": "Privacy & Security",
+  "@privacyAndSecurity": {
+    "description": "Privacy & Security section title"
+  },
+  "appLock": "App Lock",
+  "@appLock": {
+    "description": "App lock setting title"
+  },
+  "appLockDescription": "Require fingerprint to open",
+  "@appLockDescription": {
+    "description": "App lock setting description"
+  },
+  "sadaIsLocked": "Sada is Locked",
+  "@sadaIsLocked": {
+    "description": "Lock screen title"
+  },
+  "unlockToContinue": "Use your fingerprint to unlock the app",
+  "@unlockToContinue": {
+    "description": "Lock screen subtitle"
+  },
+  "unlock": "Unlock",
+  "@unlock": {
+    "description": "Unlock button"
+  },
+  "scanFingerprintToEnter": "Scan your fingerprint to enter Sada",
+  "@scanFingerprintToEnter": {
+    "description": "Biometric authentication message"
+  },
+  "authenticationFailed": "Authentication failed",
+  "@authenticationFailed": {
+    "description": "Error message when authentication fails"
+  },
+  "biometricNotAvailable": "Biometric authentication is not available on this device",
+  "@biometricNotAvailable": {
+    "description": "Message when biometric is not available"
+  },
+  "failedToChangeLock": "Failed to change lock status",
+  "@failedToChangeLock": {
+    "description": "Error message when changing lock status fails"
+  },
+  "createCommunity": "Create Community",
+  "@createCommunity": {
+    "description": "Create group screen title"
+  },
+  "groupName": "Group Name",
+  "@groupName": {
+    "description": "Group name field label"
+  },
+  "groupNameHint": "Enter group name",
+  "@groupNameHint": {
+    "description": "Group name field hint"
+  },
+  "groupNameRequired": "Group name is required",
+  "@groupNameRequired": {
+    "description": "Error message when group name is empty"
+  },
+  "groupNameTooShort": "Group name is too short (must be at least 3 characters)",
+  "@groupNameTooShort": {
+    "description": "Error message when group name is too short"
+  },
+  "groupDescription": "Group Description",
+  "@groupDescription": {
+    "description": "Group description field label"
+  },
+  "groupDescriptionHint": "Enter group description",
+  "@groupDescriptionHint": {
+    "description": "Group description field hint"
+  },
+  "groupDescriptionRequired": "Group description is required",
+  "@groupDescriptionRequired": {
+    "description": "Error message when group description is empty"
+  },
+  "publicGroup": "Public Group",
+  "@publicGroup": {
+    "description": "Public group type label"
+  },
+  "publicGroupDescription": "Anyone nearby can discover and join this group",
+  "@publicGroupDescription": {
+    "description": "Public group description"
+  },
+  "privateGroupDescription": "Private group requires a password to join",
+  "@privateGroupDescription": {
+    "description": "Private group description"
+  },
+  "groupPassword": "Password",
+  "@groupPassword": {
+    "description": "Group password field label"
+  },
+  "groupPasswordHint": "Enter password",
+  "@groupPasswordHint": {
+    "description": "Group password field hint"
+  },
+  "groupPasswordRequired": "Password is required for private groups",
+  "@groupPasswordRequired": {
+    "description": "Error message when password is empty"
+  },
+  "launchGroup": "Launch Group",
+  "@launchGroup": {
+    "description": "Create group button"
+  },
+  "myGroups": "My Groups",
+  "@myGroups": {
+    "description": "My groups section title"
+  },
+  "nearbyCommunities": "Nearby Communities",
+  "@nearbyCommunities": {
+    "description": "Nearby communities section title"
+  },
+  "peersNearby": "{count} peers nearby",
+  "@peersNearby": {
+    "description": "Number of nearby peers",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "join": "Join",
+  "@join": {
+    "description": "Join group button"
+  },
+  "scanning": "Scanning...",
+  "@scanning": {
+    "description": "Scanning text for discovering groups"
+  },
+  "enterPin": "Enter PIN",
+  "@enterPin": {
+    "description": "Button to switch to PIN entry"
+  },
+  "changeMasterPin": "Change Master PIN",
+  "@changeMasterPin": {
+    "description": "Change Master PIN option title"
+  },
+  "setDuressPin": "Set Duress PIN",
+  "@setDuressPin": {
+    "description": "Set Duress PIN option title"
+  },
+  "duressPinWarning": "Use this PIN only in danger. It will hide your real data and show fake data.",
+  "@duressPinWarning": {
+    "description": "Warning when setting Duress PIN"
+  },
+  "enterMasterPin": "Enter Master PIN",
+  "@enterMasterPin": {
+    "description": "Prompt to enter Master PIN"
+  },
+  "enterDuressPin": "Enter Duress PIN",
+  "@enterDuressPin": {
+    "description": "Prompt to enter Duress PIN"
+  },
+  "confirmPin": "Confirm PIN",
+  "@confirmPin": {
+    "description": "Prompt to confirm PIN"
+  },
+  "pinMismatch": "PIN mismatch",
+  "@pinMismatch": {
+    "description": "Error message when PIN doesn't match"
+  },
+  "pinSetSuccessfully": "PIN set successfully",
+  "@pinSetSuccessfully": {
+    "description": "Success message when PIN is set"
+  },
+  "pinChangedSuccessfully": "PIN changed successfully",
+  "@pinChangedSuccessfully": {
+    "description": "Success message when PIN is changed"
+  },
+  "yourIdentity": "Your Identity",
+  "@yourIdentity": {
+    "description": "Showcase title for profile avatar"
+  },
+  "yourIdentityDescription": "Tap to view your QR code and profile",
+  "@yourIdentityDescription": {
+    "description": "Showcase description for profile avatar"
+  },
+  "startConnecting": "Start Connecting",
+  "@startConnecting": {
+    "description": "Showcase title for FAB button"
+  },
+  "startConnectingDescription": "Tap here to search for nearby devices or create a group",
+  "@startConnectingDescription": {
+    "description": "Showcase description for FAB button"
+  },
+  "leadDeveloper": "Lead Developer",
+  "@leadDeveloper": {
+    "description": "Developer role"
+  },
+  "founder": "Founder",
+  "@founder": {
+    "description": "Founder role"
+  },
+  "shareAppOffline": "Share App Offline",
+  "@shareAppOffline": {
+    "description": "Title for app sharing button"
+  },
+  "shareAppOfflineDescription": "Send APK file via Bluetooth or sharing apps",
+  "@shareAppOfflineDescription": {
+    "description": "Description for app sharing button"
+  },
+  "preparingApk": "Preparing APK file...",
+  "@preparingApk": {
+    "description": "Message while preparing APK file"
+  },
+  "apkShareSuccess": "Share sheet opened successfully",
+  "@apkShareSuccess": {
+    "description": "Success message for APK sharing"
+  },
+  "apkShareError": "Failed to share APK file",
+  "@apkShareError": {
+    "description": "Error message for APK sharing"
+  }
+}
+

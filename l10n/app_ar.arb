@@ -1,0 +1,579 @@
+{
+  "@@locale": "ar",
+  "appName": "صدى",
+  "@appName": {
+    "description": "اسم التطبيق"
+  },
+  "hello": "مرحباً",
+  "@hello": {
+    "description": "رسالة الترحيب"
+  },
+  "welcomeMessage": "مرحباً بك في طبقة الأساس لتطبيق صدى",
+  "@welcomeMessage": {
+    "description": "رسالة الترحيب في الشاشة الرئيسية"
+  },
+  "settings": "الإعدادات",
+  "@settings": {
+    "description": "عنوان شاشة الإعدادات"
+  },
+  "theme": "المظهر",
+  "@theme": {
+    "description": "عنوان قسم المظهر"
+  },
+  "light": "فاتح",
+  "@light": {
+    "description": "خيار المظهر الفاتح"
+  },
+  "dark": "داكن",
+  "@dark": {
+    "description": "خيار المظهر الداكن"
+  },
+  "system": "تلقائي",
+  "@system": {
+    "description": "خيار المظهر التلقائي"
+  },
+  "language": "اللغة",
+  "@language": {
+    "description": "عنوان قسم اللغة"
+  },
+  "english": "الإنجليزية",
+  "@english": {
+    "description": "خيار اللغة الإنجليزية"
+  },
+  "arabic": "العربية",
+  "@arabic": {
+    "description": "خيار اللغة العربية"
+  },
+  "chat": "الدردشة",
+  "@chat": {
+    "description": "عنوان شاشة الدردشة"
+  },
+  "comingSoon": "قريباً",
+  "@comingSoon": {
+    "description": "رسالة للميزات التي لم يتم تنفيذها بعد"
+  },
+  "foundationLayer": "طبقة الأساس - هندسة واجهة المستخدم",
+  "@foundationLayer": {
+    "description": "وصف طبقة الأساس"
+  },
+  "skip": "تخطي",
+  "@skip": {
+    "description": "نص زر التخطي في Onboarding"
+  },
+  "next": "التالي",
+  "@next": {
+    "description": "نص زر التالي في Onboarding"
+  },
+  "getStarted": "ابدأ",
+  "@getStarted": {
+    "description": "نص زر البدء في Onboarding"
+  },
+  "onboardingSlide1Title": "تواصل بلا حدود",
+  "@onboardingSlide1Title": {
+    "description": "عنوان الشريحة الأولى في Onboarding"
+  },
+  "onboardingSlide1Description": "تواصل مع أحبابك حتى عند انقطاع الإنترنت عبر شبكة Mesh.",
+  "@onboardingSlide1Description": {
+    "description": "وصف الشريحة الأولى في Onboarding"
+  },
+  "onboardingSlide2Title": "أمان مطلق",
+  "@onboardingSlide2Title": {
+    "description": "عنوان الشريحة الثانية في Onboarding"
+  },
+  "onboardingSlide2Description": "تشفير كامل لرسائلك. لا خوادم مركزية، لا تعقب.",
+  "@onboardingSlide2Description": {
+    "description": "وصف الشريحة الثانية في Onboarding"
+  },
+  "onboardingSlide3Title": "صنع لأجلنا",
+  "@onboardingSlide3Title": {
+    "description": "عنوان الشريحة الثالثة في Onboarding"
+  },
+  "onboardingSlide3Description": "تطبيق مفتوح المصدر، مجاني، ومصمم للواقع السوري.",
+  "@onboardingSlide3Description": {
+    "description": "وصف الشريحة الثالثة في Onboarding"
+  },
+  "noChats": "لا توجد محادثات",
+  "@noChats": {
+    "description": "رسالة عندما لا توجد محادثات"
+  },
+  "errorLoadingChats": "حدث خطأ في تحميل المحادثات",
+  "@errorLoadingChats": {
+    "description": "رسالة خطأ عند فشل تحميل المحادثات"
+  },
+  "searchFeatureComingSoon": "ميزة البحث قريباً",
+  "@searchFeatureComingSoon": {
+    "description": "رسالة لميزة البحث التي لم يتم تنفيذها بعد"
+  },
+  "online": "متصل الآن",
+  "@online": {
+    "description": "حالة الاتصال في شاشة المحادثة"
+  },
+  "noMessages": "لا توجد رسائل بعد",
+  "@noMessages": {
+    "description": "رسالة عندما لا توجد رسائل في المحادثة"
+  },
+  "errorLoadingMessages": "حدث خطأ في تحميل الرسائل",
+  "@errorLoadingMessages": {
+    "description": "رسالة خطأ عند فشل تحميل الرسائل"
+  },
+  "typeMessage": "اكتب رسالة...",
+  "@typeMessage": {
+    "description": "نص placeholder لحقل إدخال الرسالة"
+  },
+  "yesterday": "أمس",
+  "@yesterday": {
+    "description": "كلمة أمس للوقت"
+  },
+  "daysAgo": "{count} أيام",
+  "@daysAgo": {
+    "description": "عدد الأيام مضافاً",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "addFriend": "إضافة صديق",
+  "@addFriend": {
+    "description": "عنوان شاشة إضافة صديق"
+  },
+  "myCode": "رمزي",
+  "@myCode": {
+    "description": "عنوان التبويب الأول - رمز QR الخاص بي"
+  },
+  "scan": "مسح",
+  "@scan": {
+    "description": "عنوان التبويب الثاني - مسح رمز QR"
+  },
+  "userId": "معرف المستخدم",
+  "@userId": {
+    "description": "تسمية معرف المستخدم"
+  },
+  "share": "مشاركة",
+  "@share": {
+    "description": "زر المشاركة"
+  },
+  "friendFound": "تم العثور على صديق!",
+  "@friendFound": {
+    "description": "رسالة عند العثور على صديق"
+  },
+  "newFriend": "صديق جديد",
+  "@newFriend": {
+    "description": "اسم افتراضي للصديق الجديد"
+  },
+  "addFriendButton": "إضافة صديق",
+  "@addFriendButton": {
+    "description": "زر إضافة صديق"
+  },
+  "cameraPermissionDenied": "تم رفض صلاحية الكاميرا",
+  "@cameraPermissionDenied": {
+    "description": "رسالة عند رفض صلاحية الكاميرا"
+  },
+  "cameraPermissionRequired": "نحتاج إلى صلاحية الكاميرا لمسح رمز QR",
+  "@cameraPermissionRequired": {
+    "description": "رسالة طلب صلاحية الكاميرا"
+  },
+  "grantPermission": "منح الصلاحية",
+  "@grantPermission": {
+    "description": "زر منح الصلاحية"
+  },
+  "placeQrInFrame": "ضع رمز QR داخل الإطار",
+  "@placeQrInFrame": {
+    "description": "نص التوجيه في شاشة المسح"
+  },
+  "friendAddedSuccessfully": "تمت إضافة الصديق بنجاح",
+  "@friendAddedSuccessfully": {
+    "description": "رسالة نجاح إضافة الصديق"
+  },
+  "name": "الاسم",
+  "@name": {
+    "description": "تسمية الاسم"
+  },
+  "id": "المعرف",
+  "@id": {
+    "description": "تسمية المعرف"
+  },
+  "simulateMessage": "محاكاة رسالة",
+  "@simulateMessage": {
+    "description": "زر محاكاة رسالة واردة"
+  },
+  "simulatingMessage": "جاري المحاكاة...",
+  "@simulatingMessage": {
+    "description": "رسالة أثناء المحاكاة"
+  },
+  "newMessageFrom": "رسالة جديدة من {name}",
+  "@newMessageFrom": {
+    "description": "عنوان إشعار رسالة جديدة",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationPermissionRequired": "نحتاج إلى صلاحية الإشعارات لعرض التنبيهات",
+  "@notificationPermissionRequired": {
+    "description": "رسالة طلب صلاحية الإشعارات"
+  },
+  "powerUsage": "استهلاك البطارية",
+  "@powerUsage": {
+    "description": "عنوان قسم استهلاك البطارية"
+  },
+  "disableBatteryOptimization": "إلغاء تحسين البطارية",
+  "@disableBatteryOptimization": {
+    "description": "زر إلغاء تحسين البطارية"
+  },
+  "batteryOptimizationDescription": "لضمان عمل Sada في الخلفية، يرجى إلغاء تحسين البطارية من إعدادات النظام",
+  "@batteryOptimizationDescription": {
+    "description": "وصف زر إلغاء تحسين البطارية"
+  },
+  "couldNotOpenSettings": "تعذر فتح الإعدادات",
+  "@couldNotOpenSettings": {
+    "description": "رسالة عند فشل فتح الإعدادات"
+  },
+  "serviceActive": "Sada نشط",
+  "@serviceActive": {
+    "description": "نص إشعار الخدمة الخلفية - نشط"
+  },
+  "serviceScanning": "Sada: جاري المسح...",
+  "@serviceScanning": {
+    "description": "نص إشعار الخدمة الخلفية - جاري المسح"
+  },
+  "serviceSleeping": "Sada: نائم",
+  "@serviceSleeping": {
+    "description": "نص إشعار الخدمة الخلفية - نائم"
+  },
+  "appearance": "المظهر",
+  "@appearance": {
+    "description": "عنوان قسم المظهر"
+  },
+  "performance": "الأداء",
+  "@performance": {
+    "description": "عنوان قسم الأداء"
+  },
+  "aboutAndLegal": "حول التطبيق",
+  "@aboutAndLegal": {
+    "description": "عنوان قسم حول التطبيق"
+  },
+  "aboutUs": "حولنا",
+  "@aboutUs": {
+    "description": "عنوان صفحة حولنا"
+  },
+  "privacyPolicy": "سياسة الخصوصية",
+  "@privacyPolicy": {
+    "description": "عنوان صفحة سياسة الخصوصية"
+  },
+  "openSourceLicenses": "تراخيص مفتوحة المصدر",
+  "@openSourceLicenses": {
+    "description": "عنوان صفحة التراخيص"
+  },
+  "version": "الإصدار",
+  "@version": {
+    "description": "كلمة الإصدار"
+  },
+  "aboutDescription": "Sada هو تطبيق مراسلة شبكة Mesh مفتوح المصدر، مجاني، ومصمم للواقع السوري. يتيح التواصل حتى عند انقطاع الإنترنت عبر شبكة Mesh لاسلكية.",
+  "@aboutDescription": {
+    "description": "وصف التطبيق في صفحة حولنا"
+  },
+  "website": "الموقع",
+  "@website": {
+    "description": "كلمة الموقع"
+  },
+  "madeWithLove": "صُنع بـ ❤️ من أجل سوريا",
+  "@madeWithLove": {
+    "description": "نص التذييل في صفحة حولنا"
+  },
+  "lastUpdated": "آخر تحديث: يناير 2024",
+  "@lastUpdated": {
+    "description": "تاريخ آخر تحديث لسياسة الخصوصية"
+  },
+  "noDataCollection": "لا جمع للبيانات",
+  "@noDataCollection": {
+    "description": "عنوان قسم عدم جمع البيانات"
+  },
+  "noDataCollectionDescription": "نحن لا نجمع أو نخزن أي بيانات شخصية على خوادمنا. جميع البيانات تبقى محلية على جهازك فقط.",
+  "@noDataCollectionDescription": {
+    "description": "وصف عدم جمع البيانات"
+  },
+  "localStorage": "التخزين المحلي",
+  "@localStorage": {
+    "description": "عنوان قسم التخزين المحلي"
+  },
+  "localStorageDescription": "جميع رسائلك ومحادثاتك مخزنة محلياً على جهازك. لا يتم إرسال أي بيانات إلى خوادم خارجية.",
+  "@localStorageDescription": {
+    "description": "وصف التخزين المحلي"
+  },
+  "encryption": "التشفير",
+  "@encryption": {
+    "description": "عنوان قسم التشفير"
+  },
+  "encryptionDescription": "جميع الرسائل مشفرة من طرف إلى طرف (E2E). حتى لو تم اعتراض الرسائل، لا يمكن قراءتها بدون المفاتيح الخاصة.",
+  "@encryptionDescription": {
+    "description": "وصف التشفير"
+  },
+  "meshNetworking": "شبكة Mesh",
+  "@meshNetworking": {
+    "description": "عنوان قسم شبكة Mesh"
+  },
+  "meshNetworkingDescription": "Sada يستخدم تقنية Mesh Networking للتواصل مباشرة بين الأجهزة بدون الحاجة لخوادم مركزية أو اتصال بالإنترنت.",
+  "@meshNetworkingDescription": {
+    "description": "وصف شبكة Mesh"
+  },
+  "openSource": "مفتوح المصدر",
+  "@openSource": {
+    "description": "عنوان قسم مفتوح المصدر"
+  },
+  "openSourceDescription": "Sada هو مشروع مفتوح المصدر. يمكنك مراجعة الكود المصدري على GitHub والمساهمة في تطويره.",
+  "@openSourceDescription": {
+    "description": "وصف مفتوح المصدر"
+  },
+  "exitMessage": "اضغط مرة أخرى للخروج",
+  "@exitMessage": {
+    "description": "رسالة الخروج عند الضغط على زر Back"
+  },
+  "createIdentity": "أنشئ هويتك",
+  "@createIdentity": {
+    "description": "عنوان شاشة التسجيل"
+  },
+  "identityInfo": "يتم توليد هويتك من التوقيع الفريد لهذا الجهاز. لا حاجة لرقم هاتف.",
+  "@identityInfo": {
+    "description": "معلومات عن كيفية توليد الهوية"
+  },
+  "nickname": "الاسم المستعار",
+  "@nickname": {
+    "description": "تسمية حقل الاسم المستعار"
+  },
+  "nicknameHint": "أدخل اسمك المستعار",
+  "@nicknameHint": {
+    "description": "نص توضيحي لحقل الاسم المستعار"
+  },
+  "nicknameRequired": "الاسم المستعار مطلوب",
+  "@nicknameRequired": {
+    "description": "رسالة خطأ عند عدم إدخال الاسم"
+  },
+  "nicknameTooShort": "الاسم المستعار قصير جداً (يجب أن يكون حرفين على الأقل)",
+  "@nicknameTooShort": {
+    "description": "رسالة خطأ عند الاسم القصير"
+  },
+  "enterSada": "دخول Sada",
+  "@enterSada": {
+    "description": "زر التسجيل"
+  },
+  "securityNote": "هويتك مرتبطة بهذا الجهاز فقط. لا يتم إرسال أي بيانات إلى خوادم خارجية.",
+  "@securityNote": {
+    "description": "ملاحظة أمنية في شاشة التسجيل"
+  },
+  "registrationFailed": "فشل التسجيل. يرجى المحاولة مرة أخرى.",
+  "@registrationFailed": {
+    "description": "رسالة خطأ عند فشل التسجيل"
+  },
+  "privacyAndSecurity": "الخصوصية والأمان",
+  "@privacyAndSecurity": {
+    "description": "عنوان قسم الخصوصية والأمان"
+  },
+  "appLock": "قفل التطبيق",
+  "@appLock": {
+    "description": "عنوان إعداد قفل التطبيق"
+  },
+  "appLockDescription": "طلب البصمة عند فتح التطبيق",
+  "@appLockDescription": {
+    "description": "وصف إعداد قفل التطبيق"
+  },
+  "sadaIsLocked": "تطبيق صدى مقفل",
+  "@sadaIsLocked": {
+    "description": "عنوان شاشة القفل"
+  },
+  "unlockToContinue": "استخدم البصمة لفتح التطبيق",
+  "@unlockToContinue": {
+    "description": "نص توضيحي في شاشة القفل"
+  },
+  "unlock": "افتح القفل",
+  "@unlock": {
+    "description": "زر فتح القفل"
+  },
+  "scanFingerprintToEnter": "امسح بصمتك للدخول إلى Sada",
+  "@scanFingerprintToEnter": {
+    "description": "رسالة المصادقة البيومترية"
+  },
+  "authenticationFailed": "فشلت المصادقة",
+  "@authenticationFailed": {
+    "description": "رسالة خطأ عند فشل المصادقة"
+  },
+  "biometricNotAvailable": "البصمة غير متاحة على هذا الجهاز",
+  "@biometricNotAvailable": {
+    "description": "رسالة عند عدم توفر البصمة"
+  },
+  "failedToChangeLock": "فشل تغيير حالة القفل",
+  "@failedToChangeLock": {
+    "description": "رسالة خطأ عند فشل تغيير حالة القفل"
+  },
+  "createCommunity": "إنشاء مجتمع",
+  "@createCommunity": {
+    "description": "عنوان شاشة إنشاء مجموعة"
+  },
+  "groupName": "اسم المجموعة",
+  "@groupName": {
+    "description": "تسمية حقل اسم المجموعة"
+  },
+  "groupNameHint": "أدخل اسم المجموعة",
+  "@groupNameHint": {
+    "description": "نص توضيحي لحقل اسم المجموعة"
+  },
+  "groupNameRequired": "اسم المجموعة مطلوب",
+  "@groupNameRequired": {
+    "description": "رسالة خطأ عند عدم إدخال اسم المجموعة"
+  },
+  "groupNameTooShort": "اسم المجموعة قصير جداً (يجب أن يكون 3 أحرف على الأقل)",
+  "@groupNameTooShort": {
+    "description": "رسالة خطأ عند الاسم القصير"
+  },
+  "groupDescription": "وصف المجموعة",
+  "@groupDescription": {
+    "description": "تسمية حقل وصف المجموعة"
+  },
+  "groupDescriptionHint": "أدخل وصفاً للمجموعة",
+  "@groupDescriptionHint": {
+    "description": "نص توضيحي لحقل وصف المجموعة"
+  },
+  "groupDescriptionRequired": "وصف المجموعة مطلوب",
+  "@groupDescriptionRequired": {
+    "description": "رسالة خطأ عند عدم إدخال وصف المجموعة"
+  },
+  "publicGroup": "مجموعة عامة",
+  "@publicGroup": {
+    "description": "تسمية نوع المجموعة العامة"
+  },
+  "publicGroupDescription": "يمكن لأي شخص في المنطقة اكتشاف المجموعة والانضمام إليها",
+  "@publicGroupDescription": {
+    "description": "وصف المجموعة العامة"
+  },
+  "privateGroupDescription": "المجموعة خاصة وتتطلب كلمة مرور للانضمام",
+  "@privateGroupDescription": {
+    "description": "وصف المجموعة الخاصة"
+  },
+  "groupPassword": "كلمة المرور",
+  "@groupPassword": {
+    "description": "تسمية حقل كلمة مرور المجموعة"
+  },
+  "groupPasswordHint": "أدخل كلمة المرور",
+  "@groupPasswordHint": {
+    "description": "نص توضيحي لحقل كلمة مرور المجموعة"
+  },
+  "groupPasswordRequired": "كلمة المرور مطلوبة للمجموعات الخاصة",
+  "@groupPasswordRequired": {
+    "description": "رسالة خطأ عند عدم إدخال كلمة المرور"
+  },
+  "launchGroup": "إطلاق المجموعة",
+  "@launchGroup": {
+    "description": "زر إنشاء المجموعة"
+  },
+  "myGroups": "مجموعاتي",
+  "@myGroups": {
+    "description": "عنوان قسم مجموعاتي"
+  },
+  "nearbyCommunities": "المجتمعات القريبة",
+  "@nearbyCommunities": {
+    "description": "عنوان قسم المجتمعات القريبة"
+  },
+  "peersNearby": "{count} أقران قريبين",
+  "@peersNearby": {
+    "description": "عدد الأقران القريبين",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "join": "انضم",
+  "@join": {
+    "description": "زر الانضمام إلى مجموعة"
+  },
+  "scanning": "جارٍ المسح...",
+  "@scanning": {
+    "description": "نص المسح للبحث عن المجموعات"
+  },
+  "enterPin": "أدخل PIN",
+  "@enterPin": {
+    "description": "زر للتبديل إلى إدخال PIN"
+  },
+  "changeMasterPin": "تغيير Master PIN",
+  "@changeMasterPin": {
+    "description": "عنوان خيار تغيير Master PIN"
+  },
+  "setDuressPin": "تعيين Duress PIN",
+  "@setDuressPin": {
+    "description": "عنوان خيار تعيين Duress PIN"
+  },
+  "duressPinWarning": "استخدم هذا PIN فقط في حالة الخطر. سيخفي بياناتك الحقيقية ويعرض بيانات وهمية.",
+  "@duressPinWarning": {
+    "description": "تحذير عند تعيين Duress PIN"
+  },
+  "enterMasterPin": "أدخل Master PIN",
+  "@enterMasterPin": {
+    "description": "طلب إدخال Master PIN"
+  },
+  "enterDuressPin": "أدخل Duress PIN",
+  "@enterDuressPin": {
+    "description": "طلب إدخال Duress PIN"
+  },
+  "confirmPin": "تأكيد PIN",
+  "@confirmPin": {
+    "description": "طلب تأكيد PIN"
+  },
+  "pinMismatch": "PIN غير متطابق",
+  "@pinMismatch": {
+    "description": "رسالة خطأ عند عدم تطابق PIN"
+  },
+  "pinSetSuccessfully": "تم تعيين PIN بنجاح",
+  "@pinSetSuccessfully": {
+    "description": "رسالة نجاح عند تعيين PIN"
+  },
+  "pinChangedSuccessfully": "تم تغيير PIN بنجاح",
+  "@pinChangedSuccessfully": {
+    "description": "رسالة نجاح عند تغيير PIN"
+  },
+  "yourIdentity": "هويتك",
+  "@yourIdentity": {
+    "description": "عنوان Showcase للصورة الشخصية"
+  },
+  "yourIdentityDescription": "اضغط لعرض رمز QR الخاص بك والملف الشخصي",
+  "@yourIdentityDescription": {
+    "description": "وصف Showcase للصورة الشخصية"
+  },
+  "startConnecting": "ابدأ الاتصال",
+  "@startConnecting": {
+    "description": "عنوان Showcase لزر FAB"
+  },
+  "startConnectingDescription": "اضغط هنا للبحث عن الأجهزة القريبة أو إنشاء مجموعة",
+  "@startConnectingDescription": {
+    "description": "وصف Showcase لزر FAB"
+  },
+  "leadDeveloper": "المطور الرئيسي",
+  "@leadDeveloper": {
+    "description": "دور المطور"
+  },
+  "founder": "المؤسس",
+  "@founder": {
+    "description": "دور المؤسس"
+  },
+  "shareAppOffline": "شارك التطبيق",
+  "@shareAppOffline": {
+    "description": "عنوان زر مشاركة التطبيق"
+  },
+  "shareAppOfflineDescription": "إرسال ملف APK عبر البلوتوث أو تطبيقات المشاركة",
+  "@shareAppOfflineDescription": {
+    "description": "وصف زر مشاركة التطبيق"
+  },
+  "preparingApk": "جاري تحضير ملف APK...",
+  "@preparingApk": {
+    "description": "رسالة أثناء تحضير ملف APK"
+  },
+  "apkShareSuccess": "تم فتح شاشة المشاركة بنجاح",
+  "@apkShareSuccess": {
+    "description": "رسالة نجاح مشاركة APK"
+  },
+  "apkShareError": "فشل مشاركة ملف APK",
+  "@apkShareError": {
+    "description": "رسالة خطأ مشاركة APK"
+  }
+}
+

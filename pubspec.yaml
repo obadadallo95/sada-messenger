@@ -1,0 +1,119 @@
+name: sada
+description: "Foundation Layer for Sada App"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+authors:
+  - Obada Dallo <obadadallo95@gmail.com>
+
+environment:
+  sdk: ^3.10.4
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # State Management
+  flutter_riverpod: ^2.6.1
+  riverpod_annotation: ^2.6.1
+  
+  # Navigation
+  go_router: ^14.6.2
+  
+  # Theming
+  flex_color_scheme: ^7.3.0
+  
+  # Responsiveness
+  flutter_screenutil: ^5.9.3
+  
+  # Localization
+  intl: ^0.20.2
+  
+  # Storage
+  shared_preferences: ^2.3.3
+  
+  # Logging
+  logger: ^2.4.0
+  
+  # Icons
+  cupertino_icons: ^1.0.8
+  font_awesome_flutter: ^10.7.0
+  
+  # UI Components
+  smooth_page_indicator: ^1.1.0
+  animate_do: ^3.3.4
+  flutter_animate: ^4.5.0
+  showcaseview: ^3.0.0
+  
+  # QR Code & Scanner
+  qr_flutter: ^4.1.0
+  mobile_scanner: ^5.2.3
+  permission_handler: ^11.3.1
+  share_plus: ^10.1.2
+  
+  # Notifications
+  flutter_local_notifications: ^17.2.3
+  timezone: ^0.9.4
+  flash: ^3.0.0
+  
+  # Background Service
+  flutter_background_service: ^5.0.5
+  android_alarm_manager_plus: ^3.0.2
+  
+  # App Info & Links
+  package_info_plus: ^8.1.1
+  url_launcher: ^6.3.1
+  path_provider: ^2.1.4
+  
+  # Security & Authentication
+  device_info_plus: ^11.1.0
+  flutter_secure_storage: ^9.2.2
+  crypto: ^3.0.6
+  uuid: ^4.5.1
+  local_auth: ^2.3.0
+  
+  # Cryptography
+  sodium_libs: ^2.0.0
+  
+  # Image Handling
+  image_picker: ^1.1.2
+  flutter_image_compress: ^2.3.0
+  cached_network_image: ^3.4.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  
+  # Code Generation
+  build_runner: ^2.4.13
+  riverpod_generator: ^2.6.4
+  custom_lint: ^0.7.3
+  riverpod_lint: ^2.6.4
+  freezed: ^2.5.8
+  json_serializable: ^6.9.5
+  
+  # Launcher Icons
+  flutter_launcher_icons: ^0.13.1
+
+flutter:
+  uses-material-design: true
+  
+  generate: true
+
+  # Assets
+  assets:
+    - assets/images/
+
+# Flutter Launcher Icons Configuration
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/logo.png"
+  min_sdk_android: 21
+  adaptive_icon_background: "#0D9488"
+  adaptive_icon_foreground: "assets/images/logo.png"
+  remove_alpha_ios: true
