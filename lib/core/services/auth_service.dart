@@ -216,6 +216,7 @@ class AuthService extends StateNotifier<AuthStatus> {
     try {
       await _secureStorage.delete(key: _storageKey);
       _currentUser = null;
+      resetAuthType(); // إعادة تعيين AuthType عند تسجيل الخروج
       state = AuthStatus.loggedOut;
       LogService.info('تم تسجيل الخروج');
     } catch (e) {
@@ -231,6 +232,12 @@ class AuthService extends StateNotifier<AuthStatus> {
   
   /// الحصول على نوع المصادقة الحالي
   AuthType? get currentAuthType => _currentAuthType;
+  
+  /// التحقق من أن المستخدم مصادق عليه (AuthType محدد)
+  /// هذا يعني أن المستخدم أدخل PIN بنجاح (Master أو Duress)
+  bool get isAuthenticated => _currentAuthType != null && 
+                              (_currentAuthType == AuthType.master || 
+                               _currentAuthType == AuthType.duress);
   
   /// توليد Salt عشوائي لـ PIN
   Future<String> _generatePinSalt() async {
@@ -338,8 +345,10 @@ class AuthService extends StateNotifier<AuthStatus> {
   }
   
   /// إعادة تعيين نوع المصادقة (عند تسجيل الخروج)
+  /// يجب استدعاؤها عند تسجيل الخروج أو إغلاق التطبيق
   void resetAuthType() {
     _currentAuthType = null;
+    LogService.info('تم إعادة تعيين AuthType');
   }
 }
 

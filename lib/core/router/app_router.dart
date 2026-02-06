@@ -22,6 +22,7 @@ import '../../features/mesh/presentation/pages/mesh_debug_screen.dart';
 import '../../features/notifications/presentation/pages/notifications_screen.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/biometric_service.dart';
+import '../../core/database/database_provider.dart';
 import '../../l10n/app_localizations.dart';
 import 'routes.dart';
 
@@ -40,6 +41,32 @@ GoRouter appRouter(Ref ref) {
       final isLoggedIn = authStatus == AuthStatus.loggedIn;
       final isInitializing = authStatus == AuthStatus.initializing;
       final isLockEnabled = biometricState.isAppLockEnabled;
+      
+      // الحصول على AuthType من Provider (reactive)
+      final authType = ref.watch(currentAuthTypeProvider);
+      final isAuthenticated = authType != null && 
+                              (authType == AuthType.master || authType == AuthType.duress);
+      
+      // تحديد الصفحات المحمية (تتطلب AuthType)
+      final protectedRoutes = [
+        AppRoutes.home,
+        AppRoutes.chat,
+        AppRoutes.settings,
+        AppRoutes.addFriend,
+        AppRoutes.scanQr,
+        AppRoutes.myQr,
+        AppRoutes.createGroup,
+        AppRoutes.groups,
+        AppRoutes.meshDebug,
+        AppRoutes.notifications,
+        AppRoutes.about,
+        AppRoutes.privacy,
+        AppRoutes.groupInfo,
+      ];
+      
+      final isOnProtectedRoute = protectedRoutes.any((route) => 
+        state.matchedLocation.startsWith(route));
+      
       final isOnAuthPage = state.matchedLocation == AppRoutes.register ||
           state.matchedLocation == AppRoutes.splash ||
           state.matchedLocation == AppRoutes.onboarding ||
@@ -50,27 +77,39 @@ GoRouter appRouter(Ref ref) {
         return null;
       }
 
-      // إذا لم يكن مسجل دخول وليس في صفحة المصادقة، redirect إلى register
+      // Rule 1: إذا لم يكن مسجل دخول وليس في صفحة المصادقة، redirect إلى register
       if (!isLoggedIn && !isOnAuthPage) {
         return AppRoutes.register;
       }
 
-      // إذا كان مسجل دخول وهو في صفحة register، redirect إلى home (أو lock إذا كان مفعل)
+      // Rule 2: إذا كان مسجل دخول لكن AuthType غير محدد (لم يدخل PIN بعد)
+      // وليس في صفحة Lock، redirect إلى lock
+      if (isLoggedIn && !isAuthenticated && !isOnAuthPage) {
+        return AppRoutes.lock;
+      }
+
+      // Rule 3: إذا كان مسجل دخول وهو في صفحة register، redirect إلى lock أو home
       if (isLoggedIn && state.matchedLocation == AppRoutes.register) {
-        if (isLockEnabled) {
+        if (isLockEnabled || !isAuthenticated) {
           return AppRoutes.lock;
         }
         return AppRoutes.home;
       }
 
-      // إذا كان قفل التطبيق مفعل وليس في صفحة Lock، redirect إلى lock
-      if (isLoggedIn && isLockEnabled && state.matchedLocation != AppRoutes.lock) {
+      // Rule 4: إذا كان مسجل دخول ومصادق عليه (AuthType محدد) وهو في صفحة Lock، redirect إلى home
+      if (isLoggedIn && isAuthenticated && state.matchedLocation == AppRoutes.lock) {
+        return AppRoutes.home;
+      }
+
+      // Rule 5: إذا كان مسجل دخول لكن AuthType غير محدد وهو يحاول الوصول لصفحة محمية، redirect إلى lock
+      if (isLoggedIn && !isAuthenticated && isOnProtectedRoute) {
         return AppRoutes.lock;
       }
 
-      // إذا كان قفل التطبيق غير مفعل وهو في صفحة Lock، redirect إلى home
-      if (isLoggedIn && !isLockEnabled && state.matchedLocation == AppRoutes.lock) {
-        return AppRoutes.home;
+      // Rule 6: إذا كان قفل التطبيق مفعل وليس في صفحة Lock، redirect إلى lock
+      if (isLoggedIn && isLockEnabled && state.matchedLocation != AppRoutes.lock && 
+          !isAuthenticated) {
+        return AppRoutes.lock;
       }
 
       return null;
