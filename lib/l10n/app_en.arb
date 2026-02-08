@@ -590,6 +590,295 @@
   "markAllAsRead": "Mark all as read",
   "@markAllAsRead": {
     "description": "Button to mark all notifications as read"
+  },
+  "noInternetNoProblem": "No Internet?\nNo Problem.",
+  "@noInternetNoProblem": {
+    "description": "Onboarding slide 1 title"
+  },
+  "noInternetDescription": "Sada works when the internet doesn't. Connect directly with people around you using WiFi Direct.",
+  "@noInternetDescription": {
+    "description": "Onboarding slide 1 description"
+  },
+  "youAreTheNetwork": "You Are The Network",
+  "@youAreTheNetwork": {
+    "description": "Onboarding slide 2 title"
+  },
+  "youAreTheNetworkDescription": "Your phone acts as a bridge. Help your community stay connected just by keeping the app open.",
+  "@youAreTheNetworkDescription": {
+    "description": "Onboarding slide 2 description"
+  },
+  "invisibleAndSecure": "Invisible & Secure",
+  "@invisibleAndSecure": {
+    "description": "Onboarding slide 3 title"
+  },
+  "invisibleAndSecureDescription": "No servers. No tracking. Your messages stay in your neighborhood.",
+  "@invisibleAndSecureDescription": {
+    "description": "Onboarding slide 3 description"
+  },
+  "readyToConnect": "Ready to Connect?",
+  "@readyToConnect": {
+    "description": "Onboarding slide 4 title"
+  },
+  "readyToConnectDescription": "Grant permissions to start discovering people nearby.",
+  "@readyToConnectDescription": {
+    "description": "Onboarding slide 4 description"
+  },
+  "permissionLocation": "Location",
+  "@permissionLocation": {
+    "description": "Location permission badge"
+  },
+  "permissionNotify": "Notify",
+  "@permissionNotify": {
+    "description": "Notification permission badge"
+  },
+  "permissionWifi": "WiFi",
+  "@permissionWifi": {
+    "description": "WiFi permission badge"
+  },
+  "zeroKnowledgePromise": "Zero-Knowledge Promise",
+  "@zeroKnowledgePromise": {
+    "description": "Privacy screen section title"
+  },
+  "noPhoneNumberRequired": "No Phone Number Required",
+  "@noPhoneNumberRequired": {
+    "description": "Privacy feature title"
+  },
+  "noPhoneNumberDescription": "We don't ask for your phone number, email, or real identity. You are just a cryptographic key pair.",
+  "@noPhoneNumberDescription": {
+    "description": "Privacy feature description"
+  },
+  "endToEndEncryptionDescription": "All messages are encrypted on your device and only decrypted by the recipient. We cannot read your chats.",
+  "@endToEndEncryptionDescription": {
+    "description": "Encryption description for privacy screen"
+  },
+  "localDatabaseOnly": "Local Database Only",
+  "@localDatabaseOnly": {
+    "description": "Privacy feature title"
+  },
+  "localDatabaseDescription": "Your data lives on your phone. There is no cloud backup. If you delete the app, your data is gone forever.",
+  "@localDatabaseDescription": {
+    "description": "Privacy feature description"
+  },
+  "transparency": "Transparency",
+  "@transparency": {
+    "description": "Privacy section title"
+  },
+  "transparencyDescription": "Sada uses standard WiFi Direct and UDP broadcasts to find peers. While your device announces its presence, your real identity remains hidden behind a random ID.",
+  "@transparencyDescription": {
+    "description": "Transparency description"
+  },
+  "viewSourceCode": "View Source Code",
+  "@viewSourceCode": {
+    "description": "Button to view source code"
+  },
+  "howItWorks": "How it Works",
+  "@howItWorks": {
+    "description": "About screen section title"
+  },
+  "scanQrCode": "Scan QR Code",
+  "@scanQrCode": {
+    "description": "Timeline step 1 title"
+  },
+  "scanQrDescription": "Meet a friend and scan their QR code to swap keys securely.",
+  "@scanQrDescription": {
+    "description": "Timeline step 1 description"
+  },
+  "autoConnect": "Auto Connect",
+  "@autoConnect": {
+    "description": "Timeline step 2 title"
+  },
+  "autoConnectDescription": "Your devices automatically find each other over WiFi Direct.",
+  "@autoConnectDescription": {
+    "description": "Timeline step 2 description"
+  },
+  "secureChat": "Secure Chat",
+  "@secureChat": {
+    "description": "Timeline step 3 title"
+  },
+  "secureChatDescription": "Messages hop between devices until they reach the destination.",
+  "@secureChatDescription": {
+    "description": "Timeline step 3 description"
+  },
+  "designedForResilience": "Designed for Resilience",
+  "@designedForResilience": {
+    "description": "About screen footer"
+  },
+  "shareQrCodeDescription": "Share this QR code to add you as a contact",
+  "@shareQrCodeDescription": {
+    "description": "Description for sharing QR code"
+  },
+  "myQrCode": "My QR Code",
+  "@myQrCode": {
+    "description": "Title for My QR Code screen"
+  },
+  "scanQrCode": "Scan QR Code",
+  "@scanQrCode": {
+    "description": "Title for Scan QR Code screen"
+  },
+  "share": "Share",
+  "@share": {
+    "description": "Share button label"
+  },
+  "contactAlreadyExists": "Contact already exists",
+  "@contactAlreadyExists": {
+    "description": "Error message when adding existing contact"
+  },
+  "errorProcessingQrCode": "Error processing QR Code",
+  "@errorProcessingQrCode": {
+    "description": "Error message for invalid QR"
+  },
+  "cannotAddYourself": "You cannot add yourself",
+  "@cannotAddYourself": {
+    "description": "Error message when scanning own QR"
+  },
+  "processing": "Processing...",
+  "@processing": {
+    "description": "Loading state text"
+  },
+  "cameraPermissionRequired": "Camera permission is required",
+  "@cameraPermissionRequired": {
+    "description": "Permission rationale"
+  },
+  "cameraPermissionDenied": "Camera permission denied",
+  "@cameraPermissionDenied": {
+    "description": "Permission error"
+  },
+  "grantPermission": "Grant Permission",
+  "@grantPermission": {
+    "description": "Button to request permission"
+  },
+  "placeQrInFrame": "Place QR code in the frame",
+  "@placeQrInFrame": {
+    "description": "Instruction for scanning"
+  },
+  "newFriend": "New Friend",
+  "@newFriend": {
+    "description": "Default name for new contact"
+  },
+  "friendFound": "Friend Found",
+  "@friendFound": {
+    "description": "Success message when contact found"
+  },
+  "name": "Name",
+  "@name": {
+    "description": "Label for name field"
+  },
+  "id": "ID",
+  "@id": {
+    "description": "Label for ID field"
+  },
+  "addFriendButton": "Add Friend",
+  "@addFriendButton": {
+    "description": "Button text"
+  },
+  "friendAddedSuccessfully": "Friend added successfully",
+  "@friendAddedSuccessfully": {
+    "description": "Success toast"
+  },
+  "addFriend": "Add Friend",
+  "@addFriend": {
+    "description": "Screen title"
+  },
+  "myCode": "My Code",
+  "@myCode": {
+    "description": "Tab label"
+  },
+  "scan": "Scan",
+  "@scan": {
+    "description": "Tab label"
+  },
+  "userId": "User ID",
+  "@userId": {
+    "description": "Label"
+  },
+  "createCommunity": "Create Community",
+  "@createCommunity": {
+    "description": "Screen title"
+  },
+  "groupName": "Group Name",
+  "@groupName": {
+    "description": "Input label"
+  },
+  "groupNameHint": "Enter group name",
+  "@groupNameHint": {
+    "description": "Input hint"
+  },
+  "groupNameRequired": "Group name is required",
+  "@groupNameRequired": {
+    "description": "Validation error"
+  },
+  "groupNameTooShort": "Group name is too short",
+  "@groupNameTooShort": {
+    "description": "Validation error"
+  },
+  "groupDescription": "Description",
+  "@groupDescription": {
+    "description": "Input label"
+  },
+  "groupDescriptionHint": "Enter group description",
+  "@groupDescriptionHint": {
+    "description": "Input hint"
+  },
+  "groupDescriptionRequired": "Description is required",
+  "@groupDescriptionRequired": {
+    "description": "Validation error"
+  },
+  "publicGroup": "Public Group",
+  "@publicGroup": {
+    "description": "Switch label"
+  },
+  "publicGroupDescription": "Visible to everyone nearby",
+  "@publicGroupDescription": {
+    "description": "Switch subtitle"
+  },
+  "privateGroupDescription": "Requires password to join",
+  "@privateGroupDescription": {
+    "description": "Switch subtitle"
+  },
+  "groupPassword": "Password",
+  "@groupPassword": {
+    "description": "Input label"
+  },
+  "groupPasswordHint": "Enter password",
+  "@groupPasswordHint": {
+    "description": "Input hint"
+  },
+  "groupPasswordRequired": "Password is required",
+  "@groupPasswordRequired": {
+    "description": "Validation error"
+  },
+  "launchGroup": "Launch Group",
+  "@launchGroup": {
+    "description": "Button text"
+  },
+  "nearbyCommunities": "Nearby Communities",
+  "@nearbyCommunities": {
+    "description": "Section title"
+  },
+  "myGroups": "My Groups",
+  "@myGroups": {
+    "description": "Section title"
+  },
+  "scanning": "Scanning...",
+  "@scanning": {
+    "description": "Status text"
+  },
+  "peersNearby": "{count} peers nearby",
+  "@peersNearby": {
+    "description": "Peer count",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shareQrCodeDescription": "Share this QR code to add you as a contact",
+  "@shareQrCodeDescription": {
+    "description": "Description for sharing QR code"
+  },
+  "qrCodeSecurityInfo": "This QR code contains your public key for secure messaging.",
+  "@qrCodeSecurityInfo": {
+    "description": "Security information about QR code"
   }
 }
 

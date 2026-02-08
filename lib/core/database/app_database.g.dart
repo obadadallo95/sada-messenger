@@ -1639,12 +1639,811 @@ class MessagesTableCompanion extends UpdateCompanion<MessagesTableData> {
   }
 }
 
+class $RelayQueueTableTable extends RelayQueueTable
+    with TableInfo<$RelayQueueTableTable, RelayQueueTableData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $RelayQueueTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _messageIdMeta = const VerificationMeta(
+    'messageId',
+  );
+  @override
+  late final GeneratedColumn<String> messageId = GeneratedColumn<String>(
+    'message_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _originalSenderIdMeta = const VerificationMeta(
+    'originalSenderId',
+  );
+  @override
+  late final GeneratedColumn<String> originalSenderId = GeneratedColumn<String>(
+    'original_sender_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _finalDestinationIdMeta =
+      const VerificationMeta('finalDestinationId');
+  @override
+  late final GeneratedColumn<String> finalDestinationId =
+      GeneratedColumn<String>(
+        'final_destination_id',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _encryptedContentMeta = const VerificationMeta(
+    'encryptedContent',
+  );
+  @override
+  late final GeneratedColumn<String> encryptedContent = GeneratedColumn<String>(
+    'encrypted_content',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _hopCountMeta = const VerificationMeta(
+    'hopCount',
+  );
+  @override
+  late final GeneratedColumn<int> hopCount = GeneratedColumn<int>(
+    'hop_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _maxHopsMeta = const VerificationMeta(
+    'maxHops',
+  );
+  @override
+  late final GeneratedColumn<int> maxHops = GeneratedColumn<int>(
+    'max_hops',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(10),
+  );
+  static const VerificationMeta _traceMeta = const VerificationMeta('trace');
+  @override
+  late final GeneratedColumn<String> trace = GeneratedColumn<String>(
+    'trace',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('[]'),
+  );
+  static const VerificationMeta _timestampMeta = const VerificationMeta(
+    'timestamp',
+  );
+  @override
+  late final GeneratedColumn<DateTime> timestamp = GeneratedColumn<DateTime>(
+    'timestamp',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _typeMeta = const VerificationMeta('type');
+  @override
+  late final GeneratedColumn<String> type = GeneratedColumn<String>(
+    'type',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _metadataMeta = const VerificationMeta(
+    'metadata',
+  );
+  @override
+  late final GeneratedColumn<String> metadata = GeneratedColumn<String>(
+    'metadata',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _queuedAtMeta = const VerificationMeta(
+    'queuedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> queuedAt = GeneratedColumn<DateTime>(
+    'queued_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _retryCountMeta = const VerificationMeta(
+    'retryCount',
+  );
+  @override
+  late final GeneratedColumn<int> retryCount = GeneratedColumn<int>(
+    'retry_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _lastRetryAtMeta = const VerificationMeta(
+    'lastRetryAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> lastRetryAt = GeneratedColumn<DateTime>(
+    'last_retry_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    messageId,
+    originalSenderId,
+    finalDestinationId,
+    encryptedContent,
+    hopCount,
+    maxHops,
+    trace,
+    timestamp,
+    type,
+    metadata,
+    queuedAt,
+    retryCount,
+    lastRetryAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'relay_queue_table';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<RelayQueueTableData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('message_id')) {
+      context.handle(
+        _messageIdMeta,
+        messageId.isAcceptableOrUnknown(data['message_id']!, _messageIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_messageIdMeta);
+    }
+    if (data.containsKey('original_sender_id')) {
+      context.handle(
+        _originalSenderIdMeta,
+        originalSenderId.isAcceptableOrUnknown(
+          data['original_sender_id']!,
+          _originalSenderIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_originalSenderIdMeta);
+    }
+    if (data.containsKey('final_destination_id')) {
+      context.handle(
+        _finalDestinationIdMeta,
+        finalDestinationId.isAcceptableOrUnknown(
+          data['final_destination_id']!,
+          _finalDestinationIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_finalDestinationIdMeta);
+    }
+    if (data.containsKey('encrypted_content')) {
+      context.handle(
+        _encryptedContentMeta,
+        encryptedContent.isAcceptableOrUnknown(
+          data['encrypted_content']!,
+          _encryptedContentMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_encryptedContentMeta);
+    }
+    if (data.containsKey('hop_count')) {
+      context.handle(
+        _hopCountMeta,
+        hopCount.isAcceptableOrUnknown(data['hop_count']!, _hopCountMeta),
+      );
+    }
+    if (data.containsKey('max_hops')) {
+      context.handle(
+        _maxHopsMeta,
+        maxHops.isAcceptableOrUnknown(data['max_hops']!, _maxHopsMeta),
+      );
+    }
+    if (data.containsKey('trace')) {
+      context.handle(
+        _traceMeta,
+        trace.isAcceptableOrUnknown(data['trace']!, _traceMeta),
+      );
+    }
+    if (data.containsKey('timestamp')) {
+      context.handle(
+        _timestampMeta,
+        timestamp.isAcceptableOrUnknown(data['timestamp']!, _timestampMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_timestampMeta);
+    }
+    if (data.containsKey('type')) {
+      context.handle(
+        _typeMeta,
+        type.isAcceptableOrUnknown(data['type']!, _typeMeta),
+      );
+    }
+    if (data.containsKey('metadata')) {
+      context.handle(
+        _metadataMeta,
+        metadata.isAcceptableOrUnknown(data['metadata']!, _metadataMeta),
+      );
+    }
+    if (data.containsKey('queued_at')) {
+      context.handle(
+        _queuedAtMeta,
+        queuedAt.isAcceptableOrUnknown(data['queued_at']!, _queuedAtMeta),
+      );
+    }
+    if (data.containsKey('retry_count')) {
+      context.handle(
+        _retryCountMeta,
+        retryCount.isAcceptableOrUnknown(data['retry_count']!, _retryCountMeta),
+      );
+    }
+    if (data.containsKey('last_retry_at')) {
+      context.handle(
+        _lastRetryAtMeta,
+        lastRetryAt.isAcceptableOrUnknown(
+          data['last_retry_at']!,
+          _lastRetryAtMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {messageId};
+  @override
+  RelayQueueTableData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return RelayQueueTableData(
+      messageId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}message_id'],
+      )!,
+      originalSenderId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}original_sender_id'],
+      )!,
+      finalDestinationId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}final_destination_id'],
+      )!,
+      encryptedContent: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}encrypted_content'],
+      )!,
+      hopCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}hop_count'],
+      )!,
+      maxHops: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}max_hops'],
+      )!,
+      trace: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}trace'],
+      )!,
+      timestamp: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}timestamp'],
+      )!,
+      type: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}type'],
+      ),
+      metadata: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}metadata'],
+      ),
+      queuedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}queued_at'],
+      )!,
+      retryCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}retry_count'],
+      )!,
+      lastRetryAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_retry_at'],
+      ),
+    );
+  }
+
+  @override
+  $RelayQueueTableTable createAlias(String alias) {
+    return $RelayQueueTableTable(attachedDatabase, alias);
+  }
+}
+
+class RelayQueueTableData extends DataClass
+    implements Insertable<RelayQueueTableData> {
+  /// معرف فريد للرسالة (Primary Key)
+  /// يستخدم messageId من MeshMessage
+  final String messageId;
+
+  /// معرف المرسل الأصلي
+  final String originalSenderId;
+
+  /// معرف الوجهة النهائية
+  final String finalDestinationId;
+
+  /// المحتوى المشفر (Base64) - لا يتم فك التشفير هنا
+  final String encryptedContent;
+
+  /// عدد القفزات الحالي
+  final int hopCount;
+
+  /// الحد الأقصى للقفزات (TTL)
+  final int maxHops;
+
+  /// قائمة معرفات الأجهزة التي مرت بها الرسالة (JSON array)
+  final String trace;
+
+  /// الطابع الزمني للرسالة الأصلية
+  final DateTime timestamp;
+
+  /// نوع الرسالة (message, friend_added, etc.)
+  final String? type;
+
+  /// بيانات إضافية (JSON)
+  final String? metadata;
+
+  /// تاريخ إضافة الرسالة إلى قائمة الانتظار
+  final DateTime queuedAt;
+
+  /// عدد المحاولات لإرسال الرسالة
+  final int retryCount;
+
+  /// آخر محاولة إرسال
+  final DateTime? lastRetryAt;
+  const RelayQueueTableData({
+    required this.messageId,
+    required this.originalSenderId,
+    required this.finalDestinationId,
+    required this.encryptedContent,
+    required this.hopCount,
+    required this.maxHops,
+    required this.trace,
+    required this.timestamp,
+    this.type,
+    this.metadata,
+    required this.queuedAt,
+    required this.retryCount,
+    this.lastRetryAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['message_id'] = Variable<String>(messageId);
+    map['original_sender_id'] = Variable<String>(originalSenderId);
+    map['final_destination_id'] = Variable<String>(finalDestinationId);
+    map['encrypted_content'] = Variable<String>(encryptedContent);
+    map['hop_count'] = Variable<int>(hopCount);
+    map['max_hops'] = Variable<int>(maxHops);
+    map['trace'] = Variable<String>(trace);
+    map['timestamp'] = Variable<DateTime>(timestamp);
+    if (!nullToAbsent || type != null) {
+      map['type'] = Variable<String>(type);
+    }
+    if (!nullToAbsent || metadata != null) {
+      map['metadata'] = Variable<String>(metadata);
+    }
+    map['queued_at'] = Variable<DateTime>(queuedAt);
+    map['retry_count'] = Variable<int>(retryCount);
+    if (!nullToAbsent || lastRetryAt != null) {
+      map['last_retry_at'] = Variable<DateTime>(lastRetryAt);
+    }
+    return map;
+  }
+
+  RelayQueueTableCompanion toCompanion(bool nullToAbsent) {
+    return RelayQueueTableCompanion(
+      messageId: Value(messageId),
+      originalSenderId: Value(originalSenderId),
+      finalDestinationId: Value(finalDestinationId),
+      encryptedContent: Value(encryptedContent),
+      hopCount: Value(hopCount),
+      maxHops: Value(maxHops),
+      trace: Value(trace),
+      timestamp: Value(timestamp),
+      type: type == null && nullToAbsent ? const Value.absent() : Value(type),
+      metadata: metadata == null && nullToAbsent
+          ? const Value.absent()
+          : Value(metadata),
+      queuedAt: Value(queuedAt),
+      retryCount: Value(retryCount),
+      lastRetryAt: lastRetryAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastRetryAt),
+    );
+  }
+
+  factory RelayQueueTableData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return RelayQueueTableData(
+      messageId: serializer.fromJson<String>(json['messageId']),
+      originalSenderId: serializer.fromJson<String>(json['originalSenderId']),
+      finalDestinationId: serializer.fromJson<String>(
+        json['finalDestinationId'],
+      ),
+      encryptedContent: serializer.fromJson<String>(json['encryptedContent']),
+      hopCount: serializer.fromJson<int>(json['hopCount']),
+      maxHops: serializer.fromJson<int>(json['maxHops']),
+      trace: serializer.fromJson<String>(json['trace']),
+      timestamp: serializer.fromJson<DateTime>(json['timestamp']),
+      type: serializer.fromJson<String?>(json['type']),
+      metadata: serializer.fromJson<String?>(json['metadata']),
+      queuedAt: serializer.fromJson<DateTime>(json['queuedAt']),
+      retryCount: serializer.fromJson<int>(json['retryCount']),
+      lastRetryAt: serializer.fromJson<DateTime?>(json['lastRetryAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'messageId': serializer.toJson<String>(messageId),
+      'originalSenderId': serializer.toJson<String>(originalSenderId),
+      'finalDestinationId': serializer.toJson<String>(finalDestinationId),
+      'encryptedContent': serializer.toJson<String>(encryptedContent),
+      'hopCount': serializer.toJson<int>(hopCount),
+      'maxHops': serializer.toJson<int>(maxHops),
+      'trace': serializer.toJson<String>(trace),
+      'timestamp': serializer.toJson<DateTime>(timestamp),
+      'type': serializer.toJson<String?>(type),
+      'metadata': serializer.toJson<String?>(metadata),
+      'queuedAt': serializer.toJson<DateTime>(queuedAt),
+      'retryCount': serializer.toJson<int>(retryCount),
+      'lastRetryAt': serializer.toJson<DateTime?>(lastRetryAt),
+    };
+  }
+
+  RelayQueueTableData copyWith({
+    String? messageId,
+    String? originalSenderId,
+    String? finalDestinationId,
+    String? encryptedContent,
+    int? hopCount,
+    int? maxHops,
+    String? trace,
+    DateTime? timestamp,
+    Value<String?> type = const Value.absent(),
+    Value<String?> metadata = const Value.absent(),
+    DateTime? queuedAt,
+    int? retryCount,
+    Value<DateTime?> lastRetryAt = const Value.absent(),
+  }) => RelayQueueTableData(
+    messageId: messageId ?? this.messageId,
+    originalSenderId: originalSenderId ?? this.originalSenderId,
+    finalDestinationId: finalDestinationId ?? this.finalDestinationId,
+    encryptedContent: encryptedContent ?? this.encryptedContent,
+    hopCount: hopCount ?? this.hopCount,
+    maxHops: maxHops ?? this.maxHops,
+    trace: trace ?? this.trace,
+    timestamp: timestamp ?? this.timestamp,
+    type: type.present ? type.value : this.type,
+    metadata: metadata.present ? metadata.value : this.metadata,
+    queuedAt: queuedAt ?? this.queuedAt,
+    retryCount: retryCount ?? this.retryCount,
+    lastRetryAt: lastRetryAt.present ? lastRetryAt.value : this.lastRetryAt,
+  );
+  RelayQueueTableData copyWithCompanion(RelayQueueTableCompanion data) {
+    return RelayQueueTableData(
+      messageId: data.messageId.present ? data.messageId.value : this.messageId,
+      originalSenderId: data.originalSenderId.present
+          ? data.originalSenderId.value
+          : this.originalSenderId,
+      finalDestinationId: data.finalDestinationId.present
+          ? data.finalDestinationId.value
+          : this.finalDestinationId,
+      encryptedContent: data.encryptedContent.present
+          ? data.encryptedContent.value
+          : this.encryptedContent,
+      hopCount: data.hopCount.present ? data.hopCount.value : this.hopCount,
+      maxHops: data.maxHops.present ? data.maxHops.value : this.maxHops,
+      trace: data.trace.present ? data.trace.value : this.trace,
+      timestamp: data.timestamp.present ? data.timestamp.value : this.timestamp,
+      type: data.type.present ? data.type.value : this.type,
+      metadata: data.metadata.present ? data.metadata.value : this.metadata,
+      queuedAt: data.queuedAt.present ? data.queuedAt.value : this.queuedAt,
+      retryCount: data.retryCount.present
+          ? data.retryCount.value
+          : this.retryCount,
+      lastRetryAt: data.lastRetryAt.present
+          ? data.lastRetryAt.value
+          : this.lastRetryAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RelayQueueTableData(')
+          ..write('messageId: $messageId, ')
+          ..write('originalSenderId: $originalSenderId, ')
+          ..write('finalDestinationId: $finalDestinationId, ')
+          ..write('encryptedContent: $encryptedContent, ')
+          ..write('hopCount: $hopCount, ')
+          ..write('maxHops: $maxHops, ')
+          ..write('trace: $trace, ')
+          ..write('timestamp: $timestamp, ')
+          ..write('type: $type, ')
+          ..write('metadata: $metadata, ')
+          ..write('queuedAt: $queuedAt, ')
+          ..write('retryCount: $retryCount, ')
+          ..write('lastRetryAt: $lastRetryAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    messageId,
+    originalSenderId,
+    finalDestinationId,
+    encryptedContent,
+    hopCount,
+    maxHops,
+    trace,
+    timestamp,
+    type,
+    metadata,
+    queuedAt,
+    retryCount,
+    lastRetryAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is RelayQueueTableData &&
+          other.messageId == this.messageId &&
+          other.originalSenderId == this.originalSenderId &&
+          other.finalDestinationId == this.finalDestinationId &&
+          other.encryptedContent == this.encryptedContent &&
+          other.hopCount == this.hopCount &&
+          other.maxHops == this.maxHops &&
+          other.trace == this.trace &&
+          other.timestamp == this.timestamp &&
+          other.type == this.type &&
+          other.metadata == this.metadata &&
+          other.queuedAt == this.queuedAt &&
+          other.retryCount == this.retryCount &&
+          other.lastRetryAt == this.lastRetryAt);
+}
+
+class RelayQueueTableCompanion extends UpdateCompanion<RelayQueueTableData> {
+  final Value<String> messageId;
+  final Value<String> originalSenderId;
+  final Value<String> finalDestinationId;
+  final Value<String> encryptedContent;
+  final Value<int> hopCount;
+  final Value<int> maxHops;
+  final Value<String> trace;
+  final Value<DateTime> timestamp;
+  final Value<String?> type;
+  final Value<String?> metadata;
+  final Value<DateTime> queuedAt;
+  final Value<int> retryCount;
+  final Value<DateTime?> lastRetryAt;
+  final Value<int> rowid;
+  const RelayQueueTableCompanion({
+    this.messageId = const Value.absent(),
+    this.originalSenderId = const Value.absent(),
+    this.finalDestinationId = const Value.absent(),
+    this.encryptedContent = const Value.absent(),
+    this.hopCount = const Value.absent(),
+    this.maxHops = const Value.absent(),
+    this.trace = const Value.absent(),
+    this.timestamp = const Value.absent(),
+    this.type = const Value.absent(),
+    this.metadata = const Value.absent(),
+    this.queuedAt = const Value.absent(),
+    this.retryCount = const Value.absent(),
+    this.lastRetryAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  RelayQueueTableCompanion.insert({
+    required String messageId,
+    required String originalSenderId,
+    required String finalDestinationId,
+    required String encryptedContent,
+    this.hopCount = const Value.absent(),
+    this.maxHops = const Value.absent(),
+    this.trace = const Value.absent(),
+    required DateTime timestamp,
+    this.type = const Value.absent(),
+    this.metadata = const Value.absent(),
+    this.queuedAt = const Value.absent(),
+    this.retryCount = const Value.absent(),
+    this.lastRetryAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : messageId = Value(messageId),
+       originalSenderId = Value(originalSenderId),
+       finalDestinationId = Value(finalDestinationId),
+       encryptedContent = Value(encryptedContent),
+       timestamp = Value(timestamp);
+  static Insertable<RelayQueueTableData> custom({
+    Expression<String>? messageId,
+    Expression<String>? originalSenderId,
+    Expression<String>? finalDestinationId,
+    Expression<String>? encryptedContent,
+    Expression<int>? hopCount,
+    Expression<int>? maxHops,
+    Expression<String>? trace,
+    Expression<DateTime>? timestamp,
+    Expression<String>? type,
+    Expression<String>? metadata,
+    Expression<DateTime>? queuedAt,
+    Expression<int>? retryCount,
+    Expression<DateTime>? lastRetryAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (messageId != null) 'message_id': messageId,
+      if (originalSenderId != null) 'original_sender_id': originalSenderId,
+      if (finalDestinationId != null)
+        'final_destination_id': finalDestinationId,
+      if (encryptedContent != null) 'encrypted_content': encryptedContent,
+      if (hopCount != null) 'hop_count': hopCount,
+      if (maxHops != null) 'max_hops': maxHops,
+      if (trace != null) 'trace': trace,
+      if (timestamp != null) 'timestamp': timestamp,
+      if (type != null) 'type': type,
+      if (metadata != null) 'metadata': metadata,
+      if (queuedAt != null) 'queued_at': queuedAt,
+      if (retryCount != null) 'retry_count': retryCount,
+      if (lastRetryAt != null) 'last_retry_at': lastRetryAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  RelayQueueTableCompanion copyWith({
+    Value<String>? messageId,
+    Value<String>? originalSenderId,
+    Value<String>? finalDestinationId,
+    Value<String>? encryptedContent,
+    Value<int>? hopCount,
+    Value<int>? maxHops,
+    Value<String>? trace,
+    Value<DateTime>? timestamp,
+    Value<String?>? type,
+    Value<String?>? metadata,
+    Value<DateTime>? queuedAt,
+    Value<int>? retryCount,
+    Value<DateTime?>? lastRetryAt,
+    Value<int>? rowid,
+  }) {
+    return RelayQueueTableCompanion(
+      messageId: messageId ?? this.messageId,
+      originalSenderId: originalSenderId ?? this.originalSenderId,
+      finalDestinationId: finalDestinationId ?? this.finalDestinationId,
+      encryptedContent: encryptedContent ?? this.encryptedContent,
+      hopCount: hopCount ?? this.hopCount,
+      maxHops: maxHops ?? this.maxHops,
+      trace: trace ?? this.trace,
+      timestamp: timestamp ?? this.timestamp,
+      type: type ?? this.type,
+      metadata: metadata ?? this.metadata,
+      queuedAt: queuedAt ?? this.queuedAt,
+      retryCount: retryCount ?? this.retryCount,
+      lastRetryAt: lastRetryAt ?? this.lastRetryAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (messageId.present) {
+      map['message_id'] = Variable<String>(messageId.value);
+    }
+    if (originalSenderId.present) {
+      map['original_sender_id'] = Variable<String>(originalSenderId.value);
+    }
+    if (finalDestinationId.present) {
+      map['final_destination_id'] = Variable<String>(finalDestinationId.value);
+    }
+    if (encryptedContent.present) {
+      map['encrypted_content'] = Variable<String>(encryptedContent.value);
+    }
+    if (hopCount.present) {
+      map['hop_count'] = Variable<int>(hopCount.value);
+    }
+    if (maxHops.present) {
+      map['max_hops'] = Variable<int>(maxHops.value);
+    }
+    if (trace.present) {
+      map['trace'] = Variable<String>(trace.value);
+    }
+    if (timestamp.present) {
+      map['timestamp'] = Variable<DateTime>(timestamp.value);
+    }
+    if (type.present) {
+      map['type'] = Variable<String>(type.value);
+    }
+    if (metadata.present) {
+      map['metadata'] = Variable<String>(metadata.value);
+    }
+    if (queuedAt.present) {
+      map['queued_at'] = Variable<DateTime>(queuedAt.value);
+    }
+    if (retryCount.present) {
+      map['retry_count'] = Variable<int>(retryCount.value);
+    }
+    if (lastRetryAt.present) {
+      map['last_retry_at'] = Variable<DateTime>(lastRetryAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RelayQueueTableCompanion(')
+          ..write('messageId: $messageId, ')
+          ..write('originalSenderId: $originalSenderId, ')
+          ..write('finalDestinationId: $finalDestinationId, ')
+          ..write('encryptedContent: $encryptedContent, ')
+          ..write('hopCount: $hopCount, ')
+          ..write('maxHops: $maxHops, ')
+          ..write('trace: $trace, ')
+          ..write('timestamp: $timestamp, ')
+          ..write('type: $type, ')
+          ..write('metadata: $metadata, ')
+          ..write('queuedAt: $queuedAt, ')
+          ..write('retryCount: $retryCount, ')
+          ..write('lastRetryAt: $lastRetryAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $ContactsTableTable contactsTable = $ContactsTableTable(this);
   late final $ChatsTableTable chatsTable = $ChatsTableTable(this);
   late final $MessagesTableTable messagesTable = $MessagesTableTable(this);
+  late final $RelayQueueTableTable relayQueueTable = $RelayQueueTableTable(
+    this,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -1653,6 +2452,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     contactsTable,
     chatsTable,
     messagesTable,
+    relayQueueTable,
   ];
 }
 
@@ -2893,6 +3693,378 @@ typedef $$MessagesTableTableProcessedTableManager =
       MessagesTableData,
       PrefetchHooks Function({bool chatId})
     >;
+typedef $$RelayQueueTableTableCreateCompanionBuilder =
+    RelayQueueTableCompanion Function({
+      required String messageId,
+      required String originalSenderId,
+      required String finalDestinationId,
+      required String encryptedContent,
+      Value<int> hopCount,
+      Value<int> maxHops,
+      Value<String> trace,
+      required DateTime timestamp,
+      Value<String?> type,
+      Value<String?> metadata,
+      Value<DateTime> queuedAt,
+      Value<int> retryCount,
+      Value<DateTime?> lastRetryAt,
+      Value<int> rowid,
+    });
+typedef $$RelayQueueTableTableUpdateCompanionBuilder =
+    RelayQueueTableCompanion Function({
+      Value<String> messageId,
+      Value<String> originalSenderId,
+      Value<String> finalDestinationId,
+      Value<String> encryptedContent,
+      Value<int> hopCount,
+      Value<int> maxHops,
+      Value<String> trace,
+      Value<DateTime> timestamp,
+      Value<String?> type,
+      Value<String?> metadata,
+      Value<DateTime> queuedAt,
+      Value<int> retryCount,
+      Value<DateTime?> lastRetryAt,
+      Value<int> rowid,
+    });
+
+class $$RelayQueueTableTableFilterComposer
+    extends Composer<_$AppDatabase, $RelayQueueTableTable> {
+  $$RelayQueueTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get messageId => $composableBuilder(
+    column: $table.messageId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get originalSenderId => $composableBuilder(
+    column: $table.originalSenderId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get finalDestinationId => $composableBuilder(
+    column: $table.finalDestinationId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get encryptedContent => $composableBuilder(
+    column: $table.encryptedContent,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get hopCount => $composableBuilder(
+    column: $table.hopCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get maxHops => $composableBuilder(
+    column: $table.maxHops,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get trace => $composableBuilder(
+    column: $table.trace,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get timestamp => $composableBuilder(
+    column: $table.timestamp,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get type => $composableBuilder(
+    column: $table.type,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get metadata => $composableBuilder(
+    column: $table.metadata,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get queuedAt => $composableBuilder(
+    column: $table.queuedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get retryCount => $composableBuilder(
+    column: $table.retryCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get lastRetryAt => $composableBuilder(
+    column: $table.lastRetryAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$RelayQueueTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $RelayQueueTableTable> {
+  $$RelayQueueTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get messageId => $composableBuilder(
+    column: $table.messageId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get originalSenderId => $composableBuilder(
+    column: $table.originalSenderId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get finalDestinationId => $composableBuilder(
+    column: $table.finalDestinationId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get encryptedContent => $composableBuilder(
+    column: $table.encryptedContent,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get hopCount => $composableBuilder(
+    column: $table.hopCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get maxHops => $composableBuilder(
+    column: $table.maxHops,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get trace => $composableBuilder(
+    column: $table.trace,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get timestamp => $composableBuilder(
+    column: $table.timestamp,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get type => $composableBuilder(
+    column: $table.type,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get metadata => $composableBuilder(
+    column: $table.metadata,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get queuedAt => $composableBuilder(
+    column: $table.queuedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get retryCount => $composableBuilder(
+    column: $table.retryCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get lastRetryAt => $composableBuilder(
+    column: $table.lastRetryAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$RelayQueueTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $RelayQueueTableTable> {
+  $$RelayQueueTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get messageId =>
+      $composableBuilder(column: $table.messageId, builder: (column) => column);
+
+  GeneratedColumn<String> get originalSenderId => $composableBuilder(
+    column: $table.originalSenderId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get finalDestinationId => $composableBuilder(
+    column: $table.finalDestinationId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get encryptedContent => $composableBuilder(
+    column: $table.encryptedContent,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get hopCount =>
+      $composableBuilder(column: $table.hopCount, builder: (column) => column);
+
+  GeneratedColumn<int> get maxHops =>
+      $composableBuilder(column: $table.maxHops, builder: (column) => column);
+
+  GeneratedColumn<String> get trace =>
+      $composableBuilder(column: $table.trace, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get timestamp =>
+      $composableBuilder(column: $table.timestamp, builder: (column) => column);
+
+  GeneratedColumn<String> get type =>
+      $composableBuilder(column: $table.type, builder: (column) => column);
+
+  GeneratedColumn<String> get metadata =>
+      $composableBuilder(column: $table.metadata, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get queuedAt =>
+      $composableBuilder(column: $table.queuedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get retryCount => $composableBuilder(
+    column: $table.retryCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get lastRetryAt => $composableBuilder(
+    column: $table.lastRetryAt,
+    builder: (column) => column,
+  );
+}
+
+class $$RelayQueueTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $RelayQueueTableTable,
+          RelayQueueTableData,
+          $$RelayQueueTableTableFilterComposer,
+          $$RelayQueueTableTableOrderingComposer,
+          $$RelayQueueTableTableAnnotationComposer,
+          $$RelayQueueTableTableCreateCompanionBuilder,
+          $$RelayQueueTableTableUpdateCompanionBuilder,
+          (
+            RelayQueueTableData,
+            BaseReferences<
+              _$AppDatabase,
+              $RelayQueueTableTable,
+              RelayQueueTableData
+            >,
+          ),
+          RelayQueueTableData,
+          PrefetchHooks Function()
+        > {
+  $$RelayQueueTableTableTableManager(
+    _$AppDatabase db,
+    $RelayQueueTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$RelayQueueTableTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$RelayQueueTableTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$RelayQueueTableTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> messageId = const Value.absent(),
+                Value<String> originalSenderId = const Value.absent(),
+                Value<String> finalDestinationId = const Value.absent(),
+                Value<String> encryptedContent = const Value.absent(),
+                Value<int> hopCount = const Value.absent(),
+                Value<int> maxHops = const Value.absent(),
+                Value<String> trace = const Value.absent(),
+                Value<DateTime> timestamp = const Value.absent(),
+                Value<String?> type = const Value.absent(),
+                Value<String?> metadata = const Value.absent(),
+                Value<DateTime> queuedAt = const Value.absent(),
+                Value<int> retryCount = const Value.absent(),
+                Value<DateTime?> lastRetryAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => RelayQueueTableCompanion(
+                messageId: messageId,
+                originalSenderId: originalSenderId,
+                finalDestinationId: finalDestinationId,
+                encryptedContent: encryptedContent,
+                hopCount: hopCount,
+                maxHops: maxHops,
+                trace: trace,
+                timestamp: timestamp,
+                type: type,
+                metadata: metadata,
+                queuedAt: queuedAt,
+                retryCount: retryCount,
+                lastRetryAt: lastRetryAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String messageId,
+                required String originalSenderId,
+                required String finalDestinationId,
+                required String encryptedContent,
+                Value<int> hopCount = const Value.absent(),
+                Value<int> maxHops = const Value.absent(),
+                Value<String> trace = const Value.absent(),
+                required DateTime timestamp,
+                Value<String?> type = const Value.absent(),
+                Value<String?> metadata = const Value.absent(),
+                Value<DateTime> queuedAt = const Value.absent(),
+                Value<int> retryCount = const Value.absent(),
+                Value<DateTime?> lastRetryAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => RelayQueueTableCompanion.insert(
+                messageId: messageId,
+                originalSenderId: originalSenderId,
+                finalDestinationId: finalDestinationId,
+                encryptedContent: encryptedContent,
+                hopCount: hopCount,
+                maxHops: maxHops,
+                trace: trace,
+                timestamp: timestamp,
+                type: type,
+                metadata: metadata,
+                queuedAt: queuedAt,
+                retryCount: retryCount,
+                lastRetryAt: lastRetryAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$RelayQueueTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $RelayQueueTableTable,
+      RelayQueueTableData,
+      $$RelayQueueTableTableFilterComposer,
+      $$RelayQueueTableTableOrderingComposer,
+      $$RelayQueueTableTableAnnotationComposer,
+      $$RelayQueueTableTableCreateCompanionBuilder,
+      $$RelayQueueTableTableUpdateCompanionBuilder,
+      (
+        RelayQueueTableData,
+        BaseReferences<
+          _$AppDatabase,
+          $RelayQueueTableTable,
+          RelayQueueTableData
+        >,
+      ),
+      RelayQueueTableData,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -2903,4 +4075,6 @@ class $AppDatabaseManager {
       $$ChatsTableTableTableManager(_db, _db.chatsTable);
   $$MessagesTableTableTableManager get messagesTable =>
       $$MessagesTableTableTableManager(_db, _db.messagesTable);
+  $$RelayQueueTableTableTableManager get relayQueueTable =>
+      $$RelayQueueTableTableTableManager(_db, _db.relayQueueTable);
 }

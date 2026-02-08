@@ -18,6 +18,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get welcomeMessage => 'مرحباً بك في طبقة الأساس لتطبيق صدى';
 
   @override
+  String get home => 'الرئيسية';
+
+  @override
   String get settings => 'الإعدادات';
 
   @override
@@ -137,16 +140,17 @@ class AppLocalizationsAr extends AppLocalizations {
   String get cameraPermissionDenied => 'تم رفض صلاحية الكاميرا';
 
   @override
-  String get cameraPermissionRequired => 'صلاحية الكاميرا مطلوبة';
+  String get cameraPermissionRequired =>
+      'نحتاج إلى صلاحية الكاميرا لمسح رمز QR';
 
   @override
   String get grantPermission => 'منح الصلاحية';
 
   @override
-  String get placeQrInFrame => 'ضع رمز QR في الإطار';
+  String get placeQrInFrame => 'ضع رمز QR داخل الإطار';
 
   @override
-  String get friendAddedSuccessfully => 'تم إضافة الصديق بنجاح';
+  String get friendAddedSuccessfully => 'تمت إضافة الصديق بنجاح';
 
   @override
   String get name => 'الاسم';
@@ -456,48 +460,106 @@ class AppLocalizationsAr extends AppLocalizations {
   String get apkShareError => 'فشل مشاركة ملف APK';
 
   @override
-  String get myQrCode => 'رمز QR الخاص بي';
+  String get notifications => 'الإشعارات';
+
+  @override
+  String get noNotifications => 'لا توجد إشعارات';
+
+  @override
+  String get markAllAsRead => 'تعليم الكل كمقروء';
+
+  @override
+  String get noInternetNoProblem => 'لا إنترنت؟\nلا مشكلة.';
+
+  @override
+  String get noInternetDescription =>
+      'يعمل صدى عندما ينقطع الإنترنت. تواصل مباشرة مع من حولك باستخدام WiFi Direct.';
+
+  @override
+  String get youAreTheNetwork => 'أنت الشبكة';
+
+  @override
+  String get youAreTheNetworkDescription =>
+      'هاتفك يعمل كجسر. ساعد مجتمعك على البقاء متصلاً بمجرد إبقاء التطبيق مفتوحاً.';
+
+  @override
+  String get invisibleAndSecure => 'غير مرئي وآمن';
+
+  @override
+  String get invisibleAndSecureDescription =>
+      'لا خوادم. لا تعقب. رسائلك تبقى في حيّك.';
+
+  @override
+  String get readyToConnect => 'جاهز للاتصال؟';
+
+  @override
+  String get readyToConnectDescription =>
+      'امنح الصلاحيات للبدء باكتشاف الأشخاص القريبين.';
+
+  @override
+  String get permissionLocation => 'الموقع';
+
+  @override
+  String get permissionNotify => 'إشعارات';
+
+  @override
+  String get permissionWifi => 'WiFi';
+
+  @override
+  String get zeroKnowledgePromise => 'وعد المعرفة الصفرية';
+
+  @override
+  String get noPhoneNumberRequired => 'لا حاجة لرقم هاتف';
+
+  @override
+  String get noPhoneNumberDescription =>
+      'لا نطلب رقم هاتفك أو بريدك الإلكتروني. أنت مجرد مفتاح تشفير.';
+
+  @override
+  String get endToEndEncryptionDescription =>
+      'جميع الرسائل مشفرة على جهازك ويتم فك تشفيرها فقط عند المستلم.';
+
+  @override
+  String get localDatabaseOnly => 'قاعدة بيانات محلية فقط';
+
+  @override
+  String get localDatabaseDescription =>
+      'بياناتك تعيش على هاتفك. لا يوجد نسخ احتياطي سحابي. إذا حذفت التطبيق، ستضيع بياناتك للأبد.';
+
+  @override
+  String get transparency => 'الشفافية';
+
+  @override
+  String get transparencyDescription =>
+      'يستخدم صدى تقنيات قياسية مثل WiFi Direct و UDP. بينما يعلن جهازك عن وجوده، تبقى هويتك الحقيقية مخفية.';
+
+  @override
+  String get viewSourceCode => 'عرض الكود المصدري';
+
+  @override
+  String get howItWorks => 'كيف يعمل';
 
   @override
   String get scanQrCode => 'مسح رمز QR';
 
   @override
-  String get invalidQrCode => 'رمز QR غير صحيح';
+  String get scanQrDescription =>
+      'قابل صديقاً وامسح رمزه لتبادل المفاتيح بأمان.';
 
   @override
-  String get invalidQrCodeFormat => 'تنسيق رمز QR غير صحيح';
+  String get autoConnect => 'اتصال تلقائي';
 
   @override
-  String get invalidQrCodeFields => 'رمز QR ناقص: الحقول المطلوبة مفقودة';
+  String get autoConnectDescription =>
+      'تجد أجهزتكم بعضها تلقائياً عبر WiFi Direct.';
 
   @override
-  String get processing => 'جاري المعالجة...';
+  String get secureChat => 'محادثة آمنة';
 
   @override
-  String get cannotAddYourself => 'لا يمكنك إضافة نفسك كصديق';
+  String get secureChatDescription =>
+      'تنتقل الرسائل بين الأجهزة حتى تصل لوجهتها.';
 
   @override
-  String get contactAlreadyExists => 'جهة الاتصال موجودة بالفعل';
-
-  @override
-  String get errorProcessingQrCode => 'خطأ في معالجة رمز QR';
-
-  @override
-  String get shareQrCodeDescription => 'شارك هذا الرمز لإضافة نفسك كجهة اتصال';
-
-  @override
-  String get qrCodeSecurityInfo =>
-      'يحتوي هذا الرمز على مفتاحك العام للرسائل المشفرة.';
-
-  @override
-  String get home => 'الرئيسية';
-
-  @override
-  String get notifications => 'الإشعارات';
-
-  @override
-  String get markAllAsRead => 'تحديد الكل كمقروء';
-
-  @override
-  String get noNotifications => 'لا توجد إشعارات';
+  String get designedForResilience => 'صُمم للصمود';
 }

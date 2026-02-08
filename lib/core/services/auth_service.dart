@@ -83,20 +83,23 @@ class AuthService extends StateNotifier<AuthStatus> {
   /// التحقق من حالة تسجيل الدخول
   Future<void> _checkLoginStatus() async {
     try {
+      LogService.info('🔍 بدء التحقق من حالة تسجيل الدخول...');
       final userDataJson = await _secureStorage.read(key: _storageKey);
       
       if (userDataJson != null) {
         final userData = UserData.fromJson(jsonDecode(userDataJson));
         _currentUser = userData;
         state = AuthStatus.loggedIn;
-        LogService.info('تم العثور على بيانات المستخدم');
+        LogService.info('✅ تم العثور على بيانات المستخدم: ${userData.displayName}');
       } else {
         state = AuthStatus.loggedOut;
-        LogService.info('لا توجد بيانات مستخدم - يجب التسجيل');
+        LogService.info('ℹ️ لا توجد بيانات مستخدم - يجب التسجيل');
       }
     } catch (e) {
-      LogService.error('خطأ في التحقق من حالة تسجيل الدخول', e);
+      LogService.error('⛔ خطأ في التحقق من حالة تسجيل الدخول', e);
+      // في حالة الخطأ، نعتبر المستخدم غير مسجل دخول
       state = AuthStatus.loggedOut;
+      LogService.info('ℹ️ تم تعيين الحالة إلى loggedOut بسبب الخطأ');
     }
   }
 

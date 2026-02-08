@@ -11,11 +11,11 @@ class AppTheme {
   static const Color _deepMidnightBlue = Color(0xFF050A14);
   static const Color _semiTransparentDarkBlue = Color(0xFF101A26);
   static const Color _electricCyan = Color(0xFF00E5FF);
-  static const Color _neonPurple = Color(0xFFD500F9);
+  // static const Color _neonPurple = Color(0xFFD500F9);
   static const Color _fluorescentRed = Color(0xFFFF1744);
 
   // Font
-  static final TextStyle _baseTextStyle = GoogleFonts.readexPro();
+  static final TextStyle _baseTextStyle = GoogleFonts.poppins();
 
   /// إنشاء الثيم الداكن (Cyber-Stealth)
   /// Dark-Mode First Design
@@ -26,12 +26,12 @@ class AppTheme {
     // Color Scheme
     colorScheme: ColorScheme.dark(
       primary: _electricCyan,
-      secondary: _neonPurple,
+      secondary: _electricCyan, // Unifying accent color
       error: _fluorescentRed,
       surface: _semiTransparentDarkBlue.withValues(alpha: 0.6),
       onSurface: Colors.white,
       onPrimary: Colors.black,
-      onSecondary: Colors.white,
+      onSecondary: Colors.black,
       onError: Colors.white,
       surfaceContainerHighest: _semiTransparentDarkBlue.withValues(alpha: 0.8),
       surfaceContainerHigh: _semiTransparentDarkBlue.withValues(alpha: 0.7),
@@ -88,6 +88,22 @@ class AppTheme {
       ),
     ),
 
+    // Outlined Button Theme
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        foregroundColor: _electricCyan,
+        side: const BorderSide(color: _electricCyan),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+        ),
+        textStyle: _baseTextStyle.copyWith(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    ),
+
     // Text Button Theme
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
@@ -127,101 +143,7 @@ class AppTheme {
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
     ),
-
-    // Text Theme
-    textTheme: TextTheme(
-      displayLarge: _baseTextStyle.copyWith(
-        fontSize: 57,
-        fontWeight: FontWeight.bold,
-        color: Colors.white,
-        letterSpacing: -0.25,
-      ),
-      displayMedium: _baseTextStyle.copyWith(
-        fontSize: 45,
-        fontWeight: FontWeight.bold,
-        color: Colors.white,
-        letterSpacing: 0,
-      ),
-      displaySmall: _baseTextStyle.copyWith(
-        fontSize: 36,
-        fontWeight: FontWeight.bold,
-        color: Colors.white,
-        letterSpacing: 0,
-      ),
-      headlineLarge: _baseTextStyle.copyWith(
-        fontSize: 32,
-        fontWeight: FontWeight.bold,
-        color: Colors.white,
-        letterSpacing: 0,
-      ),
-      headlineMedium: _baseTextStyle.copyWith(
-        fontSize: 28,
-        fontWeight: FontWeight.bold,
-        color: Colors.white,
-        letterSpacing: 0,
-      ),
-      headlineSmall: _baseTextStyle.copyWith(
-        fontSize: 24,
-        fontWeight: FontWeight.w600,
-        color: Colors.white,
-        letterSpacing: 0,
-      ),
-      titleLarge: _baseTextStyle.copyWith(
-        fontSize: 22,
-        fontWeight: FontWeight.w600,
-        color: Colors.white,
-        letterSpacing: 0,
-      ),
-      titleMedium: _baseTextStyle.copyWith(
-        fontSize: 16,
-        fontWeight: FontWeight.w600,
-        color: Colors.white,
-        letterSpacing: 0.15,
-      ),
-      titleSmall: _baseTextStyle.copyWith(
-        fontSize: 14,
-        fontWeight: FontWeight.w600,
-        color: Colors.white,
-        letterSpacing: 0.1,
-      ),
-      bodyLarge: _baseTextStyle.copyWith(
-        fontSize: 16,
-        fontWeight: FontWeight.normal,
-        color: Colors.white.withValues(alpha: 0.9),
-        letterSpacing: 0.5,
-      ),
-      bodyMedium: _baseTextStyle.copyWith(
-        fontSize: 14,
-        fontWeight: FontWeight.normal,
-        color: Colors.white.withValues(alpha: 0.9),
-        letterSpacing: 0.25,
-      ),
-      bodySmall: _baseTextStyle.copyWith(
-        fontSize: 12,
-        fontWeight: FontWeight.normal,
-        color: Colors.white.withValues(alpha: 0.7),
-        letterSpacing: 0.4,
-      ),
-      labelLarge: _baseTextStyle.copyWith(
-        fontSize: 14,
-        fontWeight: FontWeight.w600,
-        color: Colors.white,
-        letterSpacing: 0.1,
-      ),
-      labelMedium: _baseTextStyle.copyWith(
-        fontSize: 12,
-        fontWeight: FontWeight.w600,
-        color: Colors.white,
-        letterSpacing: 0.5,
-      ),
-      labelSmall: _baseTextStyle.copyWith(
-        fontSize: 11,
-        fontWeight: FontWeight.w600,
-        color: Colors.white,
-        letterSpacing: 0.5,
-      ),
-    ),
-
+    
     // Icon Theme
     iconTheme: const IconThemeData(
       color: Colors.white,
@@ -234,6 +156,14 @@ class AppTheme {
       thickness: 1,
       space: 1,
     ),
+
+    // Text Theme (Overridden with GoogleFonts.poppins)
+    textTheme: GoogleFonts.poppinsTextTheme(
+      ThemeData.dark().textTheme,
+    ).apply(
+      bodyColor: Colors.white,
+      displayColor: Colors.white,
+    ),
   );
 
   /// إنشاء الثيم الفاتح (Fallback - لكن التصميم Dark-Mode First)
@@ -241,7 +171,7 @@ class AppTheme {
     brightness: Brightness.light,
     colorScheme: ColorScheme.light(
       primary: _electricCyan,
-      secondary: _neonPurple,
+      secondary: _electricCyan,
       error: _fluorescentRed,
       surface: Colors.white.withValues(alpha: 0.9),
       onSurface: Colors.black,
@@ -250,7 +180,9 @@ class AppTheme {
       onError: Colors.white,
     ),
     scaffoldBackgroundColor: Colors.grey.shade50,
-    textTheme: darkTheme.textTheme.apply(
+    textTheme: GoogleFonts.poppinsTextTheme(
+      ThemeData.light().textTheme,
+    ).apply(
       bodyColor: Colors.black,
       displayColor: Colors.black,
     ),

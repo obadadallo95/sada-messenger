@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import '../../../../l10n/app_localizations.dart';
+import 'package:sada/l10n/generated/app_localizations.dart';
 
 /// شاشة الرئيسية
 /// تعرض بطاقة ترحيب متجاوبة توضح استخدام ScreenUtil

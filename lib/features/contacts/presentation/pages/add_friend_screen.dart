@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -6,10 +7,17 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:uuid/uuid.dart';
+import 'package:drift/drift.dart' hide Column;
 import '../../../../core/router/routes.dart';
-import '../../../../l10n/app_localizations.dart';
+import 'package:sada/l10n/generated/app_localizations.dart';
 import '../../../../core/utils/log_service.dart';
 import '../../../../core/services/auth_service.dart';
+import '../../../../core/database/database_provider.dart';
+import '../../../../core/database/app_database.dart';
+import '../../../../core/security/security_providers.dart';
+import '../../../../core/network/mesh_service.dart';
+import '../../../chat/domain/models/chat_model.dart';
 
 /// شاشة إضافة صديق
 /// تحتوي على تبويبين: رمز QR الخاص بي ومسح رمز QR
@@ -67,18 +75,33 @@ class _AddFriendScreenState extends ConsumerState<AddFriendScreen>
     }
   }
 
-  /// توليد بيانات QR Code
-  String _generateQRData() {
-    return 'sada://user/$_currentUserId';
+  /// توليد بيانات QR Code (JSON format)
+  Future<String> _generateQRData() async {
+    try {
+      final keyManager = ref.read(keyManagerProvider);
+      final publicKeyBytes = await keyManager.getPublicKey();
+      final publicKeyBase64 = base64Encode(publicKeyBytes);
+      
+      final qrData = {
+        'id': _currentUserId,
+        'name': _currentUserName,
+        'publicKey': publicKeyBase64,
+      };
+      
+      return jsonEncode(qrData);
+    } catch (e) {
+      LogService.error('خطأ في توليد QR Code', e);
+      // Fallback إلى التنسيق القديم
+      return 'sada://user/$_currentUserId';
+    }
   }
 
   /// مشاركة رمز QR
   Future<void> _shareQRCode() async {
     try {
+      final qrData = await _generateQRData();
       // ignore: deprecated_member_use
-      await Share.share(
-        'sada://user/$_currentUserId',
-      );
+      await Share.share(qrData);
     } catch (e) {
       LogService.error('خطأ في مشاركة رمز QR', e);
       if (mounted) {
@@ -101,6 +124,41 @@ class _AddFriendScreenState extends ConsumerState<AddFriendScreen>
   /// عرض BottomSheet عند العثور على صديق
   void _showFriendFoundSheet(String scannedData) {
     final l10n = AppLocalizations.of(context)!;
+
+    // محاولة تحليل QR Code
+    Map<String, dynamic>? qrData;
+    String? contactId;
+    String? name;
+    String? publicKey;
+
+    try {
+      // محاولة تحليل JSON
+      if (scannedData.startsWith('{')) {
+        qrData = jsonDecode(scannedData);
+        contactId = qrData?['id'] as String?;
+        name = qrData?['name'] as String?;
+        publicKey = qrData?['publicKey'] as String?;
+      } else if (scannedData.startsWith('sada://user/')) {
+        // تنسيق قديم - استخراج userId فقط
+        contactId = scannedData.replaceFirst('sada://user/', '');
+        name = 'Friend';
+        publicKey = null; // لا يمكن الحصول على publicKey من التنسيق القديم
+      } else {
+        // تنسيق غير معروف
+        contactId = scannedData;
+        name = 'Friend';
+        publicKey = null;
+      }
+    } catch (e) {
+      LogService.error('خطأ في تحليل QR Code', e);
+      contactId = scannedData;
+      name = 'Friend';
+      publicKey = null;
+    }
+
+    final finalContactId = contactId ?? 'unknown';
+    final finalName = name ?? l10n.newFriend;
+    final finalPublicKey = publicKey;
 
     showModalBottomSheet(
       context: context,
@@ -165,16 +223,16 @@ class _AddFriendScreenState extends ConsumerState<AddFriendScreen>
                     context,
                     l10n: l10n,
                     label: l10n.name,
-                    value: l10n.newFriend,
+                    value: finalName,
                   ),
                   SizedBox(height: 12.h),
                   _buildDetailRow(
                     context,
                     l10n: l10n,
                     label: l10n.id,
-                    value: scannedData.length > 30
-                        ? '${scannedData.substring(0, 30)}...'
-                        : scannedData,
+                    value: finalContactId.length > 30
+                        ? '${finalContactId.substring(0, 30)}...'
+                        : finalContactId,
                   ),
                 ],
               ),
@@ -184,15 +242,9 @@ class _AddFriendScreenState extends ConsumerState<AddFriendScreen>
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {
+                onPressed: () async {
                   Navigator.of(context).pop();
-                  context.go(AppRoutes.home);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(l10n.friendAddedSuccessfully),
-                      duration: const Duration(seconds: 2),
-                    ),
-                  );
+                  await _addFriendToDatabase(finalContactId, finalName, finalPublicKey);
                 },
                 style: ElevatedButton.styleFrom(
                   padding: EdgeInsets.symmetric(vertical: 16.h),
@@ -217,6 +269,206 @@ class _AddFriendScreenState extends ConsumerState<AddFriendScreen>
       // إعادة تشغيل الماسح بعد إغلاق الـ Sheet
       _scannerController.start();
     });
+  }
+
+  /// إضافة صديق إلى قاعدة البيانات وإنشاء محادثة
+  Future<void> _addFriendToDatabase(String contactId, String name, String? publicKey) async {
+    final l10n = AppLocalizations.of(context)!;
+    
+    try {
+      // التحقق من أن المستخدم لا يضيف نفسه
+      final authService = ref.read(authServiceProvider.notifier);
+      final currentUser = authService.currentUser;
+      if (currentUser?.userId == contactId) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(l10n.cannotAddYourself),
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+          );
+        }
+        return;
+      }
+
+      // الحصول على قاعدة البيانات
+      final database = await ref.read(appDatabaseProvider.future);
+
+      // التحقق من أن جهة الاتصال غير موجودة بالفعل
+      final existingContact = await database.getContactById(contactId);
+      
+      if (existingContact != null) {
+        // جهة الاتصال موجودة - الانتقال إلى المحادثة
+        LogService.info('جهة الاتصال موجودة بالفعل: $contactId');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(l10n.contactAlreadyExists),
+              backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+            ),
+          );
+        }
+        await _navigateToChat(contactId, database);
+        return;
+      }
+
+      // إضافة جهة الاتصال إلى قاعدة البيانات
+      await database.insertContact(
+        ContactsTableCompanion.insert(
+          id: contactId,
+          name: name,
+          publicKey: publicKey != null ? Value(publicKey) : const Value.absent(),
+          avatar: const Value.absent(),
+          isBlocked: const Value(false),
+        ),
+      );
+
+      LogService.info('تم إضافة جهة الاتصال بنجاح: $contactId');
+
+      // إنشاء محادثة جديدة
+      const uuid = Uuid();
+      final chatId = uuid.v4();
+      await database.insertChat(
+        ChatsTableCompanion.insert(
+          id: chatId,
+          peerId: Value(contactId),
+          name: const Value.absent(),
+          lastMessage: const Value.absent(),
+          lastUpdated: Value(DateTime.now()),
+          isGroup: const Value(false),
+          memberCount: const Value.absent(),
+          avatarColor: Value(_generateAvatarColor(name)),
+        ),
+      );
+
+      LogService.info('تم إنشاء محادثة جديدة: $chatId');
+
+      // إرسال إشعار للصديق لإضافته في جهازه
+      await _notifyFriendAdded(contactId, currentUser!);
+
+      // عرض رسالة نجاح
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.friendAddedSuccessfully),
+            duration: const Duration(seconds: 2),
+            backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+          ),
+        );
+      }
+
+      // الانتقال إلى شاشة المحادثة
+      await _navigateToChat(contactId, database);
+
+    } catch (e) {
+      LogService.error('خطأ في إضافة الصديق', e);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${l10n.errorProcessingQrCode}: ${e.toString()}'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
+  /// إرسال إشعار للصديق لإضافته في جهازه
+  Future<void> _notifyFriendAdded(String contactId, UserData currentUser) async {
+    try {
+      final meshService = ref.read(meshServiceProvider);
+      final encryptionService = ref.read(encryptionServiceProvider);
+      final database = await ref.read(appDatabaseProvider.future);
+      
+      // الحصول على المفتاح العام للصديق
+      final contact = await database.getContactById(contactId);
+      if (contact?.publicKey == null) {
+        LogService.warning('لا يوجد مفتاح عام للصديق - لن يتم إرسال الإشعار');
+        return;
+      }
+      
+      // إنشاء payload للإشعار
+      final notificationData = {
+        'type': 'friend_added',
+        'senderId': currentUser.userId,
+        'senderName': currentUser.displayName,
+        'timestamp': DateTime.now().toIso8601String(),
+      };
+      
+      // تشفير الإشعار
+      String encryptedNotification;
+      try {
+        final remotePublicKeyBytes = base64Decode(contact!.publicKey!);
+        final sharedKey = await encryptionService.calculateSharedSecret(remotePublicKeyBytes);
+        encryptedNotification = encryptionService.encryptMessage(
+          jsonEncode(notificationData),
+          sharedKey,
+        );
+      } catch (e) {
+        LogService.error('خطأ في تشفير إشعار إضافة الصديق', e);
+        return;
+      }
+      
+      // إرسال الإشعار
+      final sent = await meshService.sendMessage(contactId, encryptedNotification);
+      if (sent) {
+        LogService.info('تم إرسال إشعار إضافة الصديق بنجاح');
+      } else {
+        LogService.warning('فشل إرسال إشعار إضافة الصديق');
+      }
+    } catch (e) {
+      LogService.error('خطأ في إرسال إشعار إضافة الصديق', e);
+      // لا نرمي خطأ - هذا إشعار اختياري
+    }
+  }
+
+  /// توليد لون للصورة الشخصية
+  int _generateAvatarColor(String name) {
+    int hash = 0;
+    for (int i = 0; i < name.length; i++) {
+      hash = name.codeUnitAt(i) + ((hash << 5) - hash);
+    }
+    return (0xFF000000 | (hash & 0x00FFFFFF)).abs();
+  }
+
+  /// الانتقال إلى شاشة المحادثة
+  Future<void> _navigateToChat(String contactId, AppDatabase database) async {
+    try {
+      // الحصول على المحادثة
+      final chat = await database.getChatByPeerId(contactId);
+      if (chat == null) {
+        LogService.error('المحادثة غير موجودة: $contactId');
+        return;
+      }
+
+      // الحصول على جهة الاتصال
+      final contact = await database.getContactById(contactId);
+      if (contact == null) {
+        LogService.error('جهة الاتصال غير موجودة: $contactId');
+        return;
+      }
+
+      // إنشاء ChatModel
+      final chatModel = ChatModel(
+        id: chat.id,
+        name: contact.name,
+        time: chat.lastUpdated,
+        avatarColor: chat.avatarColor,
+        publicKey: contact.publicKey,
+        isGroup: false,
+      );
+
+      // الانتقال إلى شاشة المحادثة
+      if (mounted) {
+        context.go('${AppRoutes.chat}/${chat.id}', extra: chatModel);
+      }
+    } catch (e) {
+      LogService.error('خطأ في الانتقال إلى المحادثة', e);
+      if (mounted) {
+        context.go(AppRoutes.home);
+      }
+    }
   }
 
   Widget _buildDetailRow(
@@ -288,9 +540,42 @@ class _AddFriendScreenState extends ConsumerState<AddFriendScreen>
     AppLocalizations l10n,
     ThemeData theme,
   ) {
-    final qrData = _generateQRData();
+    return FutureBuilder<String>(
+      future: _generateQRData(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(
+            child: CircularProgressIndicator(
+              color: theme.colorScheme.primary,
+            ),
+          );
+        }
+        
+        if (snapshot.hasError) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.error_outline,
+                  size: 64.sp,
+                  color: theme.colorScheme.error,
+                ),
+                SizedBox(height: 16.h),
+                Text(
+                  'خطأ في تحميل QR Code',
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    color: theme.colorScheme.error,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+        
+        final qrData = snapshot.data ?? 'sada://user/$_currentUserId';
 
-    return SingleChildScrollView(
+        return SingleChildScrollView(
       child: Padding(
         padding: EdgeInsets.all(24.w),
         child: Column(
@@ -363,6 +648,8 @@ class _AddFriendScreenState extends ConsumerState<AddFriendScreen>
           ],
         ),
       ),
+    );
+      },
     );
   }
 

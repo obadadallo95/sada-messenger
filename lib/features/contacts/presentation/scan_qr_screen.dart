@@ -9,11 +9,13 @@ import '../../../../core/database/database_provider.dart';
 import '../../../../core/database/app_database.dart';
 import '../../../../core/router/routes.dart';
 import '../../../../core/utils/log_service.dart';
-import '../../../../l10n/app_localizations.dart';
+import 'package:sada/l10n/generated/app_localizations.dart';
 import 'package:uuid/uuid.dart';
 import 'package:drift/drift.dart' hide Column;
 import '../../../../core/services/auth_service.dart';
 import '../../../../features/chat/domain/models/chat_model.dart';
+import '../../../../core/network/mesh_service.dart';
+import '../../../../core/network/models/mesh_message.dart';
 
 /// شاشة مسح QR Code لإضافة جهة اتصال
 class ScanQrScreen extends ConsumerStatefulWidget {
@@ -127,7 +129,56 @@ class _ScanQrScreenState extends ConsumerState<ScanQrScreen> {
         ),
       );
       
+      
       LogService.info('تم إضافة جهة الاتصال بنجاح: $contactId');
+
+      // ==================== MUTUAL CONTACT EXCHANGE ====================
+      // إرسال معلوماتي للطرف الآخر (ليضيفني تلقائياً)
+      try {
+        if (currentUser != null) {
+          final myProfile = {
+            'id': currentUser.userId,
+            'name': currentUser.displayName,
+            'publicKey': currentUser.publicKey, 
+            // Avatar can be added here if available as base64
+          };
+
+          final meshService = ref.read(meshServiceProvider);
+          
+          // إرسال رسالة Contact Exchange
+          // نرسل البيانات كـ JSON String في encryptedContent (مشفرة أو واضحة حسب التصميم)
+          // هنا سنرسلها كـ JSON String عادي لأن التشفير يتم في MeshService أو يمكن أن تكون clear text لهذا النوع
+          // ولكن MeshService.sendMeshMessage تتوقع encryptedContent. 
+          // للتبسيط الآن سنرسل JSON كما هو. في الإنتاج يجب تشفيرها بالمفتاح العام للطرف الآخر (الذي حصلنا عليه للتو!)
+          
+          final profileJson = jsonEncode(myProfile);
+          
+          LogService.info('📤 جاري إرسال بياناتي للطرف الآخر (Mutual Exchange)...');
+          
+          // TODO: تشفير البيانات باستخدام publicKey للطرف الآخر (contactId)
+          // حالياً نرسلها كما هي
+          
+          await meshService.sendMeshMessage(
+            contactId, 
+            profileJson, 
+            type: MeshMessage.typeContactExchange,
+          );
+          
+          if (mounted) {
+             // Show toast/snackbar
+             ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Contact added - Sending my profile...'),
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          }
+        }
+      } catch (e) {
+        LogService.error('فشل في إرسال بياناتي (Mutual Exchange)', e);
+        // لا نوقف العملية، فقط نسجل الخطأ
+      }
+      // ===============================================================
       
       // إنشاء محادثة جديدة
       const uuid = Uuid();

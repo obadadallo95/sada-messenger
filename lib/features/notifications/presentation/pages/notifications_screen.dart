@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../l10n/app_localizations.dart';
+import 'package:sada/l10n/generated/app_localizations.dart';
 import '../../../../core/router/routes.dart';
 import '../../../../core/widgets/user_avatar.dart';
 

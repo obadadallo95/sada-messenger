@@ -23,7 +23,7 @@ import '../../features/notifications/presentation/pages/notifications_screen.dar
 import '../../core/services/auth_service.dart';
 import '../../core/services/biometric_service.dart';
 import '../../core/database/database_provider.dart';
-import '../../l10n/app_localizations.dart';
+import 'package:sada/l10n/generated/app_localizations.dart';
 import 'routes.dart';
 
 part 'app_router.g.dart';
@@ -280,6 +280,7 @@ class ScaffoldWithNavBar extends StatelessWidget {
         onDestinationSelected: (index) => _onItemTapped(index, context),
         destinations: [
           NavigationDestination(
+            key: const Key('bottom_nav_home'),
             icon: const Icon(Icons.home_outlined),
             selectedIcon: const Icon(Icons.home),
             label: l10n?.home ?? 'Home',
@@ -300,6 +301,7 @@ class ScaffoldWithNavBar extends StatelessWidget {
             label: l10n?.addFriend ?? 'Add Friend',
           ),
           NavigationDestination(
+            key: const Key('bottom_nav_settings'),
             icon: const Icon(Icons.settings_outlined),
             selectedIcon: const Icon(Icons.settings),
             label: l10n?.settings ?? 'Settings',

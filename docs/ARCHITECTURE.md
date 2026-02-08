@@ -54,17 +54,23 @@ Shared infrastructure and utilities:
 ```
 core/
 ├── database/
-│   └── database_provider.dart      # Database abstraction
+│   ├── app_database.dart           # Drift database (SQLite)
+│   ├── database_provider.dart      # Database provider & Duress Mode logic
+│   └── tables/                     # Drift table definitions
+│       ├── contacts_table.dart
+│       ├── chats_table.dart
+│       └── messages_table.dart
 ├── network/
-│   └── mesh_channel.dart           # Native bridge for WiFi P2P
+│   ├── mesh_channel.dart           # Native bridge for WiFi P2P
+│   └── mesh_service.dart           # Mesh networking service
 ├── router/
-│   ├── app_router.dart            # GoRouter configuration
+│   ├── app_router.dart            # GoRouter configuration with Router Guard
 │   └── routes.dart                 # Route definitions
 ├── security/
 │   ├── encryption_service.dart     # E2E encryption (libsodium)
 │   └── key_manager.dart            # Key pair management
 ├── services/
-│   ├── auth_service.dart           # Authentication
+│   ├── auth_service.dart           # Authentication & Duress Mode
 │   ├── biometric_service.dart      # Biometric lock
 │   ├── notification_service.dart   # Local notifications
 │   └── background_service.dart     # Power management
@@ -78,10 +84,17 @@ core/
 
 ### 3. **Data Layer**
 
-Currently uses:
+Uses:
+- **Drift (SQLite)**: Local database for messages, contacts, and chats
+  - `sada_encrypted.sqlite`: Real database (Master PIN)
+  - `sada_dummy.sqlite`: Dummy database (Duress PIN)
 - **SharedPreferences**: User preferences, onboarding state, power modes
 - **FlutterSecureStorage**: Encrypted storage for keys, PINs, user credentials
-- **Local Database** (Planned): Drift/Hive for messages and chat history
+
+**Repository Pattern:**
+- `ChatRepository`: Manages chats and messages (Drift-based)
+- `GroupsRepository`: Manages groups
+- Database tables: `ContactsTable`, `ChatsTable`, `MessagesTable`
 
 ---
 
@@ -184,9 +197,9 @@ graph LR
     A[Device ID] -->|SHA-256| B[Device Hash]
     B -->|Generate| C[Curve25519 KeyPair]
     C -->|Store Private| D[FlutterSecureStorage]
-    C -->|Store Public| E[SharedPreferences]
+    C -->|Store Public| E[Database (Drift)]
     D -->|Load| F[EncryptionService]
-    E -->|Share via QR| G[Peer Device]
+    E -->|Share via QR Code| G[Peer Device]
     G -->|ECDH| H[Shared Secret]
     H -->|Blake2b Hash| I[Session Key]
     I -->|XSalsa20| J[Encrypted Message]
@@ -266,7 +279,8 @@ sequenceDiagram
 
 2. **Repository Layer (`ChatRepository`)**
    - `ChatRepository` receives the plain text message
-   - Retrieves the recipient's public key (from `ChatModel`)
+   - Saves message to **Drift database** with status `sending`
+   - Retrieves the recipient's public key from **database** (via `ContactsTable`)
    - Calls `EncryptionService.calculateSharedSecret()` to derive session key
 
 3. **Encryption Layer (`EncryptionService`)**
@@ -328,12 +342,13 @@ sequenceDiagram
     SM->>EC: Send via EventChannel
     EC->>MS: Stream event (message received)
     MS->>CR: Handle incoming message
-    CR->>ES: decryptMessage(encryptedPayload, sharedKey)
+    MS->>ES: decryptMessage(encryptedPayload, sharedKey)
     ES->>ES: Extract nonce (first 24 bytes)
     ES->>ES: Decrypt with crypto.secretBox.openEasy()
-    ES-->>CR: Return plain text
-    CR->>DB: Save message to database
-    CR->>UI: Update state (new message)
+    ES-->>MS: Return plain text
+    MS->>CR: Insert message (incoming)
+    CR->>DB: Save message to Drift database
+    CR->>UI: Update state via Stream (new message)
     UI->>UI: Show notification + update chat list
 ```
 

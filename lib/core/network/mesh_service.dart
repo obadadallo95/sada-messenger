@@ -2,14 +2,23 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:drift/drift.dart' hide Column;
+import 'package:uuid/uuid.dart';
 import '../utils/log_service.dart';
 import '../security/security_providers.dart';
 import '../security/encryption_service.dart';
 import '../services/notification_provider.dart';
 import '../services/notification_service.dart';
 import '../database/database_provider.dart';
+import '../database/app_database.dart';
+import '../services/auth_service.dart';
+import 'models/mesh_message.dart';
+import 'discovery/udp_broadcast_service.dart';
+import '../power/discovery_strategy.dart';
+import 'protocols/handshake_protocol.dart';
 
 /// خدمة Mesh لإدارة الاتصالات والرسائل
+/// تدعم Store-Carry-Forward Mesh Routing Protocol
 class MeshService {
   static const EventChannel _messageChannel = EventChannel('org.sada.messenger/messageReceived');
   static const EventChannel _socketStatusChannel = EventChannel('org.sada.messenger/socketStatus');
@@ -17,6 +26,30 @@ class MeshService {
 
   Stream<String>? _messageStream;
   Stream<Map<String, dynamic>>? _socketStatusStream;
+  
+  /// Set لتتبع الرسائل المعالجة (Deduplication)
+  /// يمنع معالجة نفس الرسالة مرتين
+  final Set<String> _processedMessages = {};
+  
+  /// Set لتتبع الأجهزة المتصلة التي أكملت Handshake
+  final Set<String> _connectedPeers = {};
+  
+  /// Ref للوصول إلى Providers
+  final Ref _ref;
+  
+  /// معرف الجهاز الحالي
+  String? _myDeviceId;
+  
+  /// UDP Broadcast Service
+  UdpBroadcastService? _udpBroadcastService;
+  
+  /// Discovery Strategy
+  DiscoveryStrategy? _discoveryStrategy;
+  
+  /// Handshake Protocol
+  HandshakeProtocol? _handshakeProtocol;
+  
+  MeshService(this._ref);
 
   /// Stream للرسائل المستلمة
   Stream<String> get onMessageReceived {
@@ -67,17 +100,102 @@ class MeshService {
     return _socketStatusStream!;
   }
 
-  /// إرسال رسالة عبر Socket
+  /// الحصول على معرف الجهاز الحالي
+  Future<String> _getMyDeviceId() async {
+    if (_myDeviceId != null) return _myDeviceId!;
+    
+    final authService = _ref.read(authServiceProvider.notifier);
+    final currentUser = authService.currentUser;
+    _myDeviceId = currentUser?.userId ?? 'unknown';
+    return _myDeviceId!;
+  }
+
+  /// إرسال رسالة عبر Mesh Network مع Store-Carry-Forward Routing
   /// [peerId]: معرف الطرف المستقبل
   /// [encryptedContent]: المحتوى المشفر (Base64)
-  Future<bool> sendMessage(String peerId, String encryptedContent) async {
+  /// [senderId]: معرف المرسل (اختياري)
+  /// [maxHops]: الحد الأقصى للقفزات (TTL) - Default: 10
+  Future<bool> sendMeshMessage(
+    String peerId,
+    String encryptedContent, {
+    String? senderId,
+    int maxHops = 10,
+    String? type,
+  }) async {
     try {
-      // إنشاء JSON payload
+      final myDeviceId = await _getMyDeviceId();
+      final finalSenderId = senderId ?? myDeviceId;
+      
+      // إنشاء MeshMessage
+      final messageId = const Uuid().v4();
+      
+      final meshMessage = MeshMessage(
+        messageId: messageId,
+        originalSenderId: finalSenderId,
+        finalDestinationId: peerId,
+        encryptedContent: encryptedContent,
+        hopCount: 0,
+        maxHops: maxHops,
+        trace: [],
+        timestamp: DateTime.now(),
+        type: type,
+      );
+      
+      // إرسال الرسالة
+      return await _forwardMessage(meshMessage);
+    } catch (e) {
+      LogService.error('خطأ في إرسال MeshMessage', e);
+      return false;
+    }
+  }
+
+  /// إرسال رسالة عبر Socket (Legacy - للتوافق مع الكود القديم)
+  /// [peerId]: معرف الطرف المستقبل
+  /// [encryptedContent]: المحتوى المشفر (Base64)
+  /// [senderId]: معرف المرسل (اختياري)
+  Future<bool> sendMessage(String peerId, String encryptedContent, {String? senderId}) async {
+    try {
+      // التحقق من حالة الاتصال أولاً
+      var isConnected = await _methodChannel.invokeMethod<bool>('isSocketConnected') ?? false;
+      
+      LogService.info('🔍 حالة Socket قبل الإرسال: $isConnected');
+      
+      if (!isConnected) {
+        LogService.warning('⚠️ Socket غير متصل - محاولة بدء الخادم...');
+        // محاولة بدء الخادم
+        try {
+          await _methodChannel.invokeMethod('startServer');
+          // انتظار قليل للاتصال
+          await Future.delayed(const Duration(milliseconds: 2000));
+          
+          // التحقق مرة أخرى
+          isConnected = await _methodChannel.invokeMethod<bool>('isSocketConnected') ?? false;
+          LogService.info('🔍 حالة Socket بعد بدء الخادم: $isConnected');
+        } catch (e) {
+          LogService.warning('فشل بدء الخادم: $e');
+        }
+      }
+      
+      // إذا كان Socket لا يزال غير متصل، نحاول إرسال الرسالة على أي حال
+      // (قد يكون الاتصال موجوداً لكن لم يتم اكتشافه بعد)
+      if (!isConnected) {
+        LogService.warning('⚠️ Socket لا يزال غير متصل - سيتم محاولة الإرسال على أي حال');
+      }
+      
+      // إنشاء JSON payload مع senderId
+      final finalSenderId = senderId ?? 'unknown';
+      
       final payload = jsonEncode({
+        'senderId': finalSenderId,
         'peerId': peerId,
         'content': encryptedContent,
         'timestamp': DateTime.now().toIso8601String(),
       });
+      
+      LogService.info('📤 محاولة إرسال رسالة إلى $peerId');
+      LogService.info('   - senderId: $finalSenderId');
+      LogService.info('   - Socket متصل: $isConnected');
+      LogService.info('   - حجم الرسالة: ${payload.length} bytes');
       
       final result = await _methodChannel.invokeMethod<bool>(
         'socket_write',
@@ -86,10 +204,20 @@ class MeshService {
           'message': payload,
         },
       );
-      LogService.info('تم إرسال الرسالة إلى $peerId');
+      
+      if (result == true) {
+        LogService.info('✅ تم إرسال الرسالة بنجاح إلى $peerId');
+      } else {
+        LogService.error('❌ فشل إرسال الرسالة إلى $peerId');
+        LogService.error('   - Socket متصل: $isConnected');
+        LogService.error('   - قد تحتاج الأجهزة إلى الاتصال عبر WiFi P2P أولاً');
+      }
+      
       return result ?? false;
-    } catch (e) {
+    } catch (e, stackTrace) {
       LogService.error('خطأ في إرسال الرسالة', e);
+      LogService.error('تفاصيل الخطأ: ${e.toString()}');
+      LogService.error('Stack trace: $stackTrace');
       return false;
     }
   }
@@ -121,10 +249,424 @@ class MeshService {
       return false;
     }
   }
+
+  // ==================== Store-Carry-Forward Routing Logic ====================
+
+  /// معالجة الرسالة الواردة (Routing Logic)
+  /// هذا هو "الدماغ" الذي يقرر: هل أنا الهدف؟ أم أنا Relay؟
+  Future<void> handleIncomingMeshMessage(String rawMessage) async {
+    try {
+      // Parse JSON
+      final jsonData = jsonDecode(rawMessage) as Map<String, dynamic>;
+      
+      // التحقق من نوع الرسالة - هل هي Handshake؟
+      final messageType = jsonData['type'] as String?;
+      
+      if (messageType == 'HANDSHAKE') {
+        await _handleIncomingHandshake(rawMessage);
+        return;
+      }
+      
+      if (messageType == 'HANDSHAKE_ACK') {
+        await _handleHandshakeAck(rawMessage);
+        return;
+      }
+      
+      // Parse to MeshMessage
+      final meshMessage = MeshMessage.fromJson(jsonData);
+      
+      final myDeviceId = await _getMyDeviceId();
+      
+      LogService.info('📨 استقبال MeshMessage: ${meshMessage.messageId}');
+      LogService.info('   من: ${meshMessage.originalSenderId}');
+      LogService.info('   إلى: ${meshMessage.finalDestinationId}');
+      LogService.info('   قفزات: ${meshMessage.hopCount}/${meshMessage.maxHops}');
+      
+      // Step 1: Deduplication
+      if (_processedMessages.contains(meshMessage.messageId)) {
+        LogService.info('⏭️ تم تجاهل رسالة مكررة: ${meshMessage.messageId}');
+        return;
+      }
+      
+      // Step 2: التحقق من صحة الرسالة (TTL و Loop Detection)
+      if (!meshMessage.isValid(myDeviceId)) {
+        LogService.warning('❌ رسالة غير صالحة: ${meshMessage.messageId}');
+        if (meshMessage.hopCount >= meshMessage.maxHops) {
+          LogService.warning('   - تجاوزت الحد الأقصى للقفزات (TTL)');
+        }
+        if (meshMessage.trace.contains(myDeviceId)) {
+          LogService.warning('   - حلقة اكتشفت (Loop Detection)');
+        }
+        return;
+      }
+      
+      // Step 3: هل أنا الهدف؟
+      if (meshMessage.isForMe(myDeviceId)) {
+        LogService.info('✅ أنا الهدف! معالجة الرسالة...');
+        await _processMessageForMe(meshMessage);
+        _processedMessages.add(meshMessage.messageId);
+        return;
+      }
+      
+      // Step 4: هل أنا Relay؟ (Store-Carry-Forward)
+      if (!meshMessage.isFromMe(myDeviceId)) {
+        LogService.info('📦 أنا Relay - تخزين وإعادة توجيه...');
+        await _storeAndForward(meshMessage);
+        _processedMessages.add(meshMessage.messageId);
+      } else {
+        LogService.info('⏭️ تجاهل رسالة مني: ${meshMessage.messageId}');
+      }
+    } catch (e) {
+      LogService.error('خطأ في معالجة MeshMessage', e);
+    }
+  }
+
+  /// معالجة الرسالة الموجهة لي (الهدف)
+  Future<void> _processMessageForMe(MeshMessage meshMessage) async {
+    try {
+      LogService.info('🎯 معالجة رسالة موجهة لي: ${meshMessage.messageId}');
+      
+      // الرسالة سيتم معالجتها تلقائياً في IncomingMessageHandler
+      // لأن IncomingMessageHandler يستمع إلى onMessageReceived stream
+      // و handleIncomingMeshMessage() يتم استدعاؤه قبل _handleIncomingMessage()
+      // لذلك سيتم معالجة الرسالة في IncomingMessageHandler._handleIncomingMessage()
+    } catch (e) {
+      LogService.error('خطأ في معالجة الرسالة الموجهة لي', e);
+    }
+  }
+
+  /// تخزين وإعادة توجيه الرسالة (Store-Carry-Forward)
+  /// 
+  /// 🔒 BLIND RELAY SECURITY:
+  /// - Relay nodes فقط تنظر إلى header (destination ID) للتوجيه
+  /// - المحتوى المشفر (encryptedContent) لا يتم فك تشفيره في Relay
+  /// - Relay لا يمكنها قراءة محتوى الرسالة - فقط تمريرها
+  Future<void> _storeAndForward(MeshMessage meshMessage) async {
+    try {
+      final database = await _ref.read(appDatabaseProvider.future);
+      final myDeviceId = await _getMyDeviceId();
+      
+      // 🔒 SECURITY: نحن Relay - نحفظ فقط header metadata
+      // encryptedContent يبقى مشفراً - لا نحاول فك تشفيره
+      // نحن فقط ننظر إلى finalDestinationId للتوجيه
+      
+      // إضافة رسالة إلى RelayQueue (المحتوى مشفر - لا نراه)
+      await database.enqueueRelayMessage(
+        RelayQueueTableCompanion.insert(
+          messageId: meshMessage.messageId,
+          originalSenderId: meshMessage.originalSenderId, // Header only
+          finalDestinationId: meshMessage.finalDestinationId, // Header only
+          encryptedContent: meshMessage.encryptedContent, // 🔒 Encrypted - Blind to us
+          hopCount: Value(meshMessage.hopCount),
+          maxHops: Value(meshMessage.maxHops),
+          trace: Value(jsonEncode(meshMessage.trace)),
+          timestamp: meshMessage.timestamp,
+          type: Value(meshMessage.type),
+          metadata: meshMessage.metadata != null 
+              ? Value(jsonEncode(meshMessage.metadata)) 
+              : const Value.absent(),
+        ),
+      );
+      
+      LogService.info('💾 تم تخزين الرسالة في RelayQueue (Blind Relay): ${meshMessage.messageId}');
+      LogService.info('   - Destination: ${meshMessage.finalDestinationId}');
+      LogService.info('   - Content: 🔒 Encrypted (Blind to Relay)');
+      
+      // إعادة توجيه الرسالة إلى جميع الأجهزة المتصلة
+      // المحتوى يبقى مشفراً - لا نراه
+      final updatedMessage = meshMessage.addHop(myDeviceId);
+      await _forwardMessage(updatedMessage);
+      
+    } catch (e) {
+      LogService.error('خطأ في Store-Carry-Forward', e);
+    }
+  }
+
+  /// إعادة توجيه رسالة إلى جميع الأجهزة المتصلة (Flooding)
+  Future<bool> _forwardMessage(MeshMessage meshMessage) async {
+    try {
+      final messageJson = meshMessage.toJsonString();
+      
+      // إرسال الرسالة عبر Socket
+      final result = await _methodChannel.invokeMethod<bool>(
+        'socket_write',
+        {
+          'peerId': meshMessage.finalDestinationId,
+          'message': messageJson,
+        },
+      );
+      
+      if (result == true) {
+        LogService.info('✅ تم إعادة توجيه الرسالة: ${meshMessage.messageId}');
+      } else {
+        LogService.warning('⚠️ فشل إعادة توجيه الرسالة: ${meshMessage.messageId}');
+      }
+      
+      return result ?? false;
+    } catch (e) {
+      LogService.error('خطأ في إعادة توجيه الرسالة', e);
+      return false;
+    }
+  }
+
+  /// إرسال جميع الرسائل من RelayQueue عند اتصال جهاز جديد
+  /// هذا يجعل الجهاز يعمل كـ "Data Mule"
+  Future<void> flushRelayQueue(String newPeerId) async {
+    try {
+      final database = await _ref.read(appDatabaseProvider.future);
+      final queue = await database.getRelayQueue();
+      
+      if (queue.isEmpty) {
+        LogService.info('📭 RelayQueue فارغة - لا توجد رسائل للإرسال');
+        return;
+      }
+      
+      LogService.info('📤 إرسال ${queue.length} رسالة من RelayQueue إلى $newPeerId');
+      
+      for (final queuedMessage in queue) {
+        try {
+          // إعادة بناء MeshMessage من RelayQueueTableData
+          final trace = jsonDecode(queuedMessage.trace) as List;
+          final traceList = trace.map((e) => e.toString()).toList();
+          
+          final meshMessage = MeshMessage(
+            messageId: queuedMessage.messageId,
+            originalSenderId: queuedMessage.originalSenderId,
+            finalDestinationId: queuedMessage.finalDestinationId,
+            encryptedContent: queuedMessage.encryptedContent,
+            hopCount: queuedMessage.hopCount,
+            maxHops: queuedMessage.maxHops,
+            trace: traceList,
+            timestamp: queuedMessage.timestamp,
+            type: queuedMessage.type,
+            metadata: queuedMessage.metadata != null
+                ? jsonDecode(queuedMessage.metadata!) as Map<String, dynamic>
+                : null,
+          );
+          
+          // التحقق من صحة الرسالة قبل الإرسال
+          final myDeviceId = await _getMyDeviceId();
+          if (!meshMessage.isValid(myDeviceId)) {
+            LogService.warning('⚠️ رسالة غير صالحة في RelayQueue: ${meshMessage.messageId}');
+            await database.removeFromRelayQueue(meshMessage.messageId);
+            continue;
+          }
+          
+          // إعادة توجيه الرسالة
+          final sent = await _forwardMessage(meshMessage);
+          
+          if (sent) {
+            // حذف الرسالة من RelayQueue بعد الإرسال الناجح
+            await database.removeFromRelayQueue(meshMessage.messageId);
+            LogService.info('✅ تم إرسال رسالة من RelayQueue: ${meshMessage.messageId}');
+          } else {
+            // زيادة عدد المحاولات
+            await database.incrementRetryCount(meshMessage.messageId);
+          }
+        } catch (e) {
+          LogService.error('خطأ في إرسال رسالة من RelayQueue', e);
+          await database.incrementRetryCount(queuedMessage.messageId);
+        }
+      }
+      
+      // تنظيف الرسائل القديمة والفاشلة
+      await database.cleanupOldRelayMessages();
+      await database.removeFailedMessages();
+      
+    } catch (e) {
+      LogService.error('خطأ في flushRelayQueue', e);
+    }
+  }
+
+  /// معالجة Handshake الوارد (Server Side)
+  Future<void> _handleIncomingHandshake(String handshakeJson) async {
+    try {
+      if (_handshakeProtocol == null) {
+        _handshakeProtocol = _ref.read(handshakeProtocolProvider);
+      }
+
+      final ackMessage = await _handshakeProtocol!.processIncomingHandshake(handshakeJson);
+      
+      if (ackMessage != null) {
+        // إرسال Handshake ACK
+        final handshake = jsonDecode(handshakeJson) as Map<String, dynamic>;
+        final peerId = handshake['peerId'] as String?;
+        
+        if (peerId != null) {
+          await _methodChannel.invokeMethod<bool>(
+            'socket_write',
+            {
+              'peerId': peerId,
+              'message': ackMessage,
+            },
+          );
+          
+          // إكمال Handshake
+          await _completeHandshake(peerId);
+        }
+      }
+    } catch (e) {
+      LogService.error('خطأ في معالجة Handshake الوارد', e);
+    }
+  }
+
+  /// معالجة Handshake ACK (Client Side)
+  Future<void> _handleHandshakeAck(String ackJson) async {
+    try {
+      if (_handshakeProtocol == null) {
+        _handshakeProtocol = _ref.read(handshakeProtocolProvider);
+      }
+
+      final accepted = await _handshakeProtocol!.processHandshakeAck(ackJson);
+      
+      if (accepted) {
+        final ack = jsonDecode(ackJson) as Map<String, dynamic>;
+        final peerId = ack['peerId'] as String?;
+        
+        if (peerId != null) {
+          // إكمال Handshake
+          await _completeHandshake(peerId);
+        }
+      }
+    } catch (e) {
+      LogService.error('خطأ في معالجة Handshake ACK', e);
+    }
+  }
+
+  /// تنظيف Set الرسائل المعالجة (لمنع تسرب الذاكرة)
+  void cleanupProcessedMessages() {
+    if (_processedMessages.length > 1000) {
+      _processedMessages.clear();
+      LogService.info('🧹 تم تنظيف Set الرسائل المعالجة');
+    }
+  }
+
+  // ==================== Transport & Discovery Layer ====================
+
+  /// تهيئة Transport & Discovery Layer
+  Future<void> initializeTransportLayer() async {
+    try {
+      LogService.info('🚀 تهيئة Transport & Discovery Layer...');
+      
+      // تهيئة DiscoveryStrategy
+      _discoveryStrategy = _ref.read(discoveryStrategyProvider);
+      await _discoveryStrategy!.updateBatteryStatus();
+      
+      // تهيئة HandshakeProtocol
+      _handshakeProtocol = _ref.read(handshakeProtocolProvider);
+      
+      // تهيئة UDP Broadcast Service
+      _udpBroadcastService = _ref.read(udpBroadcastServiceProvider);
+      final interval = _discoveryStrategy!.currentInterval;
+      
+      LogService.info('📊 Discovery Interval: ${interval}s');
+      
+      final started = await _udpBroadcastService!.start(intervalSeconds: interval);
+      
+      if (started) {
+        LogService.info('✅ تم تهيئة Transport & Discovery Layer بنجاح');
+      } else {
+        LogService.warning('⚠️ فشل بدء UDP Broadcast Service - قد يكون WiFi غير متصل');
+      }
+    } catch (e) {
+      LogService.error('خطأ في تهيئة Transport & Discovery Layer', e);
+    }
+  }
+
+  /// الاتصال بجهاز معين (مع Handshake Protocol)
+  /// [ip]: عنوان IP للجهاز
+  /// [port]: Port للاتصال TCP
+  /// [deviceId]: معرف الجهاز المتوقع
+  Future<bool> connectToPeer(String ip, int port, String deviceId) async {
+    try {
+      LogService.info('🔗 محاولة الاتصال بالجهاز: $deviceId @ $ip:$port');
+      
+      // التحقق من أن الجهاز غير متصل بالفعل
+      if (_connectedPeers.contains(deviceId)) {
+        LogService.info('الجهاز متصل بالفعل: $deviceId');
+        return true;
+      }
+
+      // الاتصال عبر Socket (سيتم تنفيذها في Native)
+      final connected = await _methodChannel.invokeMethod<bool>(
+        'connectToPeer',
+        {
+          'ip': ip,
+          'port': port,
+        },
+      );
+
+      if (connected != true) {
+        LogService.warning('فشل الاتصال بالجهاز: $deviceId');
+        return false;
+      }
+
+      // إرسال Handshake Message
+      if (_handshakeProtocol == null) {
+        _handshakeProtocol = _ref.read(handshakeProtocolProvider);
+      }
+
+      final handshakeMessage = await _handshakeProtocol!.createHandshakeMessage();
+      
+      // إرسال Handshake عبر Socket
+      final handshakeSent = await _methodChannel.invokeMethod<bool>(
+        'socket_write',
+        {
+          'peerId': deviceId,
+          'message': handshakeMessage,
+        },
+      );
+
+      if (handshakeSent != true) {
+        LogService.warning('فشل إرسال Handshake إلى: $deviceId');
+        return false;
+      }
+
+      LogService.info('✅ تم إرسال Handshake إلى: $deviceId');
+      LogService.info('⏳ في انتظار Handshake ACK...');
+      
+      // ملاحظة: Handshake ACK سيتم استقباله في handleIncomingMeshMessage
+      // وسيتم استدعاء _completeHandshake تلقائياً
+      
+      return true;
+    } catch (e) {
+      LogService.error('خطأ في الاتصال بالجهاز', e);
+      return false;
+    }
+  }
+
+  /// إكمال Handshake (يتم استدعاؤه عند استقبال Handshake ACK)
+  Future<void> _completeHandshake(String peerId) async {
+    try {
+      if (_connectedPeers.contains(peerId)) {
+        return; // Handshake مكتمل بالفعل
+      }
+
+      _connectedPeers.add(peerId);
+      LogService.info('✅ Handshake مكتمل مع: $peerId');
+      
+      // 🔥 CRUCIAL: إرسال RelayQueue فوراً بعد Handshake
+      await flushRelayQueue(peerId);
+      
+    } catch (e) {
+      LogService.error('خطأ في إكمال Handshake', e);
+    }
+  }
+
+  /// التحقق من أن الجهاز متصل (أكمل Handshake)
+  bool isPeerConnected(String peerId) {
+    return _connectedPeers.contains(peerId);
+  }
+
+  /// تحديث Discovery Interval (يتم استدعاؤه عند تغيير Battery Mode)
+  void updateDiscoveryInterval(int intervalSeconds) {
+    _udpBroadcastService?.updateInterval(intervalSeconds);
+    LogService.info('تم تحديث Discovery Interval إلى: ${intervalSeconds}s');
+  }
 }
 
 /// Provider لـ MeshService
-final meshServiceProvider = Provider<MeshService>((ref) => MeshService());
+final meshServiceProvider = Provider<MeshService>((ref) => MeshService(ref));
 
 /// Provider لمعالجة الرسائل المستلمة
 final messageHandlerProvider = Provider<MessageHandler>((ref) {

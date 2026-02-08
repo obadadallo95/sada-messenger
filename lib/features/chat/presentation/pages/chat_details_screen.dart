@@ -2,7 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import '../../../../l10n/app_localizations.dart';
+import 'package:sada/l10n/generated/app_localizations.dart';
 import '../../../../core/widgets/mesh_gradient_background.dart';
 import '../../../../core/database/database_provider.dart';
 import '../../domain/models/chat_model.dart';
@@ -72,10 +72,20 @@ class _ChatDetailsScreenState extends ConsumerState<ChatDetailsScreen> {
     } catch (e) {
       // إظهار رسالة خطأ للمستخدم
       if (mounted) {
+        final errorMessage = e.toString();
+        final String userMessage;
+        
+        if (errorMessage.contains('Socket') || errorMessage.contains('غير متصل')) {
+          userMessage = 'Socket غير متصل - تأكد من اتصال WiFi P2P بين الأجهزة';
+        } else {
+          userMessage = 'فشل إرسال الرسالة: ${e.toString()}';
+        }
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('فشل إرسال الرسالة: ${e.toString()}'),
+            content: Text(userMessage),
             backgroundColor: Theme.of(context).colorScheme.error,
+            duration: const Duration(seconds: 4),
           ),
         );
       }

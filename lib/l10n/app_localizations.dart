@@ -116,6 +116,12 @@ abstract class AppLocalizations {
   /// **'Welcome to Sada Foundation Layer'**
   String get welcomeMessage;
 
+  /// Home screen title
+  ///
+  /// In en, this message translates to:
+  /// **'Home'**
+  String get home;
+
   /// Settings screen title
   ///
   /// In en, this message translates to:
@@ -344,25 +350,25 @@ abstract class AppLocalizations {
   /// **'Camera permission denied'**
   String get cameraPermissionDenied;
 
-  /// Message when camera permission is denied
+  /// Message requesting camera permission
   ///
   /// In en, this message translates to:
-  /// **'Camera permission is required'**
+  /// **'We need camera permission to scan QR codes'**
   String get cameraPermissionRequired;
 
-  /// Button to grant permission
+  /// Grant permission button
   ///
   /// In en, this message translates to:
   /// **'Grant Permission'**
   String get grantPermission;
 
-  /// Instructions for user when scanning QR code
+  /// Instruction text in scanner screen
   ///
   /// In en, this message translates to:
-  /// **'Position the QR code within the frame'**
+  /// **'Place QR code inside the frame'**
   String get placeQrInFrame;
 
-  /// Success message when adding a friend
+  /// Success message when friend is added
   ///
   /// In en, this message translates to:
   /// **'Friend added successfully'**
@@ -938,95 +944,191 @@ abstract class AppLocalizations {
   /// **'Failed to share APK file'**
   String get apkShareError;
 
-  /// Title for user's QR code display screen
-  ///
-  /// In en, this message translates to:
-  /// **'My QR Code'**
-  String get myQrCode;
-
-  /// Title for QR code scanning screen
-  ///
-  /// In en, this message translates to:
-  /// **'Scan QR Code'**
-  String get scanQrCode;
-
-  /// Error message when scanning invalid QR code
-  ///
-  /// In en, this message translates to:
-  /// **'Invalid QR Code'**
-  String get invalidQrCode;
-
-  /// Error message when failing to parse JSON from QR code
-  ///
-  /// In en, this message translates to:
-  /// **'Invalid QR Code format'**
-  String get invalidQrCodeFormat;
-
-  /// Error message when required fields are missing in QR code
-  ///
-  /// In en, this message translates to:
-  /// **'Invalid QR Code: Missing required fields'**
-  String get invalidQrCodeFields;
-
-  /// Message while processing QR code
-  ///
-  /// In en, this message translates to:
-  /// **'Processing...'**
-  String get processing;
-
-  /// Error message when trying to add yourself
-  ///
-  /// In en, this message translates to:
-  /// **'You cannot add yourself as a contact'**
-  String get cannotAddYourself;
-
-  /// Message when contact already exists
-  ///
-  /// In en, this message translates to:
-  /// **'Contact already exists'**
-  String get contactAlreadyExists;
-
-  /// Generic error message when processing QR code
-  ///
-  /// In en, this message translates to:
-  /// **'Error processing QR Code'**
-  String get errorProcessingQrCode;
-
-  /// Description of QR code when sharing
-  ///
-  /// In en, this message translates to:
-  /// **'Share this QR code to add you as a contact'**
-  String get shareQrCodeDescription;
-
-  /// Security information about QR code
-  ///
-  /// In en, this message translates to:
-  /// **'This QR code contains your public key for secure messaging.'**
-  String get qrCodeSecurityInfo;
-
-  /// Home screen title
-  ///
-  /// In en, this message translates to:
-  /// **'Home'**
-  String get home;
-
   /// Notifications screen title
   ///
   /// In en, this message translates to:
   /// **'Notifications'**
   String get notifications;
 
-  /// Button to mark all notifications as read
-  ///
-  /// In en, this message translates to:
-  /// **'Mark All as Read'**
-  String get markAllAsRead;
-
   /// Message when there are no notifications
   ///
   /// In en, this message translates to:
   /// **'No notifications'**
   String get noNotifications;
+
+  /// Button to mark all notifications as read
+  ///
+  /// In en, this message translates to:
+  /// **'Mark all as read'**
+  String get markAllAsRead;
+
+  /// Onboarding slide 1 title
+  ///
+  /// In en, this message translates to:
+  /// **'No Internet?\nNo Problem.'**
+  String get noInternetNoProblem;
+
+  /// Onboarding slide 1 description
+  ///
+  /// In en, this message translates to:
+  /// **'Sada works when the internet doesn\'t. Connect directly with people around you using WiFi Direct.'**
+  String get noInternetDescription;
+
+  /// Onboarding slide 2 title
+  ///
+  /// In en, this message translates to:
+  /// **'You Are The Network'**
+  String get youAreTheNetwork;
+
+  /// Onboarding slide 2 description
+  ///
+  /// In en, this message translates to:
+  /// **'Your phone acts as a bridge. Help your community stay connected just by keeping the app open.'**
+  String get youAreTheNetworkDescription;
+
+  /// Onboarding slide 3 title
+  ///
+  /// In en, this message translates to:
+  /// **'Invisible & Secure'**
+  String get invisibleAndSecure;
+
+  /// Onboarding slide 3 description
+  ///
+  /// In en, this message translates to:
+  /// **'No servers. No tracking. Your messages stay in your neighborhood.'**
+  String get invisibleAndSecureDescription;
+
+  /// Onboarding slide 4 title
+  ///
+  /// In en, this message translates to:
+  /// **'Ready to Connect?'**
+  String get readyToConnect;
+
+  /// Onboarding slide 4 description
+  ///
+  /// In en, this message translates to:
+  /// **'Grant permissions to start discovering people nearby.'**
+  String get readyToConnectDescription;
+
+  /// Location permission badge
+  ///
+  /// In en, this message translates to:
+  /// **'Location'**
+  String get permissionLocation;
+
+  /// Notification permission badge
+  ///
+  /// In en, this message translates to:
+  /// **'Notify'**
+  String get permissionNotify;
+
+  /// WiFi permission badge
+  ///
+  /// In en, this message translates to:
+  /// **'WiFi'**
+  String get permissionWifi;
+
+  /// Privacy screen section title
+  ///
+  /// In en, this message translates to:
+  /// **'Zero-Knowledge Promise'**
+  String get zeroKnowledgePromise;
+
+  /// Privacy feature title
+  ///
+  /// In en, this message translates to:
+  /// **'No Phone Number Required'**
+  String get noPhoneNumberRequired;
+
+  /// Privacy feature description
+  ///
+  /// In en, this message translates to:
+  /// **'We don\'t ask for your phone number, email, or real identity. You are just a cryptographic key pair.'**
+  String get noPhoneNumberDescription;
+
+  /// Encryption description for privacy screen
+  ///
+  /// In en, this message translates to:
+  /// **'All messages are encrypted on your device and only decrypted by the recipient. We cannot read your chats.'**
+  String get endToEndEncryptionDescription;
+
+  /// Privacy feature title
+  ///
+  /// In en, this message translates to:
+  /// **'Local Database Only'**
+  String get localDatabaseOnly;
+
+  /// Privacy feature description
+  ///
+  /// In en, this message translates to:
+  /// **'Your data lives on your phone. There is no cloud backup. If you delete the app, your data is gone forever.'**
+  String get localDatabaseDescription;
+
+  /// Privacy section title
+  ///
+  /// In en, this message translates to:
+  /// **'Transparency'**
+  String get transparency;
+
+  /// Transparency description
+  ///
+  /// In en, this message translates to:
+  /// **'Sada uses standard WiFi Direct and UDP broadcasts to find peers. While your device announces its presence, your real identity remains hidden behind a random ID.'**
+  String get transparencyDescription;
+
+  /// Button to view source code
+  ///
+  /// In en, this message translates to:
+  /// **'View Source Code'**
+  String get viewSourceCode;
+
+  /// About screen section title
+  ///
+  /// In en, this message translates to:
+  /// **'How it Works'**
+  String get howItWorks;
+
+  /// Timeline step 1 title
+  ///
+  /// In en, this message translates to:
+  /// **'Scan QR Code'**
+  String get scanQrCode;
+
+  /// Timeline step 1 description
+  ///
+  /// In en, this message translates to:
+  /// **'Meet a friend and scan their QR code to swap keys securely.'**
+  String get scanQrDescription;
+
+  /// Timeline step 2 title
+  ///
+  /// In en, this message translates to:
+  /// **'Auto Connect'**
+  String get autoConnect;
+
+  /// Timeline step 2 description
+  ///
+  /// In en, this message translates to:
+  /// **'Your devices automatically find each other over WiFi Direct.'**
+  String get autoConnectDescription;
+
+  /// Timeline step 3 title
+  ///
+  /// In en, this message translates to:
+  /// **'Secure Chat'**
+  String get secureChat;
+
+  /// Timeline step 3 description
+  ///
+  /// In en, this message translates to:
+  /// **'Messages hop between devices until they reach the destination.'**
+  String get secureChatDescription;
+
+  /// About screen footer
+  ///
+  /// In en, this message translates to:
+  /// **'Designed for Resilience'**
+  String get designedForResilience;
 }
 
 class _AppLocalizationsDelegate

@@ -6,13 +6,15 @@ import 'package:path/path.dart' as p;
 import 'tables/contacts_table.dart';
 import 'tables/chats_table.dart';
 import 'tables/messages_table.dart';
+import 'tables/relay_queue_table.dart';
 import '../utils/log_service.dart';
 
 part 'app_database.g.dart';
 
 /// قاعدة بيانات التطبيق الرئيسية
 /// تدعم Duress Mode (قاعدة بيانات حقيقية ووهمية)
-@DriftDatabase(tables: [ContactsTable, ChatsTable, MessagesTable])
+/// تدعم Store-Carry-Forward Mesh Routing
+@DriftDatabase(tables: [ContactsTable, ChatsTable, MessagesTable, RelayQueueTable])
 class AppDatabase extends _$AppDatabase {
   /// اسم ملف قاعدة البيانات
   final String _databaseFileName;
@@ -39,7 +41,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration {
@@ -55,6 +57,11 @@ class AppDatabase extends _$AppDatabase {
           // لا نعيد إنشاء الجداول - فقط نحدث schema version
           // الجداول موجودة بالفعل، لا حاجة لإعادة إنشائها
           LogService.info('تم الترقية إلى schema 2 - الجداول موجودة بالفعل');
+        }
+        // عند الترقية من schema 2 إلى 3 - إضافة RelayQueueTable
+        if (from < 3) {
+          LogService.info('إضافة RelayQueueTable للـ Store-Carry-Forward Mesh Routing');
+          await m.createTable(relayQueueTable);
         }
       },
     );
@@ -227,6 +234,87 @@ class AppDatabase extends _$AppDatabase {
       // إرجاع 0 بدلاً من رمي خطأ
       return 0;
     }
+  }
+
+  // ==================== Relay Queue DAOs ====================
+
+  /// إضافة رسالة إلى قائمة الانتظار للترحيل
+  Future<void> enqueueRelayMessage(RelayQueueTableCompanion message) async {
+    await into(relayQueueTable).insert(message, mode: InsertMode.replace);
+    LogService.info('تم إضافة رسالة إلى RelayQueue: ${message.messageId.value}');
+  }
+
+  /// الحصول على جميع الرسائل في قائمة الانتظار
+  Future<List<RelayQueueTableData>> getRelayQueue() async {
+    return await (select(relayQueueTable)
+          ..orderBy([(t) => OrderingTerm(expression: t.queuedAt)]))
+        .get();
+  }
+
+  /// الحصول على رسائل قائمة الانتظار الموجهة لجهاز معين
+  Future<List<RelayQueueTableData>> getRelayQueueForDestination(String destinationId) async {
+    return await (select(relayQueueTable)
+          ..where((t) => t.finalDestinationId.equals(destinationId))
+          ..orderBy([(t) => OrderingTerm(expression: t.queuedAt)]))
+        .get();
+  }
+
+  /// التحقق من وجود رسالة في قائمة الانتظار (deduplication)
+  Future<bool> isMessageInQueue(String messageId) async {
+    final result = await (select(relayQueueTable)
+          ..where((t) => t.messageId.equals(messageId)))
+        .getSingleOrNull();
+    return result != null;
+  }
+
+  /// حذف رسالة من قائمة الانتظار (بعد إرسالها بنجاح)
+  Future<bool> removeFromRelayQueue(String messageId) async {
+    final rowsAffected = await (delete(relayQueueTable)
+          ..where((t) => t.messageId.equals(messageId)))
+        .go();
+    if (rowsAffected > 0) {
+      LogService.info('تم حذف رسالة من RelayQueue: $messageId');
+    }
+    return rowsAffected > 0;
+  }
+
+  /// حذف الرسائل القديمة (أكثر من 24 ساعة)
+  Future<int> cleanupOldRelayMessages() async {
+    final cutoffTime = DateTime.now().subtract(const Duration(hours: 24));
+    final rowsAffected = await (delete(relayQueueTable)
+          ..where((t) => t.timestamp.isSmallerThanValue(cutoffTime)))
+        .go();
+    if (rowsAffected > 0) {
+      LogService.info('تم حذف $rowsAffected رسالة قديمة من RelayQueue');
+    }
+    return rowsAffected;
+  }
+
+  /// تحديث عدد المحاولات
+  Future<void> incrementRetryCount(String messageId) async {
+    final message = await (select(relayQueueTable)
+          ..where((t) => t.messageId.equals(messageId)))
+        .getSingleOrNull();
+    
+    if (message != null) {
+      await (update(relayQueueTable)..where((t) => t.messageId.equals(messageId)))
+          .write(RelayQueueTableCompanion(
+        retryCount: Value(message.retryCount + 1),
+        lastRetryAt: Value(DateTime.now()),
+      ));
+    }
+  }
+
+  /// حذف الرسائل التي تجاوزت الحد الأقصى للمحاولات (5 محاولات)
+  Future<int> removeFailedMessages() async {
+    const maxRetries = 5;
+    final rowsAffected = await (delete(relayQueueTable)
+          ..where((t) => t.retryCount.isBiggerThanValue(maxRetries)))
+        .go();
+    if (rowsAffected > 0) {
+      LogService.info('تم حذف $rowsAffected رسالة فاشلة من RelayQueue');
+    }
+    return rowsAffected;
   }
 
   @override

@@ -6,7 +6,7 @@ part of 'app_router.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$appRouterHash() => r'e910d65768e04bd2a9cfc2465db4d48c92e01e7f';
+String _$appRouterHash() => r'b04a62adeefce332f2930978f25a6f53b7d7697b';
 
 /// Provider لـ GoRouter
 /// يستخدم ShellRoute لعرض BottomNavBar بشكل دائم

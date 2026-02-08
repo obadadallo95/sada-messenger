@@ -18,6 +18,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get welcomeMessage => 'Welcome to Sada Foundation Layer';
 
   @override
+  String get home => 'Home';
+
+  @override
   String get settings => 'Settings';
 
   @override
@@ -137,13 +140,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cameraPermissionDenied => 'Camera permission denied';
 
   @override
-  String get cameraPermissionRequired => 'Camera permission is required';
+  String get cameraPermissionRequired =>
+      'We need camera permission to scan QR codes';
 
   @override
   String get grantPermission => 'Grant Permission';
 
   @override
-  String get placeQrInFrame => 'Position the QR code within the frame';
+  String get placeQrInFrame => 'Place QR code inside the frame';
 
   @override
   String get friendAddedSuccessfully => 'Friend added successfully';
@@ -456,49 +460,106 @@ class AppLocalizationsEn extends AppLocalizations {
   String get apkShareError => 'Failed to share APK file';
 
   @override
-  String get myQrCode => 'My QR Code';
+  String get notifications => 'Notifications';
+
+  @override
+  String get noNotifications => 'No notifications';
+
+  @override
+  String get markAllAsRead => 'Mark all as read';
+
+  @override
+  String get noInternetNoProblem => 'No Internet?\nNo Problem.';
+
+  @override
+  String get noInternetDescription =>
+      'Sada works when the internet doesn\'t. Connect directly with people around you using WiFi Direct.';
+
+  @override
+  String get youAreTheNetwork => 'You Are The Network';
+
+  @override
+  String get youAreTheNetworkDescription =>
+      'Your phone acts as a bridge. Help your community stay connected just by keeping the app open.';
+
+  @override
+  String get invisibleAndSecure => 'Invisible & Secure';
+
+  @override
+  String get invisibleAndSecureDescription =>
+      'No servers. No tracking. Your messages stay in your neighborhood.';
+
+  @override
+  String get readyToConnect => 'Ready to Connect?';
+
+  @override
+  String get readyToConnectDescription =>
+      'Grant permissions to start discovering people nearby.';
+
+  @override
+  String get permissionLocation => 'Location';
+
+  @override
+  String get permissionNotify => 'Notify';
+
+  @override
+  String get permissionWifi => 'WiFi';
+
+  @override
+  String get zeroKnowledgePromise => 'Zero-Knowledge Promise';
+
+  @override
+  String get noPhoneNumberRequired => 'No Phone Number Required';
+
+  @override
+  String get noPhoneNumberDescription =>
+      'We don\'t ask for your phone number, email, or real identity. You are just a cryptographic key pair.';
+
+  @override
+  String get endToEndEncryptionDescription =>
+      'All messages are encrypted on your device and only decrypted by the recipient. We cannot read your chats.';
+
+  @override
+  String get localDatabaseOnly => 'Local Database Only';
+
+  @override
+  String get localDatabaseDescription =>
+      'Your data lives on your phone. There is no cloud backup. If you delete the app, your data is gone forever.';
+
+  @override
+  String get transparency => 'Transparency';
+
+  @override
+  String get transparencyDescription =>
+      'Sada uses standard WiFi Direct and UDP broadcasts to find peers. While your device announces its presence, your real identity remains hidden behind a random ID.';
+
+  @override
+  String get viewSourceCode => 'View Source Code';
+
+  @override
+  String get howItWorks => 'How it Works';
 
   @override
   String get scanQrCode => 'Scan QR Code';
 
   @override
-  String get invalidQrCode => 'Invalid QR Code';
+  String get scanQrDescription =>
+      'Meet a friend and scan their QR code to swap keys securely.';
 
   @override
-  String get invalidQrCodeFormat => 'Invalid QR Code format';
+  String get autoConnect => 'Auto Connect';
 
   @override
-  String get invalidQrCodeFields => 'Invalid QR Code: Missing required fields';
+  String get autoConnectDescription =>
+      'Your devices automatically find each other over WiFi Direct.';
 
   @override
-  String get processing => 'Processing...';
+  String get secureChat => 'Secure Chat';
 
   @override
-  String get cannotAddYourself => 'You cannot add yourself as a contact';
+  String get secureChatDescription =>
+      'Messages hop between devices until they reach the destination.';
 
   @override
-  String get contactAlreadyExists => 'Contact already exists';
-
-  @override
-  String get errorProcessingQrCode => 'Error processing QR Code';
-
-  @override
-  String get shareQrCodeDescription =>
-      'Share this QR code to add you as a contact';
-
-  @override
-  String get qrCodeSecurityInfo =>
-      'This QR code contains your public key for secure messaging.';
-
-  @override
-  String get home => 'Home';
-
-  @override
-  String get notifications => 'Notifications';
-
-  @override
-  String get markAllAsRead => 'Mark All as Read';
-
-  @override
-  String get noNotifications => 'No notifications';
+  String get designedForResilience => 'Designed for Resilience';
 }

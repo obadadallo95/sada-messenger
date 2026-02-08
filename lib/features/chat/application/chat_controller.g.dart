@@ -6,7 +6,7 @@ part of 'chat_controller.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$chatControllerHash() => r'8ff01c2388f8682c53b293e8059ece604c871e05';
+String _$chatControllerHash() => r'0adc91e5cb2b2fe30872e8fc21c6da86450b7cf4';
 
 /// Controller لإدارة منطق إرسال واستقبال الرسائل
 ///

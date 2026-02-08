@@ -654,6 +654,38 @@
   "noNotifications": "No notifications",
   "@noNotifications": {
     "description": "Message when there are no notifications"
+  },
+  "termsOfService": "Terms of Service",
+  "@termsOfService": {
+    "description": "Title for Terms of Service"
+  },
+  "sourceCode": "Source Code",
+  "@sourceCode": {
+    "description": "Title for Source Code"
+  },
+  "viewOnGitHub": "View on GitHub",
+  "@viewOnGitHub": {
+    "description": "Text for View on GitHub button"
+  },
+  "readOurPrivacyPolicy": "Read our privacy policy",
+  "@readOurPrivacyPolicy": {
+    "description": "Text for Read privacy policy button"
+  },
+  "readOurTermsOfService": "Read our terms of service",
+  "@readOurTermsOfService": {
+    "description": "Text for Read terms of service button"
+  },
+  "openSourceLibraries": "Open Source Libraries",
+  "@openSourceLibraries": {
+    "description": "Title for Open Source Libraries section"
+  },
+  "madeWithLoveForFreedom": "Made with ❤️ for Freedom",
+  "@madeWithLoveForFreedom": {
+    "description": "Text 'Made with ❤️ for Freedom'"
+  },
+  "sadaBuiltWithOpenSource": "Sada is built with open-source software. Thank you to all contributors!",
+  "@sadaBuiltWithOpenSource": {
+    "description": "Text thanking open-source contributors"
   }
 }
 

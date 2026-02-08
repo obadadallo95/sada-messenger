@@ -26,11 +26,15 @@
 
 ## 📖 About
 
-**Sada** (صدى) is an open-source, secure offline mesh messaging application designed specifically for communities in Syria and other regions with unreliable internet connectivity. Built with humanitarian principles, Sada enables peer-to-peer communication without requiring central servers or internet infrastructure.
+**Sada** (صدى) is a **decentralized, offline mesh messenger** that enables secure peer-to-peer communication without requiring central servers or internet infrastructure. Built with humanitarian principles, Sada is designed for communities in Syria and other regions with unreliable internet connectivity.
 
 ### 🌍 Mission
 
-In areas where internet access is restricted, unreliable, or censored, Sada provides a resilient communication network that operates entirely offline using WiFi Direct and Bluetooth Low Energy (BLE). Messages are encrypted end-to-end, ensuring privacy even in hostile environments.
+In areas where internet access is restricted, unreliable, or censored, Sada provides a resilient communication network that operates entirely offline using **WiFi Direct (P2P)** and **Bluetooth Low Energy (BLE)**. Messages are encrypted end-to-end using **libsodium** (NaCl), ensuring privacy even in hostile environments.
+
+### ⚠️ Alpha Disclaimer
+
+**This is Alpha software (v1.0). Use at your own risk.** Do not rely on this app for life-critical communications yet. Mesh routing algorithms are still being optimized.
 
 ---
 
@@ -42,25 +46,33 @@ In areas where internet access is restricted, unreliable, or censored, Sada prov
 - **Smart Discovery**: Battery-optimized duty cycling for efficient peer discovery
 
 ### 🔒 **High-Assurance End-to-End Encryption**
-- **End-to-End Encryption**: X25519 key exchange + XSalsa20-Poly1305 authenticated encryption
+- **End-to-End Encryption**: **X25519** key exchange + **XSalsa20-Poly1305** authenticated encryption (via libsodium)
 - **Forward Secrecy**: Session keys derived using ECDH and Blake2b hashing
-- **Secure Storage**: Private keys stored in encrypted SharedPreferences (Android Keystore)
+- **Secure Storage**: Private keys stored in **FlutterSecureStorage** (Android Keystore)
+- **QR Key Exchange**: Share your identity and public key via QR code scanning
 
-### 🛡️ **Duress Mode (Panic System)**
-- **Dual PIN System**: Master PIN (real data) and Duress PIN (fake data)
-- **Covert Protection**: Identical UI in both modes - no visible indicators
+### 🛡️ **Duress Mode (Plausible Deniability)**
+- **Dual PIN System**: Master PIN (real database) and Duress PIN (dummy database)
+- **Plausible Deniability**: Identical UI in both modes - no visible indicators
 - **Physical Safety**: Designed for scenarios where device inspection is forced
+- **Database Separation**: Real data (`sada_encrypted.sqlite`) vs Dummy data (`sada_dummy.sqlite`)
+
+### 💾 **Local Database (Drift)**
+- **SQLite Database**: Powered by **Drift** (formerly Moor) for local message storage
+- **Offline-First**: All data stored locally on device - no cloud sync
+- **Duress Mode Support**: Separate database files for Master/Duress modes
 
 ### 🔋 **Battery Optimized**
 - **Smart Duty Cycling**: Configurable power modes (High Performance / Balanced / Low Power)
 - **Background Service**: Efficient foreground service with minimal battery drain
 - **Adaptive Scanning**: Adjusts discovery frequency based on user preference
 
-### 🎨 **Modern UI/UX**
-- **Material Design 3**: Clean, modern interface with Dark/Light mode support
+### 🎨 **Modern UI/UX (Cyber-Stealth Aesthetic)**
+- **Neo-Glass Design**: Dark-mode first with glassmorphism effects
+- **Mesh Gradient Background**: Subtle animated background with moving color blobs
 - **RTL Support**: Full Arabic and English localization
 - **Responsive Design**: ScreenUtil-based responsive layouts
-- **Interactive Tours**: Feature discovery guides for new users
+- **Smooth Animations**: flutter_animate for cinematic transitions
 
 ### 👥 **Group Messaging**
 - **Mesh Groups**: Create and discover public/private groups
@@ -77,13 +89,23 @@ In areas where internet access is restricted, unreliable, or censored, Sada prov
 
 ---
 
+## 🛠️ Tech Stack
+
+- **Framework**: Flutter 3.10+
+- **State Management**: Riverpod (with code generation)
+- **Navigation**: GoRouter
+- **Database**: Drift (SQLite) - Local message/contact storage
+- **Cryptography**: libsodium (NaCl) - X25519 + XSalsa20-Poly1305
+- **UI**: Material 3, flutter_animate, ScreenUtil
+- **Native**: Kotlin (Android) - WiFi Direct P2P implementation
+
 ## 🚀 Getting Started
 
 ### Prerequisites
 
 - **Flutter SDK**: 3.10.4 or higher
 - **Dart SDK**: 3.10.4 or higher
-- **Android Studio**: Latest version with Android SDK 21+
+- **Android Studio**: Latest version with Android SDK 23+ (for adaptive icons)
 - **Kotlin**: 1.9+ (for native Android code)
 
 ### Installation
@@ -170,10 +192,11 @@ flutter build appbundle --release
   - [ ] Message Routing Protocol
   - [ ] Network Topology Management
 
-- [ ] **Database Layer**
-  - [ ] Drift/Hive Integration
-  - [ ] Message Persistence
-  - [ ] Group Data Management
+- [x] **Database Layer**
+  - [x] Drift (SQLite) Integration
+  - [x] Message Persistence
+  - [x] Contact Storage
+  - [x] Duress Mode Database Separation
 
 ### 📋 Planned
 

@@ -118,26 +118,33 @@ class ChatController extends _$ChatController {
       
       LogService.info('تم حفظ الرسالة في قاعدة البيانات: $messageId');
       
-      // إرسال الرسالة عبر الشبكة
+      // إرسال الرسالة عبر Mesh Network مع Store-Carry-Forward Routing
       bool sendSuccess = false;
       if (targetPeerId != null) {
         try {
-          sendSuccess = await meshService.sendMessage(targetPeerId, encryptedContent);
+          // استخدام sendMeshMessage() بدلاً من sendMessage() لدعم Mesh Routing
+          sendSuccess = await meshService.sendMeshMessage(
+            targetPeerId, 
+            encryptedContent,
+            senderId: senderId,
+            maxHops: 10, // TTL: 10 hops
+            type: 'message',
+          );
           
           if (sendSuccess) {
             // تحديث حالة الرسالة إلى sent
             await database.updateMessageStatus(messageId, 'sent');
-            LogService.info('تم إرسال الرسالة بنجاح: $messageId');
+            LogService.info('✅ تم إرسال MeshMessage بنجاح: $messageId');
           } else {
             // تحديث حالة الرسالة إلى failed
             await database.updateMessageStatus(messageId, 'failed');
-            LogService.error('فشل إرسال الرسالة: $messageId');
-            throw Exception('فشل إرسال الرسالة');
+            LogService.error('❌ فشل إرسال MeshMessage: $messageId - Socket قد لا يكون متصل');
+            throw Exception('فشل إرسال الرسالة - Socket غير متصل');
           }
         } catch (e) {
           // تحديث حالة الرسالة إلى failed
           await database.updateMessageStatus(messageId, 'failed');
-          LogService.error('خطأ في إرسال الرسالة', e);
+          LogService.error('خطأ في إرسال MeshMessage', e);
           rethrow;
         }
       } else {

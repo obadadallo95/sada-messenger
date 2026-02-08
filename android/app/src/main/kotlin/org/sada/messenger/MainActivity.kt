@@ -17,14 +17,18 @@ import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodChannel
 import org.json.JSONArray
 import org.json.JSONObject
+import org.sada.messenger.managers.UdpBroadcastManager
 
 class MainActivity : FlutterFragmentActivity() {
     private val TAG = "SadaMesh"
     private val METHOD_CHANNEL = "org.sada.messenger/mesh"
+    private val APP_CHANNEL = "org.sada.messenger/app"
     private val PEERS_EVENT_CHANNEL = "org.sada.messenger/peersChanges"
     private val CONNECTION_EVENT_CHANNEL = "org.sada.messenger/connectionChanges"
     private val MESSAGE_EVENT_CHANNEL = "org.sada.messenger/messageReceived"
     private val SOCKET_STATUS_CHANNEL = "org.sada.messenger/socketStatus"
+    private val UDP_METHOD_CHANNEL = "org.sada.messenger/udp"
+    private val UDP_EVENT_CHANNEL = "org.sada.messenger/udpEvents"
 
     private lateinit var wifiP2pManager: WifiP2pManager
     private lateinit var channel: WifiP2pManager.Channel
@@ -35,6 +39,7 @@ class MainActivity : FlutterFragmentActivity() {
 
     private val peersList = mutableListOf<WifiP2pDevice>()
     private val socketManager = SocketManager.getInstance()
+    private lateinit var udpBroadcastManager: UdpBroadcastManager
 
     // BroadcastReceiver لاستقبال أحداث WiFi P2P
     private val wifiP2pReceiver = object : BroadcastReceiver() {
@@ -95,10 +100,13 @@ class MainActivity : FlutterFragmentActivity() {
         Log.d(TAG, "Found ${peersList.size} peers")
 
         // إرسال قائمة الأجهزة إلى Flutter
+        // 🔒 PRIVACY: الأسماء الحقيقية ستُخفي في Flutter (MeshPeer._anonymizeDeviceName)
+        // في المستقبل، يمكن تغيير deviceName هنا إلى ServiceId عشوائي
         val peersJson = JSONArray()
         peersList.forEach { device ->
             peersJson.put(
                 JSONObject().apply {
+                    // 🔒 Note: deviceName الحقيقي سيُخفي في Flutter layer
                     put("deviceName", device.deviceName ?: "Unknown")
                     put("deviceAddress", device.deviceAddress)
                     put("status", device.status)
@@ -151,6 +159,9 @@ class MainActivity : FlutterFragmentActivity() {
         // تهيئة WiFi P2P Manager
         wifiP2pManager = getSystemService(Context.WIFI_P2P_SERVICE) as WifiP2pManager
         channel = wifiP2pManager.initialize(this, mainLooper, null)
+        
+        // تهيئة UDP Broadcast Manager
+        udpBroadcastManager = UdpBroadcastManager.getInstance(this)
 
         // تسجيل BroadcastReceiver
         val intentFilter = IntentFilter().apply {
@@ -222,6 +233,57 @@ class MainActivity : FlutterFragmentActivity() {
                         }
                     }
 
+                    "socket_write" -> {
+                        val peerId = call.argument<String>("peerId")
+                        val message = call.argument<String>("message")
+                        if (message != null) {
+                            val isConnected = socketManager.isSocketConnected()
+                            Log.d(TAG, "socket_write called - peerId: $peerId, isConnected: $isConnected")
+                            Log.d(TAG, "Message preview: ${message.take(100)}...")
+                            
+                            if (!isConnected) {
+                                Log.w(TAG, "⚠️ Socket is NOT connected - cannot send message")
+                                result.success(false)
+                            } else {
+                                val success = socketManager.writeText(message)
+                                if (success) {
+                                    Log.d(TAG, "✅ Message sent successfully")
+                                } else {
+                                    Log.e(TAG, "❌ Failed to write message to socket")
+                                }
+                                result.success(success)
+                            }
+                        } else {
+                            Log.e(TAG, "Message is null")
+                            result.error("INVALID_ARGUMENT", "Message is null", null)
+                        }
+                    }
+
+                    "isSocketConnected" -> {
+                        val isConnected = socketManager.isSocketConnected()
+                        Log.d(TAG, "Socket connection status: $isConnected")
+                        result.success(isConnected)
+                    }
+
+                    "startServer" -> {
+                        Log.d(TAG, "Starting server...")
+                        socketManager.startServer()
+                        result.success(true)
+                    }
+
+                    "connectToPeer" -> {
+                        val ip = call.argument<String>("ip")
+                        val port = call.argument<Int>("port")
+                        if (ip != null && port != null) {
+                            Log.d(TAG, "Connecting to peer: $ip:$port")
+                            socketManager.connectToHost(ip)
+                            result.success(true)
+                        } else {
+                            result.error("INVALID_ARGUMENT", "IP or port is null", null)
+                        }
+                    }
+
+
                     "closeSocket" -> {
                         Log.d(TAG, "Closing socket connection")
                         socketManager.closeConnections()
@@ -239,6 +301,29 @@ class MainActivity : FlutterFragmentActivity() {
                         }
                     }
 
+                    else -> {
+                        result.notImplemented()
+                    }
+                }
+            }
+
+        // MethodChannel للتحكم في التطبيق (فتح التطبيق من الإشعار)
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, APP_CHANNEL)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "bringToForeground" -> {
+                        Log.d(TAG, "Bringing app to foreground")
+                        try {
+                            val intent = Intent(this, MainActivity::class.java).apply {
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                            }
+                            startActivity(intent)
+                            result.success(true)
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Error bringing app to foreground", e)
+                            result.error("FOREGROUND_ERROR", "Failed to bring app to foreground: ${e.message}", null)
+                        }
+                    }
                     else -> {
                         result.notImplemented()
                     }
@@ -305,6 +390,66 @@ class MainActivity : FlutterFragmentActivity() {
                 }
             })
 
+        // UDP MethodChannel للتحكم في UDP Broadcast Service
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, UDP_METHOD_CHANNEL)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "startUdpService" -> {
+                        val port = call.argument<Int>("port") ?: 45454
+                        Log.d(TAG, "Starting UDP service on port $port")
+                        val started = udpBroadcastManager.startListening()
+                        result.success(started)
+                    }
+
+                    "stopUdpService" -> {
+                        Log.d(TAG, "Stopping UDP service")
+                        udpBroadcastManager.stop()
+                        result.success(true)
+                    }
+
+                    "sendBroadcast" -> {
+                        val payload = call.argument<String>("payload")
+                        val port = call.argument<Int>("port") ?: 45454
+                        if (payload != null) {
+                            Log.d(TAG, "Sending UDP broadcast: ${payload.take(50)}...")
+                            val sent = udpBroadcastManager.sendBroadcast(payload)
+                            result.success(sent)
+                        } else {
+                            result.error("INVALID_ARGUMENT", "Payload is null", null)
+                        }
+                    }
+
+                    "getDeviceIp" -> {
+                        val ip = udpBroadcastManager.getDeviceIp()
+                        Log.d(TAG, "Device IP: $ip")
+                        result.success(ip)
+                    }
+
+                    "isWifiConnected" -> {
+                        val isConnected = udpBroadcastManager.isWifiConnected()
+                        result.success(isConnected)
+                    }
+
+                    else -> {
+                        result.notImplemented()
+                    }
+                }
+            }
+
+        // UDP EventChannel لإرسال UDP events إلى Flutter
+        EventChannel(flutterEngine.dartExecutor.binaryMessenger, UDP_EVENT_CHANNEL)
+            .setStreamHandler(object : EventChannel.StreamHandler {
+                override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
+                    Log.d(TAG, "UDP EventChannel listener attached")
+                    udpBroadcastManager.setEventSink(events)
+                }
+
+                override fun onCancel(arguments: Any?) {
+                    Log.d(TAG, "UDP EventChannel listener cancelled")
+                    udpBroadcastManager.setEventSink(null)
+                }
+            })
+
         Log.d(TAG, "MainActivity configured successfully")
     }
 
@@ -320,6 +465,10 @@ class MainActivity : FlutterFragmentActivity() {
         // تنظيف SocketManager
         socketManager.destroy()
         Log.d(TAG, "SocketManager destroyed")
+        
+        // تنظيف UDP Broadcast Manager
+        udpBroadcastManager.destroy()
+        Log.d(TAG, "UDP Broadcast Manager destroyed")
     }
 }
 

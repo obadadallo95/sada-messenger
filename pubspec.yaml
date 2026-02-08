@@ -71,6 +71,7 @@ dependencies:
   package_info_plus: ^9.0.0
   url_launcher: ^6.3.1
   path_provider: ^2.1.4
+  flutter_markdown: ^0.6.18
   
   # Security & Authentication
   device_info_plus: ^12.3.0
@@ -86,11 +87,17 @@ dependencies:
   image_picker: ^1.1.2
   flutter_image_compress: ^2.3.0
   cached_network_image: ^3.4.1
+  lottie: ^3.3.2
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  
+  # Testing
+  mocktail: ^1.0.0
+  integration_test:
+    sdk: flutter
   
   # Code Generation
   build_runner: ^2.4.0
@@ -113,6 +120,7 @@ flutter:
   # Assets
   assets:
     - assets/images/
+    - assets/json/
 
 # Flutter Launcher Icons Configuration
 # Cyber-Stealth Aesthetic: Deep Midnight Blue background

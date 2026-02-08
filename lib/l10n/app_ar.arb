@@ -590,6 +590,295 @@
   "markAllAsRead": "تعليم الكل كمقروء",
   "@markAllAsRead": {
     "description": "زر تعليم جميع الإشعارات كمقروءة"
+  },
+  "noInternetNoProblem": "لا إنترنت؟\nلا مشكلة.",
+  "@noInternetNoProblem": {
+    "description": "Onboarding slide 1 title"
+  },
+  "noInternetDescription": "يعمل صدى عندما ينقطع الإنترنت. تواصل مباشرة مع من حولك باستخدام WiFi Direct.",
+  "@noInternetDescription": {
+    "description": "Onboarding slide 1 description"
+  },
+  "youAreTheNetwork": "أنت الشبكة",
+  "@youAreTheNetwork": {
+    "description": "Onboarding slide 2 title"
+  },
+  "youAreTheNetworkDescription": "هاتفك يعمل كجسر. ساعد مجتمعك على البقاء متصلاً بمجرد إبقاء التطبيق مفتوحاً.",
+  "@youAreTheNetworkDescription": {
+    "description": "Onboarding slide 2 description"
+  },
+  "invisibleAndSecure": "غير مرئي وآمن",
+  "@invisibleAndSecure": {
+    "description": "Onboarding slide 3 title"
+  },
+  "invisibleAndSecureDescription": "لا خوادم. لا تعقب. رسائلك تبقى في حيّك.",
+  "@invisibleAndSecureDescription": {
+    "description": "Onboarding slide 3 description"
+  },
+  "readyToConnect": "جاهز للاتصال؟",
+  "@readyToConnect": {
+    "description": "Onboarding slide 4 title"
+  },
+  "readyToConnectDescription": "امنح الصلاحيات للبدء باكتشاف الأشخاص القريبين.",
+  "@readyToConnectDescription": {
+    "description": "Onboarding slide 4 description"
+  },
+  "permissionLocation": "الموقع",
+  "@permissionLocation": {
+    "description": "Location permission badge"
+  },
+  "permissionNotify": "إشعارات",
+  "@permissionNotify": {
+    "description": "Notification permission badge"
+  },
+  "permissionWifi": "WiFi",
+  "@permissionWifi": {
+    "description": "WiFi permission badge"
+  },
+  "zeroKnowledgePromise": "وعد المعرفة الصفرية",
+  "@zeroKnowledgePromise": {
+    "description": "Privacy screen section title"
+  },
+  "noPhoneNumberRequired": "لا حاجة لرقم هاتف",
+  "@noPhoneNumberRequired": {
+    "description": "Privacy feature title"
+  },
+  "noPhoneNumberDescription": "لا نطلب رقم هاتفك أو بريدك الإلكتروني. أنت مجرد مفتاح تشفير.",
+  "@noPhoneNumberDescription": {
+    "description": "Privacy feature description"
+  },
+  "endToEndEncryptionDescription": "جميع الرسائل مشفرة على جهازك ويتم فك تشفيرها فقط عند المستلم.",
+  "@endToEndEncryptionDescription": {
+    "description": "Encryption description for privacy screen"
+  },
+  "localDatabaseOnly": "قاعدة بيانات محلية فقط",
+  "@localDatabaseOnly": {
+    "description": "Privacy feature title"
+  },
+  "localDatabaseDescription": "بياناتك تعيش على هاتفك. لا يوجد نسخ احتياطي سحابي. إذا حذفت التطبيق، ستضيع بياناتك للأبد.",
+  "@localDatabaseDescription": {
+    "description": "Privacy feature description"
+  },
+  "transparency": "الشفافية",
+  "@transparency": {
+    "description": "Privacy section title"
+  },
+  "transparencyDescription": "يستخدم صدى تقنيات قياسية مثل WiFi Direct و UDP. بينما يعلن جهازك عن وجوده، تبقى هويتك الحقيقية مخفية.",
+  "@transparencyDescription": {
+    "description": "Transparency description"
+  },
+  "viewSourceCode": "عرض الكود المصدري",
+  "@viewSourceCode": {
+    "description": "Button to view source code"
+  },
+  "howItWorks": "كيف يعمل",
+  "@howItWorks": {
+    "description": "About screen section title"
+  },
+  "scanQrCode": "مسح رمز QR",
+  "@scanQrCode": {
+    "description": "Timeline step 1 title"
+  },
+  "scanQrDescription": "قابل صديقاً وامسح رمزه لتبادل المفاتيح بأمان.",
+  "@scanQrDescription": {
+    "description": "Timeline step 1 description"
+  },
+  "autoConnect": "اتصال تلقائي",
+  "@autoConnect": {
+    "description": "Timeline step 2 title"
+  },
+  "autoConnectDescription": "تجد أجهزتكم بعضها تلقائياً عبر WiFi Direct.",
+  "@autoConnectDescription": {
+    "description": "Timeline step 2 description"
+  },
+  "secureChat": "محادثة آمنة",
+  "@secureChat": {
+    "description": "Timeline step 3 title"
+  },
+  "secureChatDescription": "تنتقل الرسائل بين الأجهزة حتى تصل لوجهتها.",
+  "@secureChatDescription": {
+    "description": "Timeline step 3 description"
+  },
+  "designedForResilience": "صُمم للصمود",
+  "@designedForResilience": {
+    "description": "About screen footer"
+  },
+  "shareQrCodeDescription": "شارك هذا الرمز لإضافتك كجهة اتصال",
+  "@shareQrCodeDescription": {
+    "description": "Description for sharing QR code"
+  },
+  "myQrCode": "My QR Code",
+  "@myQrCode": {
+    "description": "Title for My QR Code screen"
+  },
+  "scanQrCode": "Scan QR Code",
+  "@scanQrCode": {
+    "description": "Title for Scan QR Code screen"
+  },
+  "share": "Share",
+  "@share": {
+    "description": "Share button label"
+  },
+  "contactAlreadyExists": "Contact already exists",
+  "@contactAlreadyExists": {
+    "description": "Error message when adding existing contact"
+  },
+  "errorProcessingQrCode": "Error processing QR Code",
+  "@errorProcessingQrCode": {
+    "description": "Error message for invalid QR"
+  },
+  "cannotAddYourself": "You cannot add yourself",
+  "@cannotAddYourself": {
+    "description": "Error message when scanning own QR"
+  },
+  "processing": "Processing...",
+  "@processing": {
+    "description": "Loading state text"
+  },
+  "cameraPermissionRequired": "Camera permission is required",
+  "@cameraPermissionRequired": {
+    "description": "Permission rationale"
+  },
+  "cameraPermissionDenied": "Camera permission denied",
+  "@cameraPermissionDenied": {
+    "description": "Permission error"
+  },
+  "grantPermission": "Grant Permission",
+  "@grantPermission": {
+    "description": "Button to request permission"
+  },
+  "placeQrInFrame": "Place QR code in the frame",
+  "@placeQrInFrame": {
+    "description": "Instruction for scanning"
+  },
+  "newFriend": "New Friend",
+  "@newFriend": {
+    "description": "Default name for new contact"
+  },
+  "friendFound": "Friend Found",
+  "@friendFound": {
+    "description": "Success message when contact found"
+  },
+  "name": "Name",
+  "@name": {
+    "description": "Label for name field"
+  },
+  "id": "ID",
+  "@id": {
+    "description": "Label for ID field"
+  },
+  "addFriendButton": "Add Friend",
+  "@addFriendButton": {
+    "description": "Button text"
+  },
+  "friendAddedSuccessfully": "Friend added successfully",
+  "@friendAddedSuccessfully": {
+    "description": "Success toast"
+  },
+  "addFriend": "Add Friend",
+  "@addFriend": {
+    "description": "Screen title"
+  },
+  "myCode": "My Code",
+  "@myCode": {
+    "description": "Tab label"
+  },
+  "scan": "Scan",
+  "@scan": {
+    "description": "Tab label"
+  },
+  "userId": "User ID",
+  "@userId": {
+    "description": "Label"
+  },
+  "createCommunity": "Create Community",
+  "@createCommunity": {
+    "description": "Screen title"
+  },
+  "groupName": "Group Name",
+  "@groupName": {
+    "description": "Input label"
+  },
+  "groupNameHint": "Enter group name",
+  "@groupNameHint": {
+    "description": "Input hint"
+  },
+  "groupNameRequired": "Group name is required",
+  "@groupNameRequired": {
+    "description": "Validation error"
+  },
+  "groupNameTooShort": "Group name is too short",
+  "@groupNameTooShort": {
+    "description": "Validation error"
+  },
+  "groupDescription": "Description",
+  "@groupDescription": {
+    "description": "Input label"
+  },
+  "groupDescriptionHint": "Enter group description",
+  "@groupDescriptionHint": {
+    "description": "Input hint"
+  },
+  "groupDescriptionRequired": "Description is required",
+  "@groupDescriptionRequired": {
+    "description": "Validation error"
+  },
+  "publicGroup": "Public Group",
+  "@publicGroup": {
+    "description": "Switch label"
+  },
+  "publicGroupDescription": "Visible to everyone nearby",
+  "@publicGroupDescription": {
+    "description": "Switch subtitle"
+  },
+  "privateGroupDescription": "Requires password to join",
+  "@privateGroupDescription": {
+    "description": "Switch subtitle"
+  },
+  "groupPassword": "Password",
+  "@groupPassword": {
+    "description": "Input label"
+  },
+  "groupPasswordHint": "Enter password",
+  "@groupPasswordHint": {
+    "description": "Input hint"
+  },
+  "groupPasswordRequired": "Password is required",
+  "@groupPasswordRequired": {
+    "description": "Validation error"
+  },
+  "launchGroup": "Launch Group",
+  "@launchGroup": {
+    "description": "Button text"
+  },
+  "nearbyCommunities": "Nearby Communities",
+  "@nearbyCommunities": {
+    "description": "Section title"
+  },
+  "myGroups": "My Groups",
+  "@myGroups": {
+    "description": "Section title"
+  },
+  "scanning": "Scanning...",
+  "@scanning": {
+    "description": "Status text"
+  },
+  "peersNearby": "{count} peers nearby",
+  "@peersNearby": {
+    "description": "Peer count",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shareQrCodeDescription": "شارك هذا الرمز لإضافتك كجهة اتصال",
+  "@shareQrCodeDescription": {
+    "description": "Description for sharing QR code"
+  },
+  "qrCodeSecurityInfo": "يحتوي هذا الرمز على مفتاحك العام للمراسلة الآمنة.",
+  "@qrCodeSecurityInfo": {
+    "description": "Security information about QR code"
   }
 }
 

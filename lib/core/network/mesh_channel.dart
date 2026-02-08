@@ -4,8 +4,9 @@ import 'package:flutter/services.dart';
 import '../utils/log_service.dart';
 
 /// نموذج بيانات لجهاز WiFi P2P
+/// 🔒 PRIVACY: الأسماء الحقيقية مخفية - نعرض فقط ServiceId أو "Unknown Peer"
 class MeshPeer {
-  final String deviceName;
+  final String deviceName; // 🔒 هذا يجب أن يكون ServiceId عشوائي، ليس الاسم الحقيقي
   final String deviceAddress;
   final int status;
   final bool isServiceDiscoveryCapable;
@@ -18,12 +19,31 @@ class MeshPeer {
   });
 
   factory MeshPeer.fromJson(Map<String, dynamic> json) {
+    // 🔒 PRIVACY: إخفاء الاسم الحقيقي - استخدام "Unknown Peer" بدلاً من الاسم الحقيقي
+    final rawDeviceName = json['deviceName'] as String? ?? 'Unknown';
+    
+    // إذا كان الاسم يحتوي على معلومات حساسة (مثل "Obada's Phone")، نخفيه
+    final anonymizedName = _anonymizeDeviceName(rawDeviceName);
+    
     return MeshPeer(
-      deviceName: json['deviceName'] as String? ?? 'Unknown',
+      deviceName: anonymizedName,
       deviceAddress: json['deviceAddress'] as String,
       status: json['status'] as int? ?? 0,
       isServiceDiscoveryCapable: json['isServiceDiscoveryCapable'] as bool? ?? false,
     );
+  }
+
+  /// إخفاء اسم الجهاز الحقيقي
+  /// يعرض فقط "Unknown Peer" أو ServiceId إذا كان متاحاً
+  static String _anonymizeDeviceName(String rawName) {
+    // إذا كان الاسم يبدأ بـ "SADA-" فهو ServiceId عشوائي - نستخدمه كما هو
+    if (rawName.startsWith('SADA-')) {
+      return rawName;
+    }
+    
+    // إذا كان الاسم يحتوي على معلومات حساسة، نخفيه
+    // في المستقبل، يمكن استخدام DiscoveryService.getAnonymousServiceId()
+    return 'Unknown Peer';
   }
 
   Map<String, dynamic> toJson() {

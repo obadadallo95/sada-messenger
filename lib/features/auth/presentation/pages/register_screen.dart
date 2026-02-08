@@ -4,7 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/router/routes.dart';
 import '../../../../core/services/auth_service.dart';
-import '../../../../l10n/app_localizations.dart';
+import 'package:sada/l10n/generated/app_localizations.dart';
 import '../../../../core/widgets/app_logo.dart';
 
 /// شاشة التسجيل
@@ -106,6 +106,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 SizedBox(height: 48.h),
                 // Nickname Input
                 TextFormField(
+                  key: const Key('register_name_field'),
                   controller: _nameController,
                   decoration: InputDecoration(
                     labelText: l10n.nickname,
@@ -132,6 +133,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 SizedBox(
                   height: 56.h,
                   child: ElevatedButton(
+                    key: const Key('register_button'),
                     onPressed: _isLoading ? null : _handleRegister,
                     style: ElevatedButton.styleFrom(
                       shape: RoundedRectangleBorder(

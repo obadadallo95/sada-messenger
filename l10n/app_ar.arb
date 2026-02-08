@@ -654,6 +654,38 @@
   "noNotifications": "لا توجد إشعارات",
   "@noNotifications": {
     "description": "رسالة عدم وجود إشعارات"
+  },
+  "termsOfService": "شروط الاستخدام",
+  "@termsOfService": {
+    "description": "عنوان شروط الاستخدام"
+  },
+  "sourceCode": "الكود المصدري",
+  "@sourceCode": {
+    "description": "عنوان الكود المصدري"
+  },
+  "viewOnGitHub": "عرض على GitHub",
+  "@viewOnGitHub": {
+    "description": "نص زر عرض الكود على GitHub"
+  },
+  "readOurPrivacyPolicy": "اقرأ سياسة الخصوصية",
+  "@readOurPrivacyPolicy": {
+    "description": "نص زر قراءة سياسة الخصوصية"
+  },
+  "readOurTermsOfService": "اقرأ شروط الاستخدام",
+  "@readOurTermsOfService": {
+    "description": "نص زر قراءة شروط الاستخدام"
+  },
+  "openSourceLibraries": "مكتبات مفتوحة المصدر",
+  "@openSourceLibraries": {
+    "description": "عنوان قسم المكتبات المفتوحة المصدر"
+  },
+  "madeWithLoveForFreedom": "صُنع بحب من أجل الحرية",
+  "@madeWithLoveForFreedom": {
+    "description": "نص 'صُنع بحب من أجل الحرية'"
+  },
+  "sadaBuiltWithOpenSource": "صدى مبني على برمجيات مفتوحة المصدر. شكراً لجميع المساهمين!",
+  "@sadaBuiltWithOpenSource": {
+    "description": "نص شكر للمساهمين في البرمجيات مفتوحة المصدر"
   }
 }
 

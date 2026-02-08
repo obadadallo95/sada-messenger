@@ -12,7 +12,7 @@ import '../../../../core/widgets/mesh_gradient_background.dart';
 import '../../../../core/widgets/glowing_orb_fab.dart';
 import '../../../../core/services/auth_service.dart';
 import '../../../../core/utils/log_service.dart';
-import '../../../../l10n/app_localizations.dart';
+import 'package:sada/l10n/generated/app_localizations.dart';
 import '../../../chat/data/repositories/chat_repository.dart';
 import '../../../chat/domain/models/chat_model.dart';
 import '../../../chat/presentation/widgets/glass_chat_tile.dart';
@@ -34,7 +34,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   late Animation<double> _speedDialAnimation;
 
   // Showcase Keys
-  final GlobalKey _fabKey = GlobalKey();
+  final GlobalKey _fabKey = GlobalKey(debugLabel: 'home_fab');
   final GlobalKey _profileKey = GlobalKey();
 
   // Double Back to Exit

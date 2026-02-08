@@ -7,7 +7,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../../../core/services/auth_service.dart';
 import '../../../../core/security/security_providers.dart';
 import '../../../../core/security/key_manager.dart';
-import '../../../../l10n/app_localizations.dart';
+import 'package:sada/l10n/generated/app_localizations.dart';
 import '../../../../core/utils/log_service.dart';
 
 /// شاشة عرض QR Code للمستخدم

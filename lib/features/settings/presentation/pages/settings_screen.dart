@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../../../core/router/routes.dart';
-import '../../../../l10n/app_localizations.dart';
+import 'package:sada/l10n/generated/app_localizations.dart';
 import '../../../../core/localization/locale_provider.dart';
 import '../../../../core/theme/theme_provider.dart';
 import '../../../../core/models/power_mode.dart';
@@ -358,8 +358,24 @@ class SettingsScreen extends ConsumerWidget {
       subtitle: getPowerModeName(powerMode),
       trailing: PopupMenuButton<PowerMode>(
         icon: Icon(Icons.arrow_drop_down),
-        onSelected: (PowerMode mode) {
-          powerModeNotifier.setPowerMode(mode);
+        onSelected: (PowerMode mode) async {
+          // تحديث الوضع
+          await powerModeNotifier.setPowerMode(mode);
+          
+          // عرض رسالة نجاح
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  isArabic
+                      ? 'تم تغيير وضع الطاقة إلى: ${mode.getDisplayNameAr()}'
+                      : 'Power mode changed to: ${mode.getDisplayNameEn()}',
+                ),
+                duration: Duration(seconds: 2),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
         },
         itemBuilder: (context) => [
           PopupMenuItem(
@@ -367,6 +383,13 @@ class SettingsScreen extends ConsumerWidget {
             child: ListTile(
               dense: true,
               contentPadding: EdgeInsets.zero,
+              leading: Icon(
+                Icons.speed,
+                size: 20.sp,
+                color: powerMode == PowerMode.highPerformance
+                    ? Theme.of(context).colorScheme.primary
+                    : null,
+              ),
               title: Text(getPowerModeName(PowerMode.highPerformance)),
               subtitle: Text(
                 isArabic
@@ -381,6 +404,13 @@ class SettingsScreen extends ConsumerWidget {
             child: ListTile(
               dense: true,
               contentPadding: EdgeInsets.zero,
+              leading: Icon(
+                Icons.balance,
+                size: 20.sp,
+                color: powerMode == PowerMode.balanced
+                    ? Theme.of(context).colorScheme.primary
+                    : null,
+              ),
               title: Text(getPowerModeName(PowerMode.balanced)),
               subtitle: Text(
                 isArabic
@@ -395,6 +425,13 @@ class SettingsScreen extends ConsumerWidget {
             child: ListTile(
               dense: true,
               contentPadding: EdgeInsets.zero,
+              leading: Icon(
+                Icons.battery_saver,
+                size: 20.sp,
+                color: powerMode == PowerMode.lowPower
+                    ? Theme.of(context).colorScheme.primary
+                    : null,
+              ),
               title: Text(getPowerModeName(PowerMode.lowPower)),
               subtitle: Text(
                 isArabic

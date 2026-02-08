@@ -6,6 +6,7 @@ import '../../../../core/router/routes.dart';
 import '../../../../core/services/auth_service.dart';
 import '../../../../core/services/biometric_service.dart';
 import '../../../../core/widgets/app_logo.dart';
+import '../../../../core/utils/log_service.dart';
 import '../../../onboarding/data/repositories/onboarding_repository.dart';
 
 /// شاشة البداية (Splash Screen)
@@ -63,44 +64,98 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
     if (!mounted) return;
 
-    // التحقق من حالة المصادقة
-    final authStatus = ref.read(authServiceProvider);
+    LogService.info('🚀 بدء التنقل من Splash Screen');
+
+    // انتظار حتى يتم التهيئة (مع timeout)
+    int maxRetries = 20; // 20 محاولة × 500ms = 10 ثواني كحد أقصى
+    int retryCount = 0;
     
-    // انتظار حتى يتم التهيئة
-    if (authStatus == AuthStatus.initializing) {
+    while (retryCount < maxRetries) {
+      final authStatus = ref.read(authServiceProvider);
+      LogService.info('📊 حالة المصادقة: $authStatus (محاولة ${retryCount + 1}/$maxRetries)');
+      
+      if (authStatus != AuthStatus.initializing) {
+        LogService.info('✅ اكتملت التهيئة - الحالة: $authStatus');
+        break; // التهيئة اكتملت
+      }
+      
       await Future.delayed(const Duration(milliseconds: 500));
+      retryCount++;
+      
       if (!mounted) return;
     }
 
-    final isLoggedIn = ref.read(authServiceProvider) == AuthStatus.loggedIn;
+    if (!mounted) return;
+
+    final authStatus = ref.read(authServiceProvider);
+    
+    // Fallback: إذا استمرت التهيئة، نعتبر المستخدم غير مسجل دخول
+    if (authStatus == AuthStatus.initializing) {
+      LogService.warning('⚠️ انتهى timeout التهيئة - الانتقال إلى Register كحل افتراضي');
+      if (mounted) {
+        context.go(AppRoutes.register);
+      }
+      return;
+    }
+    
+    final isLoggedIn = authStatus == AuthStatus.loggedIn;
+    
+    LogService.info('🔐 حالة تسجيل الدخول النهائية: $authStatus (isLoggedIn: $isLoggedIn)');
 
     if (!mounted) return;
 
     if (!isLoggedIn) {
       // غير مسجل دخول - الانتقال إلى صفحة التسجيل
-      context.go(AppRoutes.register);
+      LogService.info('➡️ الانتقال إلى صفحة التسجيل');
+      if (mounted) {
+        context.go(AppRoutes.register);
+      }
       return;
     }
 
     // مسجل دخول - التحقق من قفل التطبيق
     final biometricState = ref.read(biometricServiceProvider);
+    LogService.info('🔒 حالة قفل التطبيق: ${biometricState.isAppLockEnabled}');
+    
     if (biometricState.isAppLockEnabled) {
       // قفل التطبيق مفعل - الانتقال إلى Lock Screen
-      context.go(AppRoutes.lock);
+      LogService.info('➡️ الانتقال إلى Lock Screen');
+      if (mounted) {
+        context.go(AppRoutes.lock);
+      }
       return;
     }
 
     // مسجل دخول وليس مقفل - التحقق من Onboarding
-    final onboardingStatus = await ref.read(onboardingRepositoryProvider.future);
+    LogService.info('📋 التحقق من حالة Onboarding...');
+    try {
+      final onboardingStatus = await ref.read(onboardingRepositoryProvider.future)
+          .timeout(const Duration(seconds: 5));
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    if (onboardingStatus) {
-      // Onboarding مكتمل - الانتقال إلى Home
-      context.go(AppRoutes.home);
-    } else {
-      // Onboarding غير مكتمل - الانتقال إلى Onboarding
-      context.go(AppRoutes.onboarding);
+      LogService.info('📋 حالة Onboarding: $onboardingStatus');
+
+      if (onboardingStatus) {
+        // Onboarding مكتمل - الانتقال إلى Home
+        LogService.info('➡️ الانتقال إلى Home Screen');
+        if (mounted) {
+          context.go(AppRoutes.home);
+        }
+      } else {
+        // Onboarding غير مكتمل - الانتقال إلى Onboarding
+        LogService.info('➡️ الانتقال إلى Onboarding Screen');
+        if (mounted) {
+          context.go(AppRoutes.onboarding);
+        }
+      }
+    } catch (e) {
+      // في حالة الخطأ، الانتقال إلى Onboarding كحل افتراضي
+      LogService.error('خطأ في تحميل حالة Onboarding', e);
+      LogService.info('➡️ الانتقال إلى Onboarding Screen (fallback)');
+      if (mounted) {
+        context.go(AppRoutes.onboarding);
+      }
     }
   }
 

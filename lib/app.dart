@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'l10n/app_localizations.dart';
+import 'package:sada/l10n/generated/app_localizations.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/theme_provider.dart';
 import 'core/localization/locale_provider.dart';
 import 'core/services/notification_service.dart';
 import 'core/security/security_providers.dart';
 import 'core/utils/log_service.dart';
+import 'core/network/mesh_connection_manager.dart';
+import 'core/network/mesh_service.dart';
 
 /// نقطة دخول التطبيق الرئيسية
 /// تهيئة جميع الخدمات الأساسية والـ Providers
@@ -40,18 +42,8 @@ class _AppState extends ConsumerState<App> {
       LogService.warning('فشل تهيئة خدمة الإشعارات');
     }
 
-    // تهيئة خدمات التشفير
-    try {
-      final keyManager = ref.read(keyManagerProvider);
-      await keyManager.initialize();
-      
-      final encryptionService = ref.read(encryptionServiceProvider);
-      await encryptionService.initialize();
-      
-      LogService.info('تم تهيئة خدمات التشفير');
-    } catch (e) {
-      LogService.error('خطأ في تهيئة خدمات التشفير', e);
-    }
+    // تهيئة خدمات التشفير (يتم تأجيلها حتى يكون ref متاحاً)
+    // سيتم تهيئتها في build أو postFrameCallback
   }
 
   @override
@@ -61,10 +53,40 @@ class _AppState extends ConsumerState<App> {
     final themeModeAsync = ref.watch(themeNotifierProvider);
     final localeAsync = ref.watch(localeNotifierProvider);
 
-    // ربط GoRouter بخدمة الإشعارات
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    // ربط GoRouter بخدمة الإشعارات وتهيئة خدمات التشفير
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       final notificationService = NotificationService();
       notificationService.setRouter(router);
+      
+      // تهيئة خدمات التشفير (بعد أن يكون ref متاحاً)
+      try {
+        final keyManager = ref.read(keyManagerProvider);
+        await keyManager.initialize();
+        
+        final encryptionService = ref.read(encryptionServiceProvider);
+        await encryptionService.initialize();
+        
+        LogService.info('تم تهيئة خدمات التشفير');
+      } catch (e) {
+        LogService.error('خطأ في تهيئة خدمات التشفير', e);
+      }
+      
+      // تهيئة MeshConnectionManager للاستماع إلى الاتصالات الجديدة
+      try {
+        ref.read(meshConnectionManagerProvider);
+        LogService.info('تم تهيئة MeshConnectionManager');
+      } catch (e) {
+        LogService.error('خطأ في تهيئة MeshConnectionManager', e);
+      }
+      
+      // تهيئة Transport & Discovery Layer
+      try {
+        final meshService = ref.read(meshServiceProvider);
+        await meshService.initializeTransportLayer();
+        LogService.info('تم تهيئة Transport & Discovery Layer');
+      } catch (e) {
+        LogService.error('خطأ في تهيئة Transport & Discovery Layer', e);
+      }
     });
 
     LogService.info('تم تهيئة التطبيق');

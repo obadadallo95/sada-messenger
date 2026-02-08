@@ -168,6 +168,39 @@ l10n/
 - User credentials
 - Profile pictures (Master/Duress)
 
+### drift (^2.18.0) + sqlite3_flutter_libs (^0.5.20)
+
+**Purpose**: Local SQLite database for messages, contacts, and chats
+
+**Why Drift?**
+- ✅ **Type-Safe**: Compile-time type safety with code generation
+- ✅ **Reactive**: Stream-based queries for real-time updates
+- ✅ **SQLite**: Industry-standard SQLite database
+- ✅ **Migrations**: Built-in migration support
+- ✅ **Offline-First**: Perfect for offline mesh messaging
+
+**Features:**
+- **Duress Mode Support**: Separate database files (`sada_encrypted.sqlite` vs `sada_dummy.sqlite`)
+- **Tables**: Contacts, Chats, Messages
+- **Relationships**: Foreign keys and joins
+- **Streams**: Reactive queries with `watchChats()`, `watchMessages()`
+
+**Usage:**
+```dart
+// Get database instance
+final database = await ref.read(appDatabaseProvider.future);
+
+// Insert contact
+await database.insertContact(ContactsTableCompanion.insert(...));
+
+// Watch chats (reactive)
+final chatsStream = database.watchChats();
+```
+
+**Alternatives Considered:**
+- ❌ Hive: Less SQL-like, harder migrations
+- ❌ sqflite: More boilerplate, less type-safe
+
 ---
 
 ## 🔐 Cryptography
@@ -432,15 +465,21 @@ l10n/
 | **Responsive** | flutter_screenutil | ^5.9.3 | Responsive UI |
 | **Crypto** | sodium_libs | ^2.0.0 | Encryption |
 | **Storage** | shared_preferences | ^2.3.3 | Preferences |
-| **Storage** | flutter_secure_storage | ^9.2.2 | Secure storage |
-| **Notifications** | flutter_local_notifications | ^17.2.3 | Local notifications |
+| **Storage** | flutter_secure_storage | ^10.0.0 | Secure storage |
+| **Database** | drift | ^2.18.0 | SQLite database (local storage) |
+| **Database** | sqlite3_flutter_libs | ^0.5.20 | SQLite native libraries |
+| **Notifications** | flutter_local_notifications | ^20.0.0 | Local notifications |
 | **Background** | flutter_background_service | ^5.0.5 | Background service |
 | **Images** | image_picker | ^1.1.2 | Image selection |
 | **Images** | flutter_image_compress | ^2.3.0 | Image compression |
 | **QR** | qr_flutter | ^4.1.0 | QR generation |
-| **QR** | mobile_scanner | ^5.2.3 | QR scanning |
-| **Auth** | local_auth | ^2.3.0 | Biometrics |
-| **UI** | showcaseview | ^3.0.0 | Feature tours |
+| **QR** | mobile_scanner | ^7.1.4 | QR scanning |
+| **Auth** | local_auth | ^3.0.0 | Biometrics |
+| **UI** | showcaseview | ^5.0.1 | Feature tours |
+| **UI** | flutter_animate | ^4.5.0 | Animations |
+| **UI** | flutter_markdown | ^0.6.18 | Markdown rendering |
+| **App Info** | package_info_plus | ^9.0.0 | App version info |
+| **Links** | url_launcher | ^6.3.1 | External links |
 
 ---
 
@@ -448,7 +487,6 @@ l10n/
 
 ### Planned Additions
 
-- **Database**: Drift or Hive for local message storage
 - **Testing**: mockito, flutter_test for comprehensive testing
 - **Analytics**: Privacy-respecting analytics (if needed)
 - **Crash Reporting**: Sentry or similar (if needed)

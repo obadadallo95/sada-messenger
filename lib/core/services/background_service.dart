@@ -1,6 +1,10 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/power_mode.dart';
 import '../utils/log_service.dart';
 
@@ -97,28 +101,152 @@ class BackgroundService {
 
   /// تحديث وضع الطاقة
   void updatePowerMode(PowerMode mode) {
-    if (_currentPowerMode == mode) return;
+    if (_currentPowerMode == mode) {
+      LogService.info('وضع الطاقة لم يتغير: ${mode.toStorageString()}');
+      return;
+    }
 
     _currentPowerMode = mode;
     LogService.info('تم تحديث وضع الطاقة إلى: ${mode.toStorageString()}');
 
     // إعادة تشغيل Duty Cycle مع الوضع الجديد
-    final service = FlutterBackgroundService();
-    service.invoke('updatePowerMode', {
-      'mode': mode.toStorageString(),
-    });
+    try {
+      final service = FlutterBackgroundService();
+      service.invoke('updatePowerMode', {
+        'mode': mode.toStorageString(),
+      });
+    } catch (e) {
+      LogService.error('خطأ في إرسال تحديث وضع الطاقة للخدمة الخلفية', e);
+    }
   }
 
+  /// تحميل وضع الطاقة الحالي من SharedPreferences
+  Future<void> loadCurrentPowerMode() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final storedValue = prefs.getString('power_mode');
+      
+      if (storedValue != null) {
+        final mode = PowerModeExtension.fromStorageString(storedValue);
+        _currentPowerMode = mode;
+        LogService.info('تم تحميل وضع الطاقة الحالي: ${mode.toStorageString()}');
+      }
+    } catch (e) {
+      LogService.error('خطأ في تحميل وضع الطاقة الحالي', e);
+    }
+  }
+
+}
+
+/// متغيرات عامة للـ Duty Cycle
+Timer? _dutyCycleTimer;
+int _dutyCycleCounter = 0;
+bool _isScanning = false;
+int _peerCount = 0;
+
+/// FlutterLocalNotificationsPlugin للإشعارات المتقدمة
+final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
+
+/// تهيئة إشعارات الخدمة الخلفية
+Future<void> _initializeBackgroundNotifications(ServiceInstance service) async {
+  if (!Platform.isAndroid) return;
+
+  try {
+    // إنشاء قناة إشعارات للخدمة الخلفية
+    const androidChannel = AndroidNotificationChannel(
+      'sada_background_service',
+      'Sada Background Service',
+      description: 'إشعارات خدمة الخلفية لـ Sada',
+      importance: Importance.low, // Low importance لتجنب الصوت/الاهتزاز
+      playSound: false,
+      enableVibration: false,
+      showBadge: false,
+    );
+
+    await _localNotifications
+        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(androidChannel);
+
+    LogService.info('تم تهيئة قناة إشعارات الخدمة الخلفية');
+  } catch (e) {
+    LogService.error('خطأ في تهيئة إشعارات الخدمة الخلفية', e);
+  }
+}
+
+/// تحديث إشعار الخدمة الخلفية مع الحالة الديناميكية
+Future<void> _updateBackgroundNotification({
+  required String title,
+  required String content,
+  required bool isScanning,
+  int peerCount = 0,
+}) async {
+  if (!Platform.isAndroid) return;
+
+  try {
+    // إعدادات Android مع ongoing و actions
+    final androidDetails = AndroidNotificationDetails(
+      'sada_background_service',
+      'Sada Background Service',
+      channelDescription: 'إشعارات خدمة الخلفية لـ Sada',
+      importance: Importance.low,
+      priority: Priority.defaultPriority,
+      ongoing: true, // Sticky notification - لا يمكن إلغاؤها
+      autoCancel: false,
+      showWhen: true,
+      icon: '@mipmap/ic_launcher',
+      actions: [
+        const AndroidNotificationAction(
+          'stop_service',
+          'إيقاف',
+          showsUserInterface: false,
+          cancelNotification: false,
+        ),
+      ],
+    );
+
+    // بناء المحتوى مع Peer Count إذا كان متاحاً
+    String finalContent = content;
+    if (peerCount > 0) {
+      finalContent += ' • $peerCount ${peerCount == 1 ? 'peer' : 'peers'}';
+    }
+
+    final notificationDetails = NotificationDetails(android: androidDetails);
+
+    await _localNotifications.show(
+      id: 999, // نفس ID المستخدم في flutter_background_service
+      title: title,
+      body: finalContent,
+      notificationDetails: notificationDetails,
+    );
+
+    LogService.info('تم تحديث إشعار الخدمة: $title - $finalContent');
+  } catch (e) {
+    LogService.error('خطأ في تحديث إشعار الخدمة الخلفية', e);
+  }
 }
 
 /// نقطة البداية للخدمة الخلفية (Android)
 @pragma('vm:entry-point')
 void onStart(ServiceInstance service) async {
+  // تهيئة إشعارات الخدمة الخلفية
+  await _initializeBackgroundNotifications(service);
+
   if (service is AndroidServiceInstance) {
+    // معالج إيقاف الخدمة
     service.on('stop').listen((event) {
-      service.stopSelf();
+      _shutdownService(service);
     });
 
+    // معالج إيقاف التطبيق بالكامل
+    service.on('exit_app').listen((event) {
+      _shutdownService(service);
+      // إغلاق التطبيق بالكامل
+      if (Platform.isAndroid) {
+        exit(0);
+      }
+    });
+
+    // معالج تحديث وضع الطاقة
     service.on('updatePowerMode').listen((event) {
       if (event != null) {
         final modeString = event['mode'] as String?;
@@ -128,63 +256,157 @@ void onStart(ServiceInstance service) async {
         }
       }
     });
+
+    // معالج تحديث عدد الأقران
+    service.on('updatePeerCount').listen((dynamic event) {
+      if (event == null) return;
+      
+      if (event is Map<String, dynamic>) {
+        final countValue = event['count'];
+        if (countValue is int) {
+          _peerCount = countValue;
+          LogService.info('تم تحديث عدد الأقران: $_peerCount');
+        }
+        return;
+      }
+      
+      if (event is int) {
+        _peerCount = event;
+        LogService.info('تم تحديث عدد الأقران: $_peerCount');
+      }
+    });
+
+    // معالج النقر على الإشعار (فتح التطبيق)
+    service.on('notification_clicked').listen((event) {
+      _bringAppToForeground(service);
+    });
   }
 
-  // بدء Duty Cycle
+  // بدء Duty Cycle بالقيمة الافتراضية
   _startDutyCycle(service, PowerMode.balanced);
 }
 
-/// بدء Duty Cycle
+/// إيقاف الخدمة بشكل صحيح
+void _shutdownService(AndroidServiceInstance service) {
+  _dutyCycleTimer?.cancel();
+  _dutyCycleTimer = null;
+  
+  // إلغاء الإشعار
+  _localNotifications.cancel(id: 999);
+  
+  // إيقاف الخدمة
+  service.stopSelf();
+  
+  LogService.info('تم إيقاف الخدمة الخلفية');
+}
+
+/// جلب التطبيق إلى المقدمة
+void _bringAppToForeground(AndroidServiceInstance service) {
+  try {
+    // استخدام MethodChannel لإرسال intent لفتح التطبيق
+    const platform = MethodChannel('org.sada.messenger/app');
+    platform.invokeMethod('bringToForeground');
+    LogService.info('تم جلب التطبيق إلى المقدمة');
+  } catch (e) {
+    LogService.error('خطأ في جلب التطبيق إلى المقدمة', e);
+  }
+}
+
+/// بدء Duty Cycle مع إلغاء Timer القديم
 void _startDutyCycle(ServiceInstance service, PowerMode mode) {
-  bool isScanning = false;
+  // إلغاء Timer القديم إذا كان موجوداً
+  _dutyCycleTimer?.cancel();
+  _dutyCycleTimer = null;
 
-  // بدء Timer للـ Duty Cycle
-  Timer.periodic(Duration(seconds: 1), (timer) async {
-    if (service is AndroidServiceInstance) {
-      // تحديث الإشعار
-      if (isScanning) {
-        service.setForegroundNotificationInfo(
-          title: 'Sada',
-          content: 'Sada: Scanning...',
+  // إعادة تعيين العدادات
+  _dutyCycleCounter = 0;
+  _isScanning = false;
+
+  LogService.info('🔄 بدء Duty Cycle مع وضع: ${mode.toStorageString()}');
+
+  if (mode == PowerMode.highPerformance) {
+    // وضع الأداء العالي: مسح مستمر
+    _isScanning = true;
+    _dutyCycleTimer = Timer.periodic(Duration(seconds: 1), (timer) async {
+      if (service is AndroidServiceInstance) {
+        // تحديث إشعار متقدم
+        await _updateBackgroundNotification(
+          title: '📡 Sada Active',
+          content: 'Scanning for peers...',
+          isScanning: true,
+          peerCount: _peerCount,
         );
-      } else {
+        
+        // تحديث إشعار flutter_background_service أيضاً
         service.setForegroundNotificationInfo(
-          title: 'Sada',
-          content: 'Sada: Sleeping',
+          title: '📡 Sada Active',
+          content: 'Scanning for peers...${_peerCount > 0 ? ' • $_peerCount peers' : ''}',
         );
       }
-    }
-
-    // منطق Duty Cycle
+    });
+    LogService.info('🔋 وضع الأداء العالي: مسح مستمر');
+  } else {
+    // وضع متوازن أو توفير الطاقة: Duty Cycle
     final scanDuration = mode.scanDurationSeconds;
-    final sleepDuration = mode.sleepDurationMinutes;
+    final sleepDuration = mode.sleepDurationSeconds;
 
-    if (mode == PowerMode.highPerformance) {
-      // مسح مستمر
-      if (!isScanning) {
-        isScanning = true;
-        LogService.info('🔋 Service Waking Up... Scanning...');
+    _dutyCycleTimer = Timer.periodic(Duration(seconds: 1), (timer) async {
+      _dutyCycleCounter++;
+
+      if (service is AndroidServiceInstance) {
+        if (_isScanning) {
+          // فترة المسح
+          final remainingScan = scanDuration - _dutyCycleCounter;
+          await _updateBackgroundNotification(
+            title: '📡 Sada Active',
+            content: 'Scanning for peers... (${remainingScan}s)',
+            isScanning: true,
+            peerCount: _peerCount,
+          );
+          
+          service.setForegroundNotificationInfo(
+            title: '📡 Sada Active',
+            content: 'Scanning... (${remainingScan}s)${_peerCount > 0 ? ' • $_peerCount peers' : ''}',
+          );
+
+          // انتهاء فترة المسح
+          if (_dutyCycleCounter >= scanDuration) {
+            _isScanning = false;
+            _dutyCycleCounter = 0;
+            LogService.info('💤 الانتقال إلى النوم لمدة ${mode.sleepDurationMinutes} دقيقة');
+          }
+        } else {
+          // فترة النوم
+          final remainingSleep = sleepDuration - _dutyCycleCounter;
+          final remainingMinutes = remainingSleep ~/ 60;
+          final remainingSeconds = remainingSleep % 60;
+          
+          await _updateBackgroundNotification(
+            title: '🌙 Power Saving',
+            content: 'Sleeping for ${remainingMinutes}m ${remainingSeconds}s...',
+            isScanning: false,
+            peerCount: _peerCount,
+          );
+          
+          service.setForegroundNotificationInfo(
+            title: '🌙 Power Saving',
+            content: 'Sleeping... (${remainingMinutes}m ${remainingSeconds}s)',
+          );
+
+          // انتهاء فترة النوم
+          if (_dutyCycleCounter >= sleepDuration) {
+            _isScanning = true;
+            _dutyCycleCounter = 0;
+            LogService.info('🔋 الاستيقاظ والبدء بالمسح');
+          }
+        }
       }
-    } else {
-      // Duty Cycle: مسح ثم نوم
-      // هذا منطق مبسط - في التطبيق الحقيقي سيتم استخدام Timer منفصل
-      if (!isScanning) {
-        // بدء المسح
-        isScanning = true;
-        LogService.info('🔋 Service Waking Up... Scanning...');
-        
-        // انتظار مدة المسح
-        await Future.delayed(Duration(seconds: scanDuration));
-        
-        // الانتقال إلى النوم
-        isScanning = false;
-        LogService.info('💤 Service Sleeping for $sleepDuration minutes...');
-        
-        // انتظار مدة النوم
-        await Future.delayed(Duration(minutes: sleepDuration));
-      }
-    }
-  });
+    });
+    
+    // بدء المسح فوراً
+    _isScanning = true;
+    LogService.info('🔋 بدء المسح لمدة $scanDuration ثانية');
+  }
 }
 
 /// نقطة البداية للخدمة الخلفية (iOS)

@@ -8,7 +8,7 @@ import '../../../../core/router/routes.dart';
 import '../../../../core/services/auth_service.dart';
 import '../../../../core/services/biometric_service.dart';
 import '../../../../core/database/database_provider.dart';
-import '../../../../l10n/app_localizations.dart';
+import 'package:sada/l10n/generated/app_localizations.dart';
 
 /// شاشة قفل التطبيق
 /// تطلب المصادقة البيومترية أو PIN للدخول
@@ -127,7 +127,7 @@ class _LockScreenState extends ConsumerState<LockScreen> {
     try {
       // حفظ نوع المصادقة في Provider
       ref.read(currentAuthTypeProvider.notifier).state = authType;
-      
+
       // تهيئة قاعدة البيانات بناءً على نوع المصادقة
       final dbInitializer = ref.read(databaseInitializerProvider);
       await dbInitializer.initializeDatabase(authType);
@@ -143,10 +143,7 @@ class _LockScreenState extends ConsumerState<LockScreen> {
             return Container(); // Placeholder
           },
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return FadeTransition(
-              opacity: animation,
-              child: child,
-            );
+            return FadeTransition(opacity: animation, child: child);
           },
           transitionDuration: const Duration(milliseconds: 300),
         ),
@@ -205,7 +202,7 @@ class _LockScreenState extends ConsumerState<LockScreen> {
                     ),
                   ),
                   SizedBox(height: 32.h),
-                  
+
                   // Title
                   Text(
                     l10n.sadaIsLocked,
@@ -217,7 +214,7 @@ class _LockScreenState extends ConsumerState<LockScreen> {
                     textAlign: TextAlign.center,
                   ),
                   SizedBox(height: 16.h),
-                  
+
                   // Subtitle
                   Text(
                     l10n.unlockToContinue,
@@ -228,7 +225,7 @@ class _LockScreenState extends ConsumerState<LockScreen> {
                     textAlign: TextAlign.center,
                   ),
                   SizedBox(height: 48.h),
-                  
+
                   // PIN Dots
                   if (_showPinPad)
                     _buildPinDots()
@@ -240,9 +237,9 @@ class _LockScreenState extends ConsumerState<LockScreen> {
                         )
                   else
                     SizedBox(height: 24.h),
-                  
+
                   SizedBox(height: 24.h),
-                  
+
                   // Biometric Button (if available and PIN Pad not shown)
                   if (!_showPinPad && biometricState.isAvailable)
                     SizedBox(
@@ -256,14 +253,12 @@ class _LockScreenState extends ConsumerState<LockScreen> {
                                 height: 20.h,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  valueColor:
-                                      AlwaysStoppedAnimation<Color>(Colors.white),
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
                                 ),
                               )
-                            : Icon(
-                                Icons.fingerprint,
-                                size: 24.sp,
-                              ),
+                            : Icon(Icons.fingerprint, size: 24.sp),
                         label: Text(
                           l10n.unlock,
                           style: TextStyle(
@@ -280,13 +275,10 @@ class _LockScreenState extends ConsumerState<LockScreen> {
                         ),
                       ),
                     ),
-                  
+
                   // PIN Pad
-                  if (_showPinPad) ...[
-                    SizedBox(height: 32.h),
-                    _buildPinPad(),
-                  ],
-                  
+                  if (_showPinPad) ...[SizedBox(height: 32.h), _buildPinPad()],
+
                   // Switch to PIN (if biometric available)
                   if (!_showPinPad && biometricState.isAvailable)
                     TextButton(
@@ -374,6 +366,7 @@ class _LockScreenState extends ConsumerState<LockScreen> {
         color: Colors.white.withValues(alpha: 0.2),
         shape: const CircleBorder(),
         child: InkWell(
+          key: isBackspace ? const Key('pin_backspace') : Key('pin_$digit'),
           onTap: () {
             HapticFeedback.selectionClick();
             if (isBackspace) {
@@ -385,11 +378,7 @@ class _LockScreenState extends ConsumerState<LockScreen> {
           customBorder: const CircleBorder(),
           child: Center(
             child: isBackspace
-                ? Icon(
-                    Icons.backspace,
-                    color: Colors.white,
-                    size: 24.sp,
-                  )
+                ? Icon(Icons.backspace, color: Colors.white, size: 24.sp)
                 : Text(
                     digit,
                     style: TextStyle(

@@ -45,9 +45,10 @@ final keyPair = sodium.cryptoBox.seedKeyPair(seed: seed);
 
 ### Key Storage
 
-- **Private Key**: Stored in `FlutterSecureStorage` with `encryptedSharedPreferences: true`
-- **Public Key**: Stored in standard SharedPreferences (to be shared via QR code)
+- **Private Key**: Stored in `FlutterSecureStorage` (Android Keystore)
+- **Public Key**: Stored in database and shared via QR code
 - **Key Derivation**: Uses device hash + display name for user ID
+- **QR Key Exchange**: Public keys are shared via QR code scanning for secure contact addition
 
 ---
 
