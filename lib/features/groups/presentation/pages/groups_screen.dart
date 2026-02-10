@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:animate_do/animate_do.dart';
 import '../../../../core/router/routes.dart';
+import '../../../../core/widgets/empty_state.dart';
 import 'package:sada/l10n/generated/app_localizations.dart';
 import '../../data/groups_repository.dart';
 import '../../../chat/domain/models/chat_model.dart';
@@ -174,8 +176,12 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen> {
 
               if (groups.isEmpty) {
                 return SliverFillRemaining(
-                  child: Center(
-                    child: Text('لا توجد مجموعات قريبة'),
+                  child: EmptyState(
+                    icon: Icons.group_outlined,
+                    title: 'لا توجد مجتمعات',
+                    subtitle: 'اكتشف مجموعات في منطقتك أو أنشئ مجتمعاً جديداً',
+                    actionLabel: 'إنشاء مجتمع',
+                    onAction: () => context.push(AppRoutes.createGroup),
                   ),
                 );
               }
@@ -201,6 +207,7 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
+          HapticFeedback.lightImpact();
           context.push(AppRoutes.createGroup);
         },
         icon: Icon(Icons.add),
@@ -221,6 +228,7 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen> {
       ),
       child: InkWell(
         onTap: () {
+          HapticFeedback.lightImpact();
           if (isJoined) {
             context.push('${AppRoutes.chat}/${group.id}', extra: group);
           }

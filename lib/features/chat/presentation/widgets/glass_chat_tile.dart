@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'dart:ui';
@@ -44,7 +45,10 @@ class GlassChatTile extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: onTap,
+          onTap: () {
+            HapticFeedback.lightImpact();
+            onTap();
+          },
           borderRadius: BorderRadius.circular(24.r),
           child: Container(
             decoration: BoxDecoration(

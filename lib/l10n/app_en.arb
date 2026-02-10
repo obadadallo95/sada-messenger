@@ -879,6 +879,231 @@
   "qrCodeSecurityInfo": "This QR code contains your public key for secure messaging.",
   "@qrCodeSecurityInfo": {
     "description": "Security information about QR code"
+  },
+  "navigation_home": "Home",
+  "@navigation_home": {
+    "description": "Bottom navigation - Home"
+  },
+  "navigation_chat": "Chats",
+  "@navigation_chat": {
+    "description": "Bottom navigation - Chat"
+  },
+  "navigation_communities": "Communities",
+  "@navigation_communities": {
+    "description": "Bottom navigation - Communities"
+  },
+  "navigation_add": "Add",
+  "@navigation_add": {
+    "description": "Bottom navigation - Add"
+  },
+  "navigation_settings": "Settings",
+  "@navigation_settings": {
+    "description": "Bottom navigation - Settings"
+  },
+  "home_title": "Local Network",
+  "@home_title": {
+    "description": "Home screen title"
+  },
+  "home_status_connected": "Connected",
+  "@home_status_connected": {
+    "description": "Mesh status - Connected"
+  },
+  "home_status_connecting": "Connecting...",
+  "@home_status_connecting": {
+    "description": "Mesh status - Connecting"
+  },
+  "home_status_offline": "Offline",
+  "@home_status_offline": {
+    "description": "Mesh status - Offline"
+  },
+  "home_peers_count": "{count} devices connected",
+  "@home_peers_count": {
+    "description": "Number of connected peers",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "home_empty_title": "Your Network is Ready",
+  "@home_empty_title": {
+    "description": "Home empty state title"
+  },
+  "home_empty_subtitle": "Wait for nearby devices or start a new conversation",
+  "@home_empty_subtitle": {
+    "description": "Home empty state subtitle"
+  },
+  "home_empty_action": "Start Chat",
+  "@home_empty_action": {
+    "description": "Home empty state CTA button"
+  },
+  "chat_empty_title": "No Conversations",
+  "@chat_empty_title": {
+    "description": "Chat empty state title"
+  },
+  "chat_empty_subtitle": "Start a secure, encrypted conversation with your friends",
+  "@chat_empty_subtitle": {
+    "description": "Chat empty state subtitle"
+  },
+  "chat_empty_action": "Add Friend",
+  "@chat_empty_action": {
+    "description": "Chat empty state CTA button"
+  },
+  "communities_empty_title": "No Communities",
+  "@communities_empty_title": {
+    "description": "Communities empty state title"
+  },
+  "communities_empty_subtitle": "Discover groups in your area or create a new community",
+  "@communities_empty_subtitle": {
+    "description": "Communities empty state subtitle"
+  },
+  "communities_empty_action": "Create Community",
+  "@communities_empty_action": {
+    "description": "Communities empty state CTA button"
+  },
+  "communities_create_button": "New Community",
+  "@communities_create_button": {
+    "description": "Create community button"
+  },
+  "qr_title": "Share Code",
+  "@qr_title": {
+    "description": "QR code screen title"
+  },
+  "qr_my_code": "My Code",
+  "@qr_my_code": {
+    "description": "My QR code label"
+  },
+  "qr_scan": "Scan Code",
+  "@qr_scan": {
+    "description": "Scan QR code label"
+  },
+  "qr_share_title": "Share via",
+  "@qr_share_title": {
+    "description": "Share QR code section title"
+  },
+  "qr_copy_id": "Copy ID",
+  "@qr_copy_id": {
+    "description": "Copy user ID button"
+  },
+  "qr_copied": "Copied",
+  "@qr_copied": {
+    "description": "Copied to clipboard message"
+  },
+  "qr_hint": "Scan to add me as a friend",
+  "@qr_hint": {
+    "description": "QR code hint text"
+  },
+  "qr_user_id_label": "ID:",
+  "@qr_user_id_label": {
+    "description": "User ID label"
+  },
+  "settings_profile": "Profile",
+  "@settings_profile": {
+    "description": "Settings - Profile section"
+  },
+  "settings_appearance": "Appearance",
+  "@settings_appearance": {
+    "description": "Settings - Appearance section"
+  },
+  "settings_theme_light": "Light",
+  "@settings_theme_light": {
+    "description": "Light theme option"
+  },
+  "settings_theme_dark": "Dark",
+  "@settings_theme_dark": {
+    "description": "Dark theme option"
+  },
+  "settings_theme_system": "System",
+  "@settings_theme_system": {
+    "description": "System theme option"
+  },
+  "settings_language": "Language",
+  "@settings_language": {
+    "description": "Settings - Language section"
+  },
+  "settings_language_ar": "العربية",
+  "@settings_language_ar": {
+    "description": "Arabic language option"
+  },
+  "settings_language_en": "English",
+  "@settings_language_en": {
+    "description": "English language option"
+  },
+  "settings_security": "Security",
+  "@settings_security": {
+    "description": "Settings - Security section"
+  },
+  "settings_biometric": "Biometric Lock",
+  "@settings_biometric": {
+    "description": "Biometric lock setting"
+  },
+  "settings_network": "Network",
+  "@settings_network": {
+    "description": "Settings - Network section"
+  },
+  "settings_power_mode": "Power Mode",
+  "@settings_power_mode": {
+    "description": "Power mode setting"
+  },
+  "settings_power_high": "High Performance",
+  "@settings_power_high": {
+    "description": "High performance power mode"
+  },
+  "settings_power_balanced": "Balanced",
+  "@settings_power_balanced": {
+    "description": "Balanced power mode"
+  },
+  "settings_power_low": "Power Saving",
+  "@settings_power_low": {
+    "description": "Low power mode"
+  },
+  "common_cancel": "Cancel",
+  "@common_cancel": {
+    "description": "Cancel button"
+  },
+  "common_save": "Save",
+  "@common_save": {
+    "description": "Save button"
+  },
+  "common_delete": "Delete",
+  "@common_delete": {
+    "description": "Delete button"
+  },
+  "common_edit": "Edit",
+  "@common_edit": {
+    "description": "Edit button"
+  },
+  "common_done": "Done",
+  "@common_done": {
+    "description": "Done button"
+  },
+  "common_close": "Close",
+  "@common_close": {
+    "description": "Close button"
+  },
+  "common_loading": "Loading...",
+  "@common_loading": {
+    "description": "Loading state text"
+  },
+  "common_error": "Error occurred",
+  "@common_error": {
+    "description": "Error message"
+  },
+  "common_retry": "Retry",
+  "@common_retry": {
+    "description": "Retry button"
+  },
+  "common_search": "Search",
+  "@common_search": {
+    "description": "Search placeholder"
+  },
+  "common_send": "Send",
+  "@common_send": {
+    "description": "Send button"
+  },
+  "termsOfService": "Terms of Service",
+  "@termsOfService": {
+    "description": "Terms of Service title"
   }
 }
 

@@ -10,6 +10,8 @@ import '../../../../core/router/routes.dart';
 import '../../../../core/widgets/user_avatar.dart';
 import '../../../../core/widgets/mesh_gradient_background.dart';
 import '../../../../core/widgets/glowing_orb_fab.dart';
+import '../../../../core/widgets/empty_state.dart';
+import '../../../../core/widgets/mesh_status_bar.dart';
 import '../../../../core/services/auth_service.dart';
 import '../../../../core/utils/log_service.dart';
 import 'package:sada/l10n/generated/app_localizations.dart';
@@ -303,12 +305,39 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                             ),
                           ),
                           child: FlexibleSpaceBar(
-                            title: Text(
-                              l10n.appName,
-                              style: theme.textTheme.headlineMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
+                            title: LayoutBuilder(
+                              builder: (context, constraints) {
+                                final isSmallScreen = constraints.maxWidth < 300;
+                                
+                                return Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        l10n.home,
+                                        style: theme.textTheme.headlineMedium?.copyWith(
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    if (!isSmallScreen) ...[
+                                      SizedBox(width: 12.w),
+                                      // Mesh Status Bar
+                                      Flexible(
+                                        child: MeshStatusBar(
+                                          // Note: Mesh status and peer count should be obtained from a provider
+                                          // when mesh connection state management is implemented
+                                          status: MeshStatus.connected,
+                                          peerCount: 0,
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                );
+                              },
                             ),
                             centerTitle: false,
                             titlePadding: EdgeInsets.only(
@@ -368,25 +397,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   data: (chats) {
                     if (chats.isEmpty) {
                       return SliverFillRemaining(
-                        child: Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.chat_bubble_outline,
-                                size: 64.sp,
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
-                              SizedBox(height: 16.h),
-                              Text(
-                                l10n.noChats,
-                                style: theme.textTheme.titleMedium?.copyWith(
-                                      fontSize: 18.sp,
-                                      color: theme.colorScheme.onSurfaceVariant,
-                                    ),
-                              ),
-                            ],
-                          ),
+                        child: EmptyState(
+                          icon: Icons.chat_bubble_outline,
+                          title: l10n.noChats,
+                          subtitle: 'ابدأ محادثة آمنة ومشفرة مع أصدقائك',
+                          actionLabel: l10n.addFriend,
+                          onAction: () => context.push(AppRoutes.addFriend),
                         ),
                       );
                     }
@@ -416,30 +432,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     // Log the error for debugging
                     LogService.error('CHAT REPOSITORY ERROR: $error', error);
                     
-                    // Check if it's a critical error or just "no data"
-                    // If the repository returns empty list, we should show "No Chats" not "Error"
-                    // Since we fixed the repository to return [] instead of throwing, this should rarely happen
-                    // Show "No Chats" instead of "Error" for better UX
+                    // Show Empty State instead of Error for better UX
                     return SliverFillRemaining(
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.chat_bubble_outline,
-                              size: 64.sp,
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                            SizedBox(height: 16.h),
-                            Text(
-                              l10n.noChats,
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                    fontSize: 18.sp,
-                                    color: theme.colorScheme.onSurfaceVariant,
-                                  ),
-                            ),
-                          ],
-                        ),
+                      child: EmptyState(
+                        icon: Icons.chat_bubble_outline,
+                        title: l10n.noChats,
+                        subtitle: 'ابدأ محادثة آمنة ومشفرة مع أصدقائك',
+                        actionLabel: l10n.addFriend,
+                        onAction: () => context.push(AppRoutes.addFriend),
                       ),
                     );
                   },

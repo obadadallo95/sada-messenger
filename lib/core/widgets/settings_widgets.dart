@@ -113,6 +113,7 @@ class SettingsTile extends StatelessWidget {
         style: theme.textTheme.titleMedium?.copyWith(
           fontSize: 16.sp,
           fontWeight: FontWeight.w600,
+          color: const Color(0xFFFFFFFF), // AppColors.textPrimary
         ),
       ),
       subtitle: subtitle != null
@@ -120,7 +121,7 @@ class SettingsTile extends StatelessWidget {
               subtitle!,
               style: theme.textTheme.bodySmall?.copyWith(
                 fontSize: 13.sp,
-                color: theme.colorScheme.onSurfaceVariant,
+                color: const Color(0xFF94A3B8), // AppColors.textSecondary
               ),
             )
           : null,
@@ -129,7 +130,7 @@ class SettingsTile extends StatelessWidget {
               ? Icon(
                   Icons.chevron_right,
                   size: 20.sp,
-                  color: theme.colorScheme.onSurfaceVariant,
+                  color: const Color(0xFF94A3B8), // AppColors.textSecondary
                 )
               : null),
       onTap: onTap,
@@ -191,6 +192,7 @@ class SettingsSwitchTile extends StatelessWidget {
         style: theme.textTheme.titleMedium?.copyWith(
           fontSize: 16.sp,
           fontWeight: FontWeight.w600,
+          color: const Color(0xFFFFFFFF), // AppColors.textPrimary
         ),
       ),
       subtitle: subtitle != null
@@ -198,7 +200,7 @@ class SettingsSwitchTile extends StatelessWidget {
               subtitle!,
               style: theme.textTheme.bodySmall?.copyWith(
                 fontSize: 13.sp,
-                color: theme.colorScheme.onSurfaceVariant,
+                color: const Color(0xFF94A3B8), // AppColors.textSecondary
               ),
             )
           : null,

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:sada/l10n/generated/app_localizations.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/theme_provider.dart';
@@ -22,63 +21,50 @@ class App extends ConsumerStatefulWidget {
 
 class _AppState extends ConsumerState<App> {
   @override
-  void initState() {
-    super.initState();
-    _initializeServices();
-  }
-
-  /// تهيئة الخدمات الأساسية
-  Future<void> _initializeServices() async {
-    // تهيئة خدمة الإشعارات
-    final notificationService = NotificationService();
-    final initialized = await notificationService.initialize();
-    
-    if (initialized) {
-      // طلب الصلاحيات
-      await notificationService.requestPermissions();
-      
-      LogService.info('تم تهيئة خدمة الإشعارات');
-    } else {
-      LogService.warning('فشل تهيئة خدمة الإشعارات');
-    }
-
-    // تهيئة خدمات التشفير (يتم تأجيلها حتى يكون ref متاحاً)
-    // سيتم تهيئتها في build أو postFrameCallback
-  }
-
-  @override
   Widget build(BuildContext context) {
     final router = ref.watch(appRouterProvider);
     final theme = ref.watch(themeProvider);
     final themeModeAsync = ref.watch(themeNotifierProvider);
     final localeAsync = ref.watch(localeNotifierProvider);
 
-    // ربط GoRouter بخدمة الإشعارات وتهيئة خدمات التشفير
+    // تهيئة الخدمات بعد تهيئة ScreenUtil
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+
+      // تهيئة خدمة الإشعارات
       final notificationService = NotificationService();
+      final initialized = await notificationService.initialize();
+
+      if (initialized) {
+        await notificationService.requestPermissions();
+        LogService.info('تم تهيئة خدمة الإشعارات');
+      } else {
+        LogService.warning('فشل تهيئة خدمة الإشعارات');
+      }
+
       notificationService.setRouter(router);
-      
-      // تهيئة خدمات التشفير (بعد أن يكون ref متاحاً)
+
+      // تهيئة خدمات التشفير
       try {
         final keyManager = ref.read(keyManagerProvider);
         await keyManager.initialize();
-        
+
         final encryptionService = ref.read(encryptionServiceProvider);
         await encryptionService.initialize();
-        
+
         LogService.info('تم تهيئة خدمات التشفير');
       } catch (e) {
         LogService.error('خطأ في تهيئة خدمات التشفير', e);
       }
-      
-      // تهيئة MeshConnectionManager للاستماع إلى الاتصالات الجديدة
+
+      // تهيئة MeshConnectionManager
       try {
         ref.read(meshConnectionManagerProvider);
         LogService.info('تم تهيئة MeshConnectionManager');
       } catch (e) {
         LogService.error('خطأ في تهيئة MeshConnectionManager', e);
       }
-      
+
       // تهيئة Transport & Discovery Layer
       try {
         final meshService = ref.read(meshServiceProvider);
@@ -87,62 +73,48 @@ class _AppState extends ConsumerState<App> {
       } catch (e) {
         LogService.error('خطأ في تهيئة Transport & Discovery Layer', e);
       }
+
+      LogService.info('تم تهيئة التطبيق');
     });
 
-    LogService.info('تم تهيئة التطبيق');
+    return themeModeAsync.when(
+      data: (themeMode) {
+        return localeAsync.when(
+          data: (locale) {
+            return MaterialApp.router(
+              title: 'Sada',
+              debugShowCheckedModeBanner: false,
 
-    return ScreenUtilInit(
-      designSize: const Size(375, 812), // iPhone X design size
-      minTextAdapt: true,
-      splitScreenMode: true,
-      builder: (context, child) {
-        return themeModeAsync.when(
-          data: (themeMode) {
-            return localeAsync.when(
-              data: (locale) {
-                return MaterialApp.router(
-                  title: 'Sada',
-                  debugShowCheckedModeBanner: false,
-                  
-                  // الثيم
-                  theme: theme,
-                  darkTheme: theme,
-                  themeMode: ref.read(themeNotifierProvider.notifier).getThemeMode(),
-                  
-                  // الترجمة
-                  localizationsDelegates: AppLocalizations.localizationsDelegates,
-                  supportedLocales: AppLocalizations.supportedLocales,
-                  locale: locale,
-                  
-                  // التوجيه
-                  routerConfig: router,
-                );
-              },
-              loading: () => MaterialApp(
-                home: Scaffold(
-                  body: Center(child: CircularProgressIndicator()),
-                ),
-              ),
-              error: (_, _) => MaterialApp(
-                home: Scaffold(
-                  body: Center(child: Text('خطأ في تحميل اللغة')),
-                ),
-              ),
+              // الثيم
+              theme: theme,
+              darkTheme: theme,
+              themeMode: ref
+                  .read(themeNotifierProvider.notifier)
+                  .getThemeMode(),
+
+              // الترجمة
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              locale: locale,
+
+              // التوجيه
+              routerConfig: router,
             );
           },
           loading: () => MaterialApp(
-            home: Scaffold(
-              body: Center(child: CircularProgressIndicator()),
-            ),
+            home: Scaffold(body: Center(child: CircularProgressIndicator())),
           ),
           error: (_, _) => MaterialApp(
-            home: Scaffold(
-              body: Center(child: Text('خطأ في تحميل الثيم')),
-            ),
+            home: Scaffold(body: Center(child: Text('خطأ في تحميل اللغة'))),
           ),
         );
       },
+      loading: () => MaterialApp(
+        home: Scaffold(body: Center(child: CircularProgressIndicator())),
+      ),
+      error: (_, _) => MaterialApp(
+        home: Scaffold(body: Center(child: Text('خطأ في تحميل الثيم'))),
+      ),
     );
   }
 }
-

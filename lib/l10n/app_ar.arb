@@ -783,94 +783,13 @@
   "@myCode": {
     "description": "Tab label"
   },
-  "scan": "Scan",
+  "scan": "مسح",
   "@scan": {
     "description": "Tab label"
   },
-  "userId": "User ID",
+  "userId": "معرف المستخدم",
   "@userId": {
     "description": "Label"
-  },
-  "createCommunity": "Create Community",
-  "@createCommunity": {
-    "description": "Screen title"
-  },
-  "groupName": "Group Name",
-  "@groupName": {
-    "description": "Input label"
-  },
-  "groupNameHint": "Enter group name",
-  "@groupNameHint": {
-    "description": "Input hint"
-  },
-  "groupNameRequired": "Group name is required",
-  "@groupNameRequired": {
-    "description": "Validation error"
-  },
-  "groupNameTooShort": "Group name is too short",
-  "@groupNameTooShort": {
-    "description": "Validation error"
-  },
-  "groupDescription": "Description",
-  "@groupDescription": {
-    "description": "Input label"
-  },
-  "groupDescriptionHint": "Enter group description",
-  "@groupDescriptionHint": {
-    "description": "Input hint"
-  },
-  "groupDescriptionRequired": "Description is required",
-  "@groupDescriptionRequired": {
-    "description": "Validation error"
-  },
-  "publicGroup": "Public Group",
-  "@publicGroup": {
-    "description": "Switch label"
-  },
-  "publicGroupDescription": "Visible to everyone nearby",
-  "@publicGroupDescription": {
-    "description": "Switch subtitle"
-  },
-  "privateGroupDescription": "Requires password to join",
-  "@privateGroupDescription": {
-    "description": "Switch subtitle"
-  },
-  "groupPassword": "Password",
-  "@groupPassword": {
-    "description": "Input label"
-  },
-  "groupPasswordHint": "Enter password",
-  "@groupPasswordHint": {
-    "description": "Input hint"
-  },
-  "groupPasswordRequired": "Password is required",
-  "@groupPasswordRequired": {
-    "description": "Validation error"
-  },
-  "launchGroup": "Launch Group",
-  "@launchGroup": {
-    "description": "Button text"
-  },
-  "nearbyCommunities": "Nearby Communities",
-  "@nearbyCommunities": {
-    "description": "Section title"
-  },
-  "myGroups": "My Groups",
-  "@myGroups": {
-    "description": "Section title"
-  },
-  "scanning": "Scanning...",
-  "@scanning": {
-    "description": "Status text"
-  },
-  "peersNearby": "{count} peers nearby",
-  "@peersNearby": {
-    "description": "Peer count",
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
   },
   "shareQrCodeDescription": "شارك هذا الرمز لإضافتك كجهة اتصال",
   "@shareQrCodeDescription": {
@@ -879,6 +798,231 @@
   "qrCodeSecurityInfo": "يحتوي هذا الرمز على مفتاحك العام للمراسلة الآمنة.",
   "@qrCodeSecurityInfo": {
     "description": "Security information about QR code"
+  },
+  "navigation_home": "الرئيسية",
+  "@navigation_home": {
+    "description": "Bottom navigation - Home"
+  },
+  "navigation_chat": "الدردشة",
+  "@navigation_chat": {
+    "description": "Bottom navigation - Chat"
+  },
+  "navigation_communities": "المجتمعات",
+  "@navigation_communities": {
+    "description": "Bottom navigation - Communities"
+  },
+  "navigation_add": "إضافة",
+  "@navigation_add": {
+    "description": "Bottom navigation - Add"
+  },
+  "navigation_settings": "الإعدادات",
+  "@navigation_settings": {
+    "description": "Bottom navigation - Settings"
+  },
+  "home_title": "الشبكة المحلية",
+  "@home_title": {
+    "description": "Home screen title"
+  },
+  "home_status_connected": "متصل",
+  "@home_status_connected": {
+    "description": "Mesh status - Connected"
+  },
+  "home_status_connecting": "جاري الاتصال...",
+  "@home_status_connecting": {
+    "description": "Mesh status - Connecting"
+  },
+  "home_status_offline": "غير متصل",
+  "@home_status_offline": {
+    "description": "Mesh status - Offline"
+  },
+  "home_peers_count": "{count} جهاز متصل",
+  "@home_peers_count": {
+    "description": "Number of connected peers",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "home_empty_title": "شبكتك جاهزة",
+  "@home_empty_title": {
+    "description": "Home empty state title"
+  },
+  "home_empty_subtitle": "انتظر اتصال الأجهزة المجاورة أو ابدأ محادثة جديدة",
+  "@home_empty_subtitle": {
+    "description": "Home empty state subtitle"
+  },
+  "home_empty_action": "بدء محادثة",
+  "@home_empty_action": {
+    "description": "Home empty state CTA button"
+  },
+  "chat_empty_title": "لا توجد محادثات",
+  "@chat_empty_title": {
+    "description": "Chat empty state title"
+  },
+  "chat_empty_subtitle": "ابدأ محادثة آمنة ومشفرة مع أصدقائك",
+  "@chat_empty_subtitle": {
+    "description": "Chat empty state subtitle"
+  },
+  "chat_empty_action": "إضافة صديق",
+  "@chat_empty_action": {
+    "description": "Chat empty state CTA button"
+  },
+  "communities_empty_title": "لا توجد مجتمعات",
+  "@communities_empty_title": {
+    "description": "Communities empty state title"
+  },
+  "communities_empty_subtitle": "اكتشف مجموعات في منطقتك أو أنشئ مجتمعاً جديداً",
+  "@communities_empty_subtitle": {
+    "description": "Communities empty state subtitle"
+  },
+  "communities_empty_action": "إنشاء مجتمع",
+  "@communities_empty_action": {
+    "description": "Communities empty state CTA button"
+  },
+  "communities_create_button": "مجتمع جديد",
+  "@communities_create_button": {
+    "description": "Create community button"
+  },
+  "qr_title": "رمز المشاركة",
+  "@qr_title": {
+    "description": "QR code screen title"
+  },
+  "qr_my_code": "رمزي الشخصي",
+  "@qr_my_code": {
+    "description": "My QR code label"
+  },
+  "qr_scan": "مسح رمز",
+  "@qr_scan": {
+    "description": "Scan QR code label"
+  },
+  "qr_share_title": "مشاركة عبر",
+  "@qr_share_title": {
+    "description": "Share QR code section title"
+  },
+  "qr_copy_id": "نسخ المعرف",
+  "@qr_copy_id": {
+    "description": "Copy user ID button"
+  },
+  "qr_copied": "تم النسخ",
+  "@qr_copied": {
+    "description": "Copied to clipboard message"
+  },
+  "qr_hint": "امسح الرمز لإضافتي كصديق",
+  "@qr_hint": {
+    "description": "QR code hint text"
+  },
+  "qr_user_id_label": "المعرف:",
+  "@qr_user_id_label": {
+    "description": "User ID label"
+  },
+  "settings_profile": "الملف الشخصي",
+  "@settings_profile": {
+    "description": "Settings - Profile section"
+  },
+  "settings_appearance": "المظهر",
+  "@settings_appearance": {
+    "description": "Settings - Appearance section"
+  },
+  "settings_theme_light": "فاتح",
+  "@settings_theme_light": {
+    "description": "Light theme option"
+  },
+  "settings_theme_dark": "داكن",
+  "@settings_theme_dark": {
+    "description": "Dark theme option"
+  },
+  "settings_theme_system": "تلقائي",
+  "@settings_theme_system": {
+    "description": "System theme option"
+  },
+  "settings_language": "اللغة",
+  "@settings_language": {
+    "description": "Settings - Language section"
+  },
+  "settings_language_ar": "العربية",
+  "@settings_language_ar": {
+    "description": "Arabic language option"
+  },
+  "settings_language_en": "English",
+  "@settings_language_en": {
+    "description": "English language option"
+  },
+  "settings_security": "الأمان",
+  "@settings_security": {
+    "description": "Settings - Security section"
+  },
+  "settings_biometric": "القفل البيومتري",
+  "@settings_biometric": {
+    "description": "Biometric lock setting"
+  },
+  "settings_network": "الشبكة",
+  "@settings_network": {
+    "description": "Settings - Network section"
+  },
+  "settings_power_mode": "وضع الطاقة",
+  "@settings_power_mode": {
+    "description": "Power mode setting"
+  },
+  "settings_power_high": "أداء عالي",
+  "@settings_power_high": {
+    "description": "High performance power mode"
+  },
+  "settings_power_balanced": "متوازن",
+  "@settings_power_balanced": {
+    "description": "Balanced power mode"
+  },
+  "settings_power_low": "موفر للطاقة",
+  "@settings_power_low": {
+    "description": "Low power mode"
+  },
+  "common_cancel": "إلغاء",
+  "@common_cancel": {
+    "description": "Cancel button"
+  },
+  "common_save": "حفظ",
+  "@common_save": {
+    "description": "Save button"
+  },
+  "common_delete": "حذف",
+  "@common_delete": {
+    "description": "Delete button"
+  },
+  "common_edit": "تعديل",
+  "@common_edit": {
+    "description": "Edit button"
+  },
+  "common_done": "تم",
+  "@common_done": {
+    "description": "Done button"
+  },
+  "common_close": "إغلاق",
+  "@common_close": {
+    "description": "Close button"
+  },
+  "common_loading": "جاري التحميل...",
+  "@common_loading": {
+    "description": "Loading state text"
+  },
+  "common_error": "حدث خطأ",
+  "@common_error": {
+    "description": "Error message"
+  },
+  "common_retry": "إعادة المحاولة",
+  "@common_retry": {
+    "description": "Retry button"
+  },
+  "common_search": "بحث",
+  "@common_search": {
+    "description": "Search placeholder"
+  },
+  "common_send": "إرسال",
+  "@common_send": {
+    "description": "Send button"
+  },
+  "termsOfService": "شروط الاستخدام",
+  "@termsOfService": {
+    "description": "Terms of Service title"
   }
 }
 

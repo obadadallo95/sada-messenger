@@ -1,19 +1,11 @@
-import 'dart:typed_data';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:drift/drift.dart' hide isNotNull;
-import 'package:drift/native.dart';
-import 'package:sodium_libs/sodium_libs.dart' hide SodiumInit;
 import 'package:sodium_libs/sodium_libs.dart' as sodium_libs show SodiumInit;
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-
-// Import app code
-import 'package:sada/core/database/tables/contacts_table.dart';
-import 'package:sada/core/database/tables/chats_table.dart';
-import 'package:sada/core/database/tables/messages_table.dart';
 import 'package:sada/core/security/key_manager.dart';
 import 'package:sada/core/security/encryption_service.dart';
 import 'package:sada/core/services/auth_service.dart';
+import 'package:sada/core/utils/log_service.dart';
 import 'test_helpers.dart';
 
 /// ============================================
@@ -32,9 +24,9 @@ void main() {
       try {
         // محاولة تهيئة sodium_libs مباشرة
         await sodium_libs.SodiumInit.init();
-        print('✅ تم تهيئة sodium_libs بنجاح');
+        LogService.info('✅ تم تهيئة sodium_libs بنجاح');
       } catch (e) {
-        print('⚠️ تحذير: فشل تهيئة sodium_libs مسبقاً: $e');
+        LogService.info('⚠️ تحذير: فشل تهيئة sodium_libs مسبقاً: $e');
         // نتابع - قد يعمل في KeyManager.initialize()
       }
       
@@ -58,9 +50,9 @@ void main() {
       expect(keyPair.publicKey.length, greaterThan(0));
       expect(keyPair.privateKey.length, greaterThan(0));
       
-      print('✅ KeyPair generated successfully');
-      print('   Public Key length: ${keyPair.publicKey.length} bytes');
-      print('   Private Key length: ${keyPair.privateKey.length} bytes');
+      LogService.info('✅ KeyPair generated successfully');
+      LogService.info('   Public Key length: ${keyPair.publicKey.length} bytes');
+      LogService.info('   Private Key length: ${keyPair.privateKey.length} bytes');
     }, skip: 'sodium_libs يحتاج تهيئة خاصة - SodiumPlatform._instance غير متاح في بيئة الاختبار');
 
     test('2. Encrypt "Hello Sada" - Output is NOT plaintext', () async {
@@ -80,10 +72,10 @@ void main() {
       expect(encrypted, isNot(equals(plainText)));
       expect(encrypted.length, greaterThan(plainText.length));
       
-      print('✅ Message encrypted successfully');
-      print('   Plaintext: $plainText');
-      print('   Encrypted: ${encrypted.substring(0, 50)}...');
-      print('   Encrypted length: ${encrypted.length} characters');
+      LogService.info('✅ Message encrypted successfully');
+      LogService.info('   Plaintext: $plainText');
+      LogService.info('   Encrypted: ${encrypted.substring(0, 50)}...');
+      LogService.info('   Encrypted length: ${encrypted.length} characters');
     }, skip: 'sodium_libs يحتاج تهيئة خاصة - SodiumPlatform._instance غير متاح في بيئة الاختبار');
 
     test('3. Decrypt back - Result IS "Hello Sada"', () async {
@@ -104,9 +96,9 @@ void main() {
       // التحقق من أن النص المفكوك هو نفس النص الأصلي
       expect(decrypted, equals(plainText));
       
-      print('✅ Message decrypted successfully');
-      print('   Decrypted: $decrypted');
-      print('   Match: ${decrypted == plainText}');
+      LogService.info('✅ Message decrypted successfully');
+      LogService.info('   Decrypted: $decrypted');
+      LogService.info('   Match: ${decrypted == plainText}');
     }, skip: 'sodium_libs يحتاج تهيئة خاصة - SodiumPlatform._instance غير متاح في بيئة الاختبار');
   });
 
@@ -130,8 +122,8 @@ void main() {
       final contacts = await database.getAllContacts();
       expect(contacts, isEmpty);
       
-      print('✅ Database initialized (empty)');
-      print('   Contacts count: ${contacts.length}');
+      LogService.info('✅ Database initialized (empty)');
+      LogService.info('   Contacts count: ${contacts.length}');
     });
 
     test('2. Create User "Obada" and Insert Message', () async {
@@ -173,9 +165,9 @@ void main() {
       
       await database.insertMessage(message);
       
-      print('✅ User and message created');
-      print('   User: $userName (ID: $userId)');
-      print('   Message: $messageContent');
+      LogService.info('✅ User and message created');
+      LogService.info('   User: $userName (ID: $userId)');
+      LogService.info('   Message: $messageContent');
     });
 
     test('3. Query database - Message exists and count is 1', () async {
@@ -219,9 +211,9 @@ void main() {
       expect(messages.length, equals(1));
       expect(messages.first.content, equals(messageContent));
       
-      print('✅ Message query successful');
-      print('   Messages count: ${messages.length}');
-      print('   Message content: ${messages.first.content}');
+      LogService.info('✅ Message query successful');
+      LogService.info('   Messages count: ${messages.length}');
+      LogService.info('   Message content: ${messages.first.content}');
     });
   });
 
@@ -230,11 +222,11 @@ void main() {
   /// ============================================
   group('Scenario C: The Gatekeeper (Auth Logic)', () {
     late AuthService authService;
-    final Map<String, String> _mockStorage = {}; // محاكاة للتخزين الآمن
+    final Map<String, String> mockStorage = {}; // محاكاة للتخزين الآمن
 
     setUp(() async {
       // تنظيف التخزين الوهمي قبل كل اختبار
-      _mockStorage.clear();
+      mockStorage.clear();
       
       // إعداد MethodChannel mock لـ FlutterSecureStorage
       const MethodChannel channel = MethodChannel('plugins.it_nomads.com/flutter_secure_storage');
@@ -245,25 +237,25 @@ void main() {
           switch (methodCall.method) {
             case 'read':
               final key = methodCall.arguments['key'] as String;
-              final value = _mockStorage[key];
+              final value = mockStorage[key];
               return value; // null إذا لم يوجد
               
             case 'write':
               final key = methodCall.arguments['key'] as String;
               final value = methodCall.arguments['value'] as String;
-              _mockStorage[key] = value;
+              mockStorage[key] = value;
               return null;
               
             case 'delete':
               final key = methodCall.arguments['key'] as String;
-              _mockStorage.remove(key);
+              mockStorage.remove(key);
               return null;
               
             case 'readAll':
-              return _mockStorage;
+              return mockStorage;
               
             case 'deleteAll':
-              _mockStorage.clear();
+              mockStorage.clear();
               return null;
               
             default:
@@ -284,7 +276,7 @@ void main() {
 
     tearDown(() async {
       // تنظيف التخزين الوهمي بعد كل اختبار
-      _mockStorage.clear();
+      mockStorage.clear();
       
       // إزالة MethodChannel handler
       const MethodChannel channel = MethodChannel('plugins.it_nomads.com/flutter_secure_storage');
@@ -302,9 +294,9 @@ void main() {
       final authResult = await authService.verifyPin(masterPin);
       expect(authResult, equals(AuthType.master));
       
-      print('✅ Master PIN verification successful');
-      print('   PIN: $masterPin');
-      print('   Auth Type: ${authResult.name}');
+      LogService.info('✅ Master PIN verification successful');
+      LogService.info('   PIN: $masterPin');
+      LogService.info('   Auth Type: ${authResult.name}');
     });
 
     test('2. Set Duress PIN and verify DURESS PIN returns AuthType.duress', () async {
@@ -319,9 +311,9 @@ void main() {
       final authResult = await authService.verifyPin(duressPin);
       expect(authResult, equals(AuthType.duress));
       
-      print('✅ Duress PIN verification successful');
-      print('   Duress PIN: $duressPin');
-      print('   Auth Type: ${authResult.name}');
+      LogService.info('✅ Duress PIN verification successful');
+      LogService.info('   Duress PIN: $duressPin');
+      LogService.info('   Auth Type: ${authResult.name}');
     });
 
     test('3. Verify WRONG PIN returns AuthType.failure', () async {
@@ -335,9 +327,9 @@ void main() {
       final authResult = await authService.verifyPin(wrongPin);
       expect(authResult, equals(AuthType.failure));
       
-      print('✅ Wrong PIN correctly rejected');
-      print('   Wrong PIN: $wrongPin');
-      print('   Auth Type: ${authResult.name}');
+      LogService.info('✅ Wrong PIN correctly rejected');
+      LogService.info('   Wrong PIN: $wrongPin');
+      LogService.info('   Auth Type: ${authResult.name}');
     });
 
     test('4. Verify Master PIN still works after setting Duress PIN', () async {
@@ -356,9 +348,9 @@ void main() {
       final duressAuthResult = await authService.verifyPin(duressPin);
       expect(duressAuthResult, equals(AuthType.duress));
       
-      print('✅ Both PINs work correctly');
-      print('   Master PIN: $masterPin → ${masterAuthResult.name}');
-      print('   Duress PIN: $duressPin → ${duressAuthResult.name}');
+      LogService.info('✅ Both PINs work correctly');
+      LogService.info('   Master PIN: $masterPin → ${masterAuthResult.name}');
+      LogService.info('   Duress PIN: $duressPin → ${duressAuthResult.name}');
     });
   });
 }

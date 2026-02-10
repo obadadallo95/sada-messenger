@@ -16,6 +16,7 @@ import '../../../../core/services/auth_service.dart';
 import '../../../../features/chat/domain/models/chat_model.dart';
 import '../../../../core/network/mesh_service.dart';
 import '../../../../core/network/models/mesh_message.dart';
+import '../../../../core/security/security_providers.dart';
 
 /// شاشة مسح QR Code لإضافة جهة اتصال
 class ScanQrScreen extends ConsumerStatefulWidget {
@@ -151,16 +152,26 @@ class _ScanQrScreenState extends ConsumerState<ScanQrScreen> {
           // ولكن MeshService.sendMeshMessage تتوقع encryptedContent. 
           // للتبسيط الآن سنرسل JSON كما هو. في الإنتاج يجب تشفيرها بالمفتاح العام للطرف الآخر (الذي حصلنا عليه للتو!)
           
-          final profileJson = jsonEncode(myProfile);
+          // تشفير البيانات باستخدام publicKey للطرف الآخر
+          String encryptedProfile;
+          try {
+            final encryptionService = ref.read(encryptionServiceProvider);
+            final remotePublicKeyBytes = base64Decode(publicKey);
+            final sharedKey = await encryptionService.calculateSharedSecret(remotePublicKeyBytes);
+            final profileJson = jsonEncode(myProfile);
+            encryptedProfile = encryptionService.encryptMessage(profileJson, sharedKey);
+            LogService.info('✅ تم تشفير بياناتي بنجاح');
+          } catch (e) {
+            LogService.error('⚠️ فشل تشفير البيانات - إرسال غير مشفر', e);
+            // Fallback: إرسال غير مشفر (للتطوير فقط)
+            encryptedProfile = jsonEncode(myProfile);
+          }
           
           LogService.info('📤 جاري إرسال بياناتي للطرف الآخر (Mutual Exchange)...');
           
-          // TODO: تشفير البيانات باستخدام publicKey للطرف الآخر (contactId)
-          // حالياً نرسلها كما هي
-          
           await meshService.sendMeshMessage(
             contactId, 
-            profileJson, 
+            encryptedProfile, 
             type: MeshMessage.typeContactExchange,
           );
           

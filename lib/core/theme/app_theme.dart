@@ -1,21 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'app_colors.dart';
+import 'app_typography.dart';
+import 'app_dimensions.dart';
 
 /// إعدادات الثيم الرئيسية للتطبيق
-/// Cyber-Stealth & Neo-Glass Aesthetic (2026 Design Trends)
+/// Cyber-Stealth Modern Design System
 /// High-tech, Secure, Immersive, Dark-Mode First
 class AppTheme {
   AppTheme._();
-
-  // Cyber-Stealth Color Palette
-  static const Color _deepMidnightBlue = Color(0xFF050A14);
-  static const Color _semiTransparentDarkBlue = Color(0xFF101A26);
-  static const Color _electricCyan = Color(0xFF00E5FF);
-  // static const Color _neonPurple = Color(0xFFD500F9);
-  static const Color _fluorescentRed = Color(0xFFFF1744);
-
-  // Font
-  static final TextStyle _baseTextStyle = GoogleFonts.poppins();
 
   /// إنشاء الثيم الداكن (Cyber-Stealth)
   /// Dark-Mode First Design
@@ -25,47 +17,45 @@ class AppTheme {
     
     // Color Scheme
     colorScheme: ColorScheme.dark(
-      primary: _electricCyan,
-      secondary: _electricCyan, // Unifying accent color
-      error: _fluorescentRed,
-      surface: _semiTransparentDarkBlue.withValues(alpha: 0.6),
-      onSurface: Colors.white,
-      onPrimary: Colors.black,
-      onSecondary: Colors.black,
-      onError: Colors.white,
-      surfaceContainerHighest: _semiTransparentDarkBlue.withValues(alpha: 0.8),
-      surfaceContainerHigh: _semiTransparentDarkBlue.withValues(alpha: 0.7),
-      surfaceContainer: _semiTransparentDarkBlue.withValues(alpha: 0.6),
-      surfaceContainerLow: _semiTransparentDarkBlue.withValues(alpha: 0.5),
-      surfaceContainerLowest: _semiTransparentDarkBlue.withValues(alpha: 0.4),
+      primary: AppColors.primary,
+      secondary: AppColors.secondary,
+      error: AppColors.error,
+      surface: AppColors.surface,
+      onSurface: AppColors.textPrimary,
+      onPrimary: AppColors.onPrimary,
+      onSecondary: AppColors.textPrimary,
+      onError: AppColors.textPrimary,
+      surfaceContainerHighest: AppColors.surfaceVariant,
+      surfaceContainerHigh: AppColors.surfaceVariant,
+      surfaceContainer: AppColors.surface,
+      surfaceContainerLow: AppColors.surface,
+      surfaceContainerLowest: AppColors.background,
     ),
 
     // Scaffold Background
-    scaffoldBackgroundColor: _deepMidnightBlue,
+    scaffoldBackgroundColor: AppColors.background,
 
     // AppBar Theme (Transparent with blur)
     appBarTheme: AppBarTheme(
       backgroundColor: Colors.transparent,
       elevation: 0,
       scrolledUnderElevation: 0,
-      iconTheme: const IconThemeData(color: Colors.white),
-      titleTextStyle: _baseTextStyle.copyWith(
-        fontSize: 24,
-        fontWeight: FontWeight.bold,
-        color: Colors.white,
-        letterSpacing: 0.5,
+      iconTheme: const IconThemeData(
+        color: AppColors.textPrimary,
+        size: AppDimensions.iconSizeMd,
       ),
+      titleTextStyle: AppTypography.titleLarge(),
     ),
 
     // Card Theme (Glassmorphism)
     cardTheme: CardThemeData(
-      color: _semiTransparentDarkBlue.withValues(alpha: 0.3),
+      color: AppColors.surface.withValues(alpha: 0.7),
       elevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
         side: BorderSide(
-          color: Colors.white.withValues(alpha: 0.1),
-          width: 1,
+          color: AppColors.primary.withValues(alpha: 0.2),
+          width: AppDimensions.borderWidth,
         ),
       ),
     ),
@@ -73,96 +63,109 @@ class AppTheme {
     // Elevated Button Theme
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        backgroundColor: _electricCyan,
-        foregroundColor: Colors.black,
+        backgroundColor: AppColors.primary,
+        foregroundColor: AppColors.onPrimary,
         elevation: 0,
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        minimumSize: const Size(0, AppDimensions.buttonHeight),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppDimensions.paddingLg,
+          vertical: AppDimensions.paddingMd,
+        ),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(AppDimensions.radiusXl),
         ),
-        textStyle: _baseTextStyle.copyWith(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 0.5,
-        ),
+        textStyle: AppTypography.buttonLarge(),
       ),
     ),
 
     // Outlined Button Theme
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
-        foregroundColor: _electricCyan,
-        side: const BorderSide(color: _electricCyan),
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        foregroundColor: AppColors.primary,
+        side: const BorderSide(color: AppColors.primary),
+        minimumSize: const Size(0, AppDimensions.buttonHeight),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppDimensions.paddingLg,
+          vertical: AppDimensions.paddingMd,
+        ),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(AppDimensions.radiusXl),
         ),
-        textStyle: _baseTextStyle.copyWith(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-        ),
+        textStyle: AppTypography.buttonLarge(),
       ),
     ),
 
     // Text Button Theme
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
-        foregroundColor: _electricCyan,
-        textStyle: _baseTextStyle.copyWith(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 0.5,
-        ),
+        foregroundColor: AppColors.primary,
+        textStyle: AppTypography.buttonLarge(),
       ),
     ),
 
     // Input Decoration Theme
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: _semiTransparentDarkBlue.withValues(alpha: 0.3),
+      fillColor: AppColors.surface.withValues(alpha: 0.3),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(AppDimensions.radiusXl),
         borderSide: BorderSide(
-          color: Colors.white.withValues(alpha: 0.1),
-          width: 1,
+          color: AppColors.border,
+          width: AppDimensions.borderWidth,
         ),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(AppDimensions.radiusXl),
         borderSide: BorderSide(
-          color: Colors.white.withValues(alpha: 0.1),
-          width: 1,
+          color: AppColors.border,
+          width: AppDimensions.borderWidth,
         ),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(AppDimensions.radiusXl),
         borderSide: const BorderSide(
-          color: _electricCyan,
-          width: 2,
+          color: AppColors.primary,
+          width: AppDimensions.borderWidthThick,
         ),
       ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: AppDimensions.paddingMd,
+        vertical: AppDimensions.paddingMd,
+      ),
     ),
     
     // Icon Theme
     iconTheme: const IconThemeData(
-      color: Colors.white,
-      size: 24,
+      color: AppColors.textPrimary,
+      size: AppDimensions.iconSizeMd,
     ),
 
     // Divider Theme
     dividerTheme: DividerThemeData(
-      color: Colors.white.withValues(alpha: 0.1),
-      thickness: 1,
-      space: 1,
+      color: AppColors.divider,
+      thickness: AppDimensions.dividerThickness,
+      space: AppDimensions.spacingSm,
     ),
 
-    // Text Theme (Overridden with GoogleFonts.poppins)
-    textTheme: GoogleFonts.poppinsTextTheme(
-      ThemeData.dark().textTheme,
-    ).apply(
-      bodyColor: Colors.white,
-      displayColor: Colors.white,
+    // Text Theme
+    // Note: Typography will use locale-aware fonts (Cairo for AR, Inter for EN)
+    // The locale is detected automatically from platform when no context is available
+    textTheme: TextTheme(
+      displayLarge: AppTypography.headlineLarge(),
+      displayMedium: AppTypography.headlineMedium(),
+      displaySmall: AppTypography.headlineSmall(),
+      headlineLarge: AppTypography.headlineLarge(),
+      headlineMedium: AppTypography.headlineMedium(),
+      headlineSmall: AppTypography.headlineSmall(),
+      titleLarge: AppTypography.titleLarge(),
+      titleMedium: AppTypography.titleMedium(),
+      titleSmall: AppTypography.titleSmall(),
+      bodyLarge: AppTypography.bodyLarge(),
+      bodyMedium: AppTypography.bodyMedium(),
+      bodySmall: AppTypography.bodySmall(),
+      labelLarge: AppTypography.labelLarge(),
+      labelMedium: AppTypography.labelMedium(),
+      labelSmall: AppTypography.labelSmall(),
     ),
   );
 
@@ -170,21 +173,33 @@ class AppTheme {
   static ThemeData lightTheme = darkTheme.copyWith(
     brightness: Brightness.light,
     colorScheme: ColorScheme.light(
-      primary: _electricCyan,
-      secondary: _electricCyan,
-      error: _fluorescentRed,
-      surface: Colors.white.withValues(alpha: 0.9),
+      primary: AppColors.primary,
+      secondary: AppColors.secondary,
+      error: AppColors.error,
+      surface: Colors.white,
       onSurface: Colors.black,
-      onPrimary: Colors.white,
+      onPrimary: AppColors.onPrimary,
       onSecondary: Colors.white,
       onError: Colors.white,
     ),
     scaffoldBackgroundColor: Colors.grey.shade50,
-    textTheme: GoogleFonts.poppinsTextTheme(
-      ThemeData.light().textTheme,
-    ).apply(
-      bodyColor: Colors.black,
-      displayColor: Colors.black,
+    textTheme: TextTheme(
+      displayLarge: AppTypography.headlineLarge().copyWith(color: Colors.black),
+      displayMedium: AppTypography.headlineMedium().copyWith(color: Colors.black),
+      displaySmall: AppTypography.headlineSmall().copyWith(color: Colors.black),
+      headlineLarge: AppTypography.headlineLarge().copyWith(color: Colors.black),
+      headlineMedium: AppTypography.headlineMedium().copyWith(color: Colors.black),
+      headlineSmall: AppTypography.headlineSmall().copyWith(color: Colors.black),
+      titleLarge: AppTypography.titleLarge().copyWith(color: Colors.black),
+      titleMedium: AppTypography.titleMedium().copyWith(color: Colors.black),
+      titleSmall: AppTypography.titleSmall().copyWith(color: Colors.black),
+      bodyLarge: AppTypography.bodyLarge().copyWith(color: Colors.black87),
+      bodyMedium: AppTypography.bodyMedium().copyWith(color: Colors.black87),
+      bodySmall: AppTypography.bodySmall().copyWith(color: Colors.black87),
+      labelLarge: AppTypography.labelLarge().copyWith(color: Colors.black),
+      labelMedium: AppTypography.labelMedium().copyWith(color: Colors.black87),
+      labelSmall: AppTypography.labelSmall().copyWith(color: Colors.black54),
     ),
   );
 }
+

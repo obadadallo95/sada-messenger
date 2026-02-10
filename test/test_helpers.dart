@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:sada/core/database/tables/contacts_table.dart';
@@ -13,13 +12,11 @@ class TestDatabase extends _$TestDatabase {
   TestDatabase() : super(_openConnection());
 
   static LazyDatabase _openConnection() {
-    // استخدام in-memory database عبر DatabaseConnection
+    // استخدام in-memory database
     return LazyDatabase(() async {
       // إنشاء اتصال SQLite في الذاكرة
-      final database = await DatabaseConnection.fromExecutor(
-        NativeDatabase.memory(),
-      );
-      return database.executor;
+      // NativeDatabase.memory() يعيد QueryExecutor مباشرة
+      return NativeDatabase.memory();
     });
   }
 

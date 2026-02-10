@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:sada/l10n/generated/app_localizations.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_typography.dart';
 
 class PrivacyScreen extends StatelessWidget {
   const PrivacyScreen({super.key});
@@ -46,7 +48,9 @@ class PrivacyScreen extends StatelessWidget {
             
             Text(
               l10n.zeroKnowledgePromise,
-              style: theme.textTheme.headlineSmall,
+              style: AppTypography.headlineSmall(context).copyWith(
+                color: AppColors.textPrimary,
+              ),
             ).animate().fadeIn(delay: 200.ms),
             
             SizedBox(height: 16.h),
@@ -83,7 +87,9 @@ class PrivacyScreen extends StatelessWidget {
             
             Text(
               l10n.transparency,
-              style: theme.textTheme.headlineSmall,
+              style: AppTypography.headlineSmall(context).copyWith(
+                color: AppColors.textPrimary,
+              ),
             ).animate().fadeIn(delay: 600.ms),
             
             SizedBox(height: 16.h),
@@ -95,12 +101,27 @@ class PrivacyScreen extends StatelessWidget {
                   children: [
                     Text(
                       l10n.transparencyDescription,
-                      style: theme.textTheme.bodyMedium,
+                      style: AppTypography.bodyMedium(context).copyWith(
+                        color: AppColors.textPrimary,
+                      ),
                     ),
                     SizedBox(height: 16.h),
                     OutlinedButton.icon(
-                      onPressed: () {
-                         // TODO: Link to open source repo or detailed doc
+                      onPressed: () async {
+                        final url = Uri.parse('https://github.com/obadadallo95/sada-messenger');
+                        try {
+                          // ignore: deprecated_member_use
+                          await launchUrl(url);
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('فشل فتح الرابط: $url'),
+                                backgroundColor: Theme.of(context).colorScheme.error,
+                              ),
+                            );
+                          }
+                        }
                       },
                       icon: const Icon(Icons.code),
                       label: Text(l10n.viewSourceCode),
@@ -139,14 +160,16 @@ class PrivacyScreen extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      color: theme.colorScheme.secondary,
+                    style: AppTypography.titleMedium(context).copyWith(
+                      color: AppColors.textPrimary,
                     ),
                   ),
                   SizedBox(height: 8.h),
                   Text(
                     description,
-                    style: theme.textTheme.bodyMedium,
+                    style: AppTypography.bodyMedium(context).copyWith(
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 ],
               ),

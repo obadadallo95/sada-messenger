@@ -4,6 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../../../core/router/routes.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_typography.dart';
+import '../../../../core/theme/app_dimensions.dart';
+import '../../../../core/widgets/glass_card.dart';
 import 'package:sada/l10n/generated/app_localizations.dart';
 import '../../../../core/localization/locale_provider.dart';
 import '../../../../core/theme/theme_provider.dart';
@@ -42,109 +46,233 @@ class SettingsScreen extends ConsumerWidget {
               padding: EdgeInsets.fromLTRB(8.w, 8.h, 8.w, 24.h),
               child: Text(
                 l10n.settings,
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontSize: 32.sp,
-                      fontWeight: FontWeight.bold,
-                    ),
+                style: AppTypography.headlineMedium(context),
               ),
             ),
             
             // Avatar Section
             _buildAvatarSection(context, ref),
-            SizedBox(height: 32.h),
+            SizedBox(height: AppDimensions.spacingXl),
 
-            // قسم المظهر
+            // قسم المظهر - GlassCard
             themeModeAsync.when(
-              data: (themeMode) => SettingsSection(
-                title: l10n.appearance,
-                children: [
-                  _buildThemeModeTile(
-                    context,
-                    themeMode,
-                    themeNotifier,
-                    l10n,
-                  ),
-                  _buildLanguageTile(
-                    context,
-                    localeAsync,
-                    localeNotifier,
-                    l10n,
-                  ),
-                ],
-              ),
-              loading: () => SettingsSection(
-                children: [
-                  Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(24.h),
-                      child: CircularProgressIndicator(),
+              data: (themeMode) => GlassCard(
+                margin: EdgeInsets.only(bottom: AppDimensions.spacingLg),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: EdgeInsets.only(bottom: AppDimensions.paddingMd),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: EdgeInsets.all(AppDimensions.paddingSm),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
+                            ),
+                            child: Icon(
+                              Icons.palette_outlined,
+                              color: AppColors.primary,
+                              size: AppDimensions.iconSizeMd,
+                            ),
+                          ),
+                          SizedBox(width: AppDimensions.spacingMd),
+                          Flexible(
+                            child: Text(
+                              l10n.appearance,
+                              style: AppTypography.titleMedium(context),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                    _buildThemeModeTile(
+                      context,
+                      themeMode,
+                      themeNotifier,
+                      l10n,
+                    ),
+                    Divider(height: AppDimensions.spacingLg),
+                    _buildLanguageTile(
+                      context,
+                      localeAsync,
+                      localeNotifier,
+                      l10n,
+                    ),
+                  ],
+                ),
               ),
-              error: (_, _) => SettingsSection(
+              loading: () => GlassCard(
+                child: Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(AppDimensions.paddingXl),
+                    child: CircularProgressIndicator(),
+                  ),
+                ),
+              ),
+              error: (_, _) => GlassCard(
+                child: Padding(
+                  padding: EdgeInsets.all(AppDimensions.paddingMd),
+                  child: Text('خطأ في تحميل الإعدادات'),
+                ),
+              ),
+            ),
+
+            // قسم الأمان - GlassCard
+            GlassCard(
+              margin: EdgeInsets.only(bottom: AppDimensions.spacingLg),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Padding(
-                    padding: EdgeInsets.all(16.w),
-                    child: Text('خطأ في تحميل الإعدادات'),
+                    padding: EdgeInsets.only(bottom: AppDimensions.paddingMd),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: EdgeInsets.all(AppDimensions.paddingSm),
+                          decoration: BoxDecoration(
+                            color: AppColors.error.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
+                          ),
+                          child: Icon(
+                            Icons.security,
+                            color: AppColors.error,
+                            size: AppDimensions.iconSizeMd,
+                          ),
+                        ),
+                        SizedBox(width: AppDimensions.spacingMd),
+                        Flexible(
+                          child: Text(
+                            l10n.privacyAndSecurity,
+                            style: AppTypography.titleMedium(context),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
+                  _buildAppLockTile(context, ref, l10n),
+                  Divider(height: AppDimensions.spacingLg),
+                  _buildChangeMasterPinTile(context, ref, l10n),
+                  Divider(height: AppDimensions.spacingLg),
+                  _buildSetDuressPinTile(context, ref, l10n),
                 ],
               ),
             ),
 
-            // قسم الأداء
-            SettingsSection(
-              title: l10n.performance,
-              children: [
-                _buildPowerModeTile(context, ref, l10n),
-                _buildBatteryOptimizationTile(context, l10n),
-              ],
+            // قسم الشبكة - GlassCard
+            GlassCard(
+              margin: EdgeInsets.only(bottom: AppDimensions.spacingLg),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: EdgeInsets.only(bottom: AppDimensions.paddingMd),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: EdgeInsets.all(AppDimensions.paddingSm),
+                          decoration: BoxDecoration(
+                            color: AppColors.info.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
+                          ),
+                          child: Icon(
+                            Icons.wifi,
+                            color: AppColors.info,
+                            size: AppDimensions.iconSizeMd,
+                          ),
+                        ),
+                        SizedBox(width: AppDimensions.spacingMd),
+                        Flexible(
+                          child: Text(
+                            l10n.performance,
+                            style: AppTypography.titleMedium(context),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  _buildPowerModeTile(context, ref, l10n),
+                  Divider(height: AppDimensions.spacingLg),
+                  _buildBatteryOptimizationTile(context, l10n),
+                ],
+              ),
             ),
 
-            // قسم الخصوصية والأمان
-            SettingsSection(
-              title: l10n.privacyAndSecurity,
-              children: [
-                _buildAppLockTile(context, ref, l10n),
-                _buildChangeMasterPinTile(context, ref, l10n),
-                _buildSetDuressPinTile(context, ref, l10n),
-              ],
-            ),
-
-            // قسم حول التطبيق
-            SettingsSection(
-              title: l10n.aboutAndLegal,
-              children: [
-                SettingsTile(
-                  icon: Icons.info_outline,
-                  iconColor: Colors.blue,
-                  iconBackgroundColor: Colors.blue.withValues(alpha: 0.1),
-                  title: l10n.aboutUs,
-                  onTap: () => context.push(AppRoutes.about),
-                ),
-                SettingsTile(
-                  icon: Icons.share,
-                  iconColor: Colors.teal,
-                  iconBackgroundColor: Colors.teal.withValues(alpha: 0.1),
-                  title: l10n.shareAppOffline,
-                  subtitle: l10n.shareAppOfflineDescription,
-                  onTap: () => _shareApp(context, ref),
-                ),
-                SettingsTile(
-                  icon: Icons.privacy_tip_outlined,
-                  iconColor: Colors.purple,
-                  iconBackgroundColor: Colors.purple.withValues(alpha: 0.1),
-                  title: l10n.privacyPolicy,
-                  onTap: () => context.push(AppRoutes.privacy),
-                ),
-                SettingsTile(
-                  icon: Icons.description_outlined,
-                  iconColor: Colors.orange,
-                  iconBackgroundColor: Colors.orange.withValues(alpha: 0.1),
-                  title: l10n.openSourceLicenses,
-                  onTap: () => _showLicensePage(context),
-                ),
-              ],
+            // قسم حول التطبيق - GlassCard
+            GlassCard(
+              margin: EdgeInsets.only(bottom: AppDimensions.spacingLg),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: EdgeInsets.only(bottom: AppDimensions.paddingMd),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: EdgeInsets.all(AppDimensions.paddingSm),
+                          decoration: BoxDecoration(
+                            color: AppColors.secondary.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
+                          ),
+                          child: Icon(
+                            Icons.info_outline,
+                            color: AppColors.secondary,
+                            size: AppDimensions.iconSizeMd,
+                          ),
+                        ),
+                        SizedBox(width: AppDimensions.spacingMd),
+                        Flexible(
+                          child: Text(
+                            l10n.aboutAndLegal,
+                            style: AppTypography.titleMedium(context),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SettingsTile(
+                    icon: Icons.info_outline,
+                    iconColor: Colors.blue,
+                    iconBackgroundColor: Colors.blue.withValues(alpha: 0.1),
+                    title: l10n.aboutUs,
+                    onTap: () => context.push(AppRoutes.about),
+                  ),
+                  Divider(height: AppDimensions.spacingLg),
+                  SettingsTile(
+                    icon: Icons.share,
+                    iconColor: Colors.teal,
+                    iconBackgroundColor: Colors.teal.withValues(alpha: 0.1),
+                    title: l10n.shareAppOffline,
+                    subtitle: l10n.shareAppOfflineDescription,
+                    onTap: () => _shareApp(context, ref),
+                  ),
+                  Divider(height: AppDimensions.spacingLg),
+                  SettingsTile(
+                    icon: Icons.privacy_tip_outlined,
+                    iconColor: Colors.purple,
+                    iconBackgroundColor: Colors.purple.withValues(alpha: 0.1),
+                    title: l10n.privacyPolicy,
+                    onTap: () => context.push(AppRoutes.privacy),
+                  ),
+                  Divider(height: AppDimensions.spacingLg),
+                  SettingsTile(
+                    icon: Icons.description_outlined,
+                    iconColor: Colors.orange,
+                    iconBackgroundColor: Colors.orange.withValues(alpha: 0.1),
+                    title: l10n.openSourceLicenses,
+                    onTap: () => _showLicensePage(context),
+                  ),
+                ],
+              ),
             ),
 
             SizedBox(height: 32.h),
@@ -229,9 +357,10 @@ class SettingsScreen extends ConsumerWidget {
           if (currentUser != null)
             Text(
               currentUser.displayName,
-              style: theme.textTheme.titleLarge?.copyWith(
+              style: AppTypography.titleLarge(context).copyWith(
                 fontSize: 20.sp,
                 fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
               ),
             ),
           SizedBox(height: 16.h),
@@ -670,9 +799,10 @@ class SettingsScreen extends ConsumerWidget {
 
   /// عرض صفحة التراخيص
   void _showLicensePage(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     showLicensePage(
       context: context,
-      applicationName: 'Sada',
+      applicationName: l10n.appName,
       applicationVersion: '1.0.0',
       applicationIcon: Image.asset(
         'assets/images/logo.png',
@@ -696,6 +826,7 @@ class SettingsScreen extends ConsumerWidget {
       barrierDismissible: false,
       builder: (context) => Center(
         child: Card(
+          color: AppColors.surface,
           child: Padding(
             padding: EdgeInsets.all(24.w),
             child: Column(
@@ -703,7 +834,12 @@ class SettingsScreen extends ConsumerWidget {
               children: [
                 CircularProgressIndicator(),
                 SizedBox(height: 16.h),
-                Text(l10n.preparingApk),
+                Text(
+                  l10n.preparingApk,
+                  style: AppTypography.bodyMedium(context).copyWith(
+                    color: AppColors.textPrimary,
+                  ),
+                ),
               ],
             ),
           ),
@@ -716,7 +852,10 @@ class SettingsScreen extends ConsumerWidget {
 
       if (!context.mounted) return;
       
-      Navigator.of(context).pop(); // إغلاق dialog التحميل
+      // إغلاق dialog التحميل إذا كان مفتوحاً
+      if (Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      }
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -732,7 +871,10 @@ class SettingsScreen extends ConsumerWidget {
     } catch (e) {
       if (!context.mounted) return;
       
-      Navigator.of(context).pop(); // إغلاق dialog التحميل
+      // إغلاق dialog التحميل إذا كان مفتوحاً
+      if (Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      }
       
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

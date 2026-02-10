@@ -1171,6 +1171,336 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This QR code contains your public key for secure messaging.'**
   String get qrCodeSecurityInfo;
+
+  /// Bottom navigation - Home
+  ///
+  /// In en, this message translates to:
+  /// **'Home'**
+  String get navigation_home;
+
+  /// Bottom navigation - Chat
+  ///
+  /// In en, this message translates to:
+  /// **'Chats'**
+  String get navigation_chat;
+
+  /// Bottom navigation - Communities
+  ///
+  /// In en, this message translates to:
+  /// **'Communities'**
+  String get navigation_communities;
+
+  /// Bottom navigation - Add
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get navigation_add;
+
+  /// Bottom navigation - Settings
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get navigation_settings;
+
+  /// Home screen title
+  ///
+  /// In en, this message translates to:
+  /// **'Local Network'**
+  String get home_title;
+
+  /// Mesh status - Connected
+  ///
+  /// In en, this message translates to:
+  /// **'Connected'**
+  String get home_status_connected;
+
+  /// Mesh status - Connecting
+  ///
+  /// In en, this message translates to:
+  /// **'Connecting...'**
+  String get home_status_connecting;
+
+  /// Mesh status - Offline
+  ///
+  /// In en, this message translates to:
+  /// **'Offline'**
+  String get home_status_offline;
+
+  /// Number of connected peers
+  ///
+  /// In en, this message translates to:
+  /// **'{count} devices connected'**
+  String home_peers_count(int count);
+
+  /// Home empty state title
+  ///
+  /// In en, this message translates to:
+  /// **'Your Network is Ready'**
+  String get home_empty_title;
+
+  /// Home empty state subtitle
+  ///
+  /// In en, this message translates to:
+  /// **'Wait for nearby devices or start a new conversation'**
+  String get home_empty_subtitle;
+
+  /// Home empty state CTA button
+  ///
+  /// In en, this message translates to:
+  /// **'Start Chat'**
+  String get home_empty_action;
+
+  /// Chat empty state title
+  ///
+  /// In en, this message translates to:
+  /// **'No Conversations'**
+  String get chat_empty_title;
+
+  /// Chat empty state subtitle
+  ///
+  /// In en, this message translates to:
+  /// **'Start a secure, encrypted conversation with your friends'**
+  String get chat_empty_subtitle;
+
+  /// Chat empty state CTA button
+  ///
+  /// In en, this message translates to:
+  /// **'Add Friend'**
+  String get chat_empty_action;
+
+  /// Communities empty state title
+  ///
+  /// In en, this message translates to:
+  /// **'No Communities'**
+  String get communities_empty_title;
+
+  /// Communities empty state subtitle
+  ///
+  /// In en, this message translates to:
+  /// **'Discover groups in your area or create a new community'**
+  String get communities_empty_subtitle;
+
+  /// Communities empty state CTA button
+  ///
+  /// In en, this message translates to:
+  /// **'Create Community'**
+  String get communities_empty_action;
+
+  /// Create community button
+  ///
+  /// In en, this message translates to:
+  /// **'New Community'**
+  String get communities_create_button;
+
+  /// QR code screen title
+  ///
+  /// In en, this message translates to:
+  /// **'Share Code'**
+  String get qr_title;
+
+  /// My QR code label
+  ///
+  /// In en, this message translates to:
+  /// **'My Code'**
+  String get qr_my_code;
+
+  /// Scan QR code label
+  ///
+  /// In en, this message translates to:
+  /// **'Scan Code'**
+  String get qr_scan;
+
+  /// Share QR code section title
+  ///
+  /// In en, this message translates to:
+  /// **'Share via'**
+  String get qr_share_title;
+
+  /// Copy user ID button
+  ///
+  /// In en, this message translates to:
+  /// **'Copy ID'**
+  String get qr_copy_id;
+
+  /// Copied to clipboard message
+  ///
+  /// In en, this message translates to:
+  /// **'Copied'**
+  String get qr_copied;
+
+  /// QR code hint text
+  ///
+  /// In en, this message translates to:
+  /// **'Scan to add me as a friend'**
+  String get qr_hint;
+
+  /// User ID label
+  ///
+  /// In en, this message translates to:
+  /// **'ID:'**
+  String get qr_user_id_label;
+
+  /// Settings - Profile section
+  ///
+  /// In en, this message translates to:
+  /// **'Profile'**
+  String get settings_profile;
+
+  /// Settings - Appearance section
+  ///
+  /// In en, this message translates to:
+  /// **'Appearance'**
+  String get settings_appearance;
+
+  /// Light theme option
+  ///
+  /// In en, this message translates to:
+  /// **'Light'**
+  String get settings_theme_light;
+
+  /// Dark theme option
+  ///
+  /// In en, this message translates to:
+  /// **'Dark'**
+  String get settings_theme_dark;
+
+  /// System theme option
+  ///
+  /// In en, this message translates to:
+  /// **'System'**
+  String get settings_theme_system;
+
+  /// Settings - Language section
+  ///
+  /// In en, this message translates to:
+  /// **'Language'**
+  String get settings_language;
+
+  /// Arabic language option
+  ///
+  /// In en, this message translates to:
+  /// **'العربية'**
+  String get settings_language_ar;
+
+  /// English language option
+  ///
+  /// In en, this message translates to:
+  /// **'English'**
+  String get settings_language_en;
+
+  /// Settings - Security section
+  ///
+  /// In en, this message translates to:
+  /// **'Security'**
+  String get settings_security;
+
+  /// Biometric lock setting
+  ///
+  /// In en, this message translates to:
+  /// **'Biometric Lock'**
+  String get settings_biometric;
+
+  /// Settings - Network section
+  ///
+  /// In en, this message translates to:
+  /// **'Network'**
+  String get settings_network;
+
+  /// Power mode setting
+  ///
+  /// In en, this message translates to:
+  /// **'Power Mode'**
+  String get settings_power_mode;
+
+  /// High performance power mode
+  ///
+  /// In en, this message translates to:
+  /// **'High Performance'**
+  String get settings_power_high;
+
+  /// Balanced power mode
+  ///
+  /// In en, this message translates to:
+  /// **'Balanced'**
+  String get settings_power_balanced;
+
+  /// Low power mode
+  ///
+  /// In en, this message translates to:
+  /// **'Power Saving'**
+  String get settings_power_low;
+
+  /// Cancel button
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get common_cancel;
+
+  /// Save button
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get common_save;
+
+  /// Delete button
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get common_delete;
+
+  /// Edit button
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get common_edit;
+
+  /// Done button
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get common_done;
+
+  /// Close button
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get common_close;
+
+  /// Loading state text
+  ///
+  /// In en, this message translates to:
+  /// **'Loading...'**
+  String get common_loading;
+
+  /// Error message
+  ///
+  /// In en, this message translates to:
+  /// **'Error occurred'**
+  String get common_error;
+
+  /// Retry button
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get common_retry;
+
+  /// Search placeholder
+  ///
+  /// In en, this message translates to:
+  /// **'Search'**
+  String get common_search;
+
+  /// Send button
+  ///
+  /// In en, this message translates to:
+  /// **'Send'**
+  String get common_send;
+
+  /// Terms of Service title
+  ///
+  /// In en, this message translates to:
+  /// **'Terms of Service'**
+  String get termsOfService;
 }
 
 class _AppLocalizationsDelegate

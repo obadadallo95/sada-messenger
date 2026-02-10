@@ -20,6 +20,7 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
+  bool _permissionsGranted = false;
 
   List<OnboardingSlide> get _slides {
     final l10n = AppLocalizations.of(context)!;
@@ -57,14 +58,35 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   Future<void> _requestPermissions() async {
-    await [
+    final permissions = [
       Permission.location,
       Permission.nearbyWifiDevices,
       Permission.notification,
-    ].request();
-
+    ];
+    
+    await permissions.request();
+    
+    // التحقق من حالة الصلاحيات
+    bool allGranted = true;
+    for (final permission in permissions) {
+      final status = await permission.status;
+      if (!status.isGranted) {
+        allGranted = false;
+        break;
+      }
+    }
+    
     if (mounted) {
-      _completeOnboarding();
+      setState(() {
+        _permissionsGranted = allGranted;
+      });
+      
+      // الانتقال بعد تأخير قصير لإظهار التغذية الراجعة
+      await Future.delayed(const Duration(milliseconds: 500));
+      
+      if (mounted) {
+        _completeOnboarding();
+      }
     }
   }
 
@@ -102,7 +124,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                     child: Text(
                       l10n.skip,
                       style: TextStyle(
-                        color: theme.colorScheme.primary.withValues(alpha: 0.7),
+                        fontSize: 16.sp,
+                        color: const Color(0xFF00D9FF).withValues(alpha: 0.9),
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ),
@@ -156,10 +180,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                             );
                           }
                         },
-                        backgroundColor: theme.colorScheme.primary,
+                        backgroundColor: _permissionsGranted 
+                            ? Colors.green 
+                            : theme.colorScheme.primary,
                         child: Icon(
                           _currentPage == slides.length - 1 
-                              ? Icons.check 
+                              ? (_permissionsGranted ? Icons.check_circle : Icons.check)
                               : Icons.arrow_forward,
                           color: Colors.black,
                         ),
@@ -206,9 +232,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           Text(
             slide.title,
             textAlign: TextAlign.center,
-            style: theme.textTheme.headlineMedium?.copyWith(
+            style: TextStyle(
+              fontSize: 28.sp,
               fontWeight: FontWeight.bold,
-              color: theme.colorScheme.primary,
+              color: const Color(0xFF00D9FF), // Cyan primary color
               height: 1.2,
             ),
           )
@@ -221,8 +248,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           Text(
             slide.description,
             textAlign: TextAlign.center,
-            style: theme.textTheme.bodyLarge?.copyWith(
-              color: Colors.white.withValues(alpha: 0.8),
+            style: TextStyle(
+              fontSize: 16.sp,
+              color: Colors.white.withValues(alpha: 0.9),
               height: 1.5,
             ),
           )
@@ -277,8 +305,10 @@ class _PermissionBadge extends StatelessWidget {
         SizedBox(height: 8.h),
         Text(
           label,
-          style: theme.textTheme.labelMedium?.copyWith(
-            color: theme.colorScheme.onSurface,
+          style: TextStyle(
+            fontSize: 12.sp,
+            color: Colors.white.withValues(alpha: 0.9),
+            fontWeight: FontWeight.w500,
           ),
         ),
       ],

@@ -11,8 +11,11 @@ import '../mesh_service.dart';
 /// ملاحظة: UDP Sockets في Flutter تحتاج Platform Channels
 /// سيتم تنفيذها في Native (Android/iOS) لاحقاً
 class UdpBroadcastService {
+  // ignore: constant_identifier_names
   static const int DISCOVERY_PORT = 45454;
+  // ignore: constant_identifier_names
   static const String DISCOVERY_PREFIX = 'SADA_DISCOVERY';
+  // ignore: constant_identifier_names
   static const String DISCOVERY_VERSION = 'v1';
   
   static const MethodChannel _udpChannel = MethodChannel('org.sada.messenger/udp');
@@ -23,7 +26,7 @@ class UdpBroadcastService {
   Timer? _broadcastTimer;
   bool _isRunning = false;
   String? _myDeviceId;
-  int _tcpPort = 8888; // Port للاتصال TCP (SocketManager)
+  final int _tcpPort = 8888; // Port للاتصال TCP (SocketManager)
   
   UdpBroadcastService(this._ref);
 
@@ -118,9 +121,7 @@ class UdpBroadcastService {
   /// إرسال UDP Broadcast
   Future<void> _sendBroadcast() async {
     try {
-      if (_myDeviceId == null) {
-        _myDeviceId = await _getMyDeviceId();
-      }
+      _myDeviceId ??= await _getMyDeviceId();
 
       // إنشاء payload: SADA_DISCOVERY|v1|DeviceId|Port
       final payload = '$DISCOVERY_PREFIX|$DISCOVERY_VERSION|$_myDeviceId|$_tcpPort';

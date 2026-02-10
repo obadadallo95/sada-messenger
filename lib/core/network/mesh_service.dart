@@ -481,9 +481,7 @@ class MeshService {
   /// معالجة Handshake الوارد (Server Side)
   Future<void> _handleIncomingHandshake(String handshakeJson) async {
     try {
-      if (_handshakeProtocol == null) {
-        _handshakeProtocol = _ref.read(handshakeProtocolProvider);
-      }
+      _handshakeProtocol ??= _ref.read(handshakeProtocolProvider);
 
       final ackMessage = await _handshakeProtocol!.processIncomingHandshake(handshakeJson);
       
@@ -513,9 +511,7 @@ class MeshService {
   /// معالجة Handshake ACK (Client Side)
   Future<void> _handleHandshakeAck(String ackJson) async {
     try {
-      if (_handshakeProtocol == null) {
-        _handshakeProtocol = _ref.read(handshakeProtocolProvider);
-      }
+      _handshakeProtocol ??= _ref.read(handshakeProtocolProvider);
 
       final accepted = await _handshakeProtocol!.processHandshakeAck(ackJson);
       
@@ -602,9 +598,7 @@ class MeshService {
       }
 
       // إرسال Handshake Message
-      if (_handshakeProtocol == null) {
-        _handshakeProtocol = _ref.read(handshakeProtocolProvider);
-      }
+      _handshakeProtocol ??= _ref.read(handshakeProtocolProvider);
 
       final handshakeMessage = await _handshakeProtocol!.createHandshakeMessage();
       

@@ -108,12 +108,38 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 TextFormField(
                   key: const Key('register_name_field'),
                   controller: _nameController,
+                  style: TextStyle(
+                    color: theme.colorScheme.onSurface,
+                    fontSize: 16.sp,
+                  ),
                   decoration: InputDecoration(
                     labelText: l10n.nickname,
                     hintText: l10n.nicknameHint,
-                    prefixIcon: Icon(Icons.person_outline),
+                    labelStyle: TextStyle(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                    hintStyle: TextStyle(
+                      color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                    ),
+                    prefixIcon: Icon(
+                      Icons.person_outline,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12.r),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12.r),
+                      borderSide: BorderSide(
+                        color: theme.colorScheme.outline,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12.r),
+                      borderSide: BorderSide(
+                        color: theme.colorScheme.primary,
+                        width: 2,
+                      ),
                     ),
                   ),
                   textCapitalization: TextCapitalization.words,

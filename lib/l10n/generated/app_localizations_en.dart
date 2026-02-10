@@ -581,4 +581,174 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get qrCodeSecurityInfo =>
       'This QR code contains your public key for secure messaging.';
+
+  @override
+  String get navigation_home => 'Home';
+
+  @override
+  String get navigation_chat => 'Chats';
+
+  @override
+  String get navigation_communities => 'Communities';
+
+  @override
+  String get navigation_add => 'Add';
+
+  @override
+  String get navigation_settings => 'Settings';
+
+  @override
+  String get home_title => 'Local Network';
+
+  @override
+  String get home_status_connected => 'Connected';
+
+  @override
+  String get home_status_connecting => 'Connecting...';
+
+  @override
+  String get home_status_offline => 'Offline';
+
+  @override
+  String home_peers_count(int count) {
+    return '$count devices connected';
+  }
+
+  @override
+  String get home_empty_title => 'Your Network is Ready';
+
+  @override
+  String get home_empty_subtitle =>
+      'Wait for nearby devices or start a new conversation';
+
+  @override
+  String get home_empty_action => 'Start Chat';
+
+  @override
+  String get chat_empty_title => 'No Conversations';
+
+  @override
+  String get chat_empty_subtitle =>
+      'Start a secure, encrypted conversation with your friends';
+
+  @override
+  String get chat_empty_action => 'Add Friend';
+
+  @override
+  String get communities_empty_title => 'No Communities';
+
+  @override
+  String get communities_empty_subtitle =>
+      'Discover groups in your area or create a new community';
+
+  @override
+  String get communities_empty_action => 'Create Community';
+
+  @override
+  String get communities_create_button => 'New Community';
+
+  @override
+  String get qr_title => 'Share Code';
+
+  @override
+  String get qr_my_code => 'My Code';
+
+  @override
+  String get qr_scan => 'Scan Code';
+
+  @override
+  String get qr_share_title => 'Share via';
+
+  @override
+  String get qr_copy_id => 'Copy ID';
+
+  @override
+  String get qr_copied => 'Copied';
+
+  @override
+  String get qr_hint => 'Scan to add me as a friend';
+
+  @override
+  String get qr_user_id_label => 'ID:';
+
+  @override
+  String get settings_profile => 'Profile';
+
+  @override
+  String get settings_appearance => 'Appearance';
+
+  @override
+  String get settings_theme_light => 'Light';
+
+  @override
+  String get settings_theme_dark => 'Dark';
+
+  @override
+  String get settings_theme_system => 'System';
+
+  @override
+  String get settings_language => 'Language';
+
+  @override
+  String get settings_language_ar => 'العربية';
+
+  @override
+  String get settings_language_en => 'English';
+
+  @override
+  String get settings_security => 'Security';
+
+  @override
+  String get settings_biometric => 'Biometric Lock';
+
+  @override
+  String get settings_network => 'Network';
+
+  @override
+  String get settings_power_mode => 'Power Mode';
+
+  @override
+  String get settings_power_high => 'High Performance';
+
+  @override
+  String get settings_power_balanced => 'Balanced';
+
+  @override
+  String get settings_power_low => 'Power Saving';
+
+  @override
+  String get common_cancel => 'Cancel';
+
+  @override
+  String get common_save => 'Save';
+
+  @override
+  String get common_delete => 'Delete';
+
+  @override
+  String get common_edit => 'Edit';
+
+  @override
+  String get common_done => 'Done';
+
+  @override
+  String get common_close => 'Close';
+
+  @override
+  String get common_loading => 'Loading...';
+
+  @override
+  String get common_error => 'Error occurred';
+
+  @override
+  String get common_retry => 'Retry';
+
+  @override
+  String get common_search => 'Search';
+
+  @override
+  String get common_send => 'Send';
+
+  @override
+  String get termsOfService => 'Terms of Service';
 }

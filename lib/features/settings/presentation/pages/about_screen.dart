@@ -3,6 +3,8 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:sada/l10n/generated/app_localizations.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_typography.dart';
 
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
@@ -55,8 +57,8 @@ class AboutScreen extends StatelessWidget {
                   
                   Text(
                     l10n.appName,
-                    style: theme.textTheme.displaySmall?.copyWith(
-                      color: theme.colorScheme.primary,
+                    style: AppTypography.headlineLarge(context).copyWith(
+                      color: AppColors.primary,
                       letterSpacing: 2,
                     ),
                   ).animate().fadeIn(delay: 200.ms).moveY(begin: 10, end: 0),
@@ -66,8 +68,8 @@ class AboutScreen extends StatelessWidget {
                     builder: (context, snapshot) {
                       return Text(
                         '${l10n.version} ${snapshot.data?.version ?? '1.0.0'}',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: Colors.white54,
+                        style: AppTypography.bodyMedium(context).copyWith(
+                          color: AppColors.textSecondary,
                         ),
                       );
                     },
@@ -86,7 +88,9 @@ class AboutScreen extends StatelessWidget {
                 children: [
                   Text(
                     l10n.howItWorks,
-                    style: theme.textTheme.headlineSmall,
+                    style: AppTypography.headlineSmall(context).copyWith(
+                      color: AppColors.textPrimary,
+                    ),
                   ).animate().fadeIn(delay: 400.ms),
                   
                   SizedBox(height: 24.h),
@@ -124,8 +128,8 @@ class AboutScreen extends StatelessWidget {
             // Credits
             Text(
               l10n.designedForResilience,
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: Colors.white30,
+              style: AppTypography.labelMedium(context).copyWith(
+                color: AppColors.textTertiary,
               ),
             ),
             SizedBox(height: 24.h),
@@ -185,13 +189,15 @@ class AboutScreen extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: theme.textTheme.titleMedium,
+                    style: AppTypography.titleMedium(context).copyWith(
+                      color: AppColors.textPrimary,
+                    ),
                   ),
                   SizedBox(height: 4.h),
                   Text(
                     description,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: Colors.white70,
+                    style: AppTypography.bodyMedium(context).copyWith(
+                      color: AppColors.textSecondary,
                     ),
                   ),
                 ],

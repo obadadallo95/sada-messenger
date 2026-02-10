@@ -119,10 +119,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get myCode => 'My Code';
 
   @override
-  String get scan => 'Scan';
+  String get scan => 'مسح';
 
   @override
-  String get userId => 'User ID';
+  String get userId => 'معرف المستخدم';
 
   @override
   String get share => 'Share';
@@ -327,66 +327,69 @@ class AppLocalizationsAr extends AppLocalizations {
   String get failedToChangeLock => 'فشل تغيير حالة القفل';
 
   @override
-  String get createCommunity => 'Create Community';
+  String get createCommunity => 'إنشاء مجتمع';
 
   @override
-  String get groupName => 'Group Name';
+  String get groupName => 'اسم المجموعة';
 
   @override
-  String get groupNameHint => 'Enter group name';
+  String get groupNameHint => 'أدخل اسم المجموعة';
 
   @override
-  String get groupNameRequired => 'Group name is required';
+  String get groupNameRequired => 'اسم المجموعة مطلوب';
 
   @override
-  String get groupNameTooShort => 'Group name is too short';
+  String get groupNameTooShort =>
+      'اسم المجموعة قصير جداً (يجب أن يكون 3 أحرف على الأقل)';
 
   @override
-  String get groupDescription => 'Description';
+  String get groupDescription => 'وصف المجموعة';
 
   @override
-  String get groupDescriptionHint => 'Enter group description';
+  String get groupDescriptionHint => 'أدخل وصفاً للمجموعة';
 
   @override
-  String get groupDescriptionRequired => 'Description is required';
+  String get groupDescriptionRequired => 'وصف المجموعة مطلوب';
 
   @override
-  String get publicGroup => 'Public Group';
+  String get publicGroup => 'مجموعة عامة';
 
   @override
-  String get publicGroupDescription => 'Visible to everyone nearby';
+  String get publicGroupDescription =>
+      'يمكن لأي شخص في المنطقة اكتشاف المجموعة والانضمام إليها';
 
   @override
-  String get privateGroupDescription => 'Requires password to join';
+  String get privateGroupDescription =>
+      'المجموعة خاصة وتتطلب كلمة مرور للانضمام';
 
   @override
-  String get groupPassword => 'Password';
+  String get groupPassword => 'كلمة المرور';
 
   @override
-  String get groupPasswordHint => 'Enter password';
+  String get groupPasswordHint => 'أدخل كلمة المرور';
 
   @override
-  String get groupPasswordRequired => 'Password is required';
+  String get groupPasswordRequired => 'كلمة المرور مطلوبة للمجموعات الخاصة';
 
   @override
-  String get launchGroup => 'Launch Group';
+  String get launchGroup => 'إطلاق المجموعة';
 
   @override
-  String get myGroups => 'My Groups';
+  String get myGroups => 'مجموعاتي';
 
   @override
-  String get nearbyCommunities => 'Nearby Communities';
+  String get nearbyCommunities => 'المجتمعات القريبة';
 
   @override
   String peersNearby(int count) {
-    return '$count peers nearby';
+    return '$count أقران قريبين';
   }
 
   @override
   String get join => 'انضم';
 
   @override
-  String get scanning => 'Scanning...';
+  String get scanning => 'جارٍ المسح...';
 
   @override
   String get enterPin => 'أدخل PIN';
@@ -580,4 +583,173 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get qrCodeSecurityInfo =>
       'يحتوي هذا الرمز على مفتاحك العام للمراسلة الآمنة.';
+
+  @override
+  String get navigation_home => 'الرئيسية';
+
+  @override
+  String get navigation_chat => 'الدردشة';
+
+  @override
+  String get navigation_communities => 'المجتمعات';
+
+  @override
+  String get navigation_add => 'إضافة';
+
+  @override
+  String get navigation_settings => 'الإعدادات';
+
+  @override
+  String get home_title => 'الشبكة المحلية';
+
+  @override
+  String get home_status_connected => 'متصل';
+
+  @override
+  String get home_status_connecting => 'جاري الاتصال...';
+
+  @override
+  String get home_status_offline => 'غير متصل';
+
+  @override
+  String home_peers_count(int count) {
+    return '$count جهاز متصل';
+  }
+
+  @override
+  String get home_empty_title => 'شبكتك جاهزة';
+
+  @override
+  String get home_empty_subtitle =>
+      'انتظر اتصال الأجهزة المجاورة أو ابدأ محادثة جديدة';
+
+  @override
+  String get home_empty_action => 'بدء محادثة';
+
+  @override
+  String get chat_empty_title => 'لا توجد محادثات';
+
+  @override
+  String get chat_empty_subtitle => 'ابدأ محادثة آمنة ومشفرة مع أصدقائك';
+
+  @override
+  String get chat_empty_action => 'إضافة صديق';
+
+  @override
+  String get communities_empty_title => 'لا توجد مجتمعات';
+
+  @override
+  String get communities_empty_subtitle =>
+      'اكتشف مجموعات في منطقتك أو أنشئ مجتمعاً جديداً';
+
+  @override
+  String get communities_empty_action => 'إنشاء مجتمع';
+
+  @override
+  String get communities_create_button => 'مجتمع جديد';
+
+  @override
+  String get qr_title => 'رمز المشاركة';
+
+  @override
+  String get qr_my_code => 'رمزي الشخصي';
+
+  @override
+  String get qr_scan => 'مسح رمز';
+
+  @override
+  String get qr_share_title => 'مشاركة عبر';
+
+  @override
+  String get qr_copy_id => 'نسخ المعرف';
+
+  @override
+  String get qr_copied => 'تم النسخ';
+
+  @override
+  String get qr_hint => 'امسح الرمز لإضافتي كصديق';
+
+  @override
+  String get qr_user_id_label => 'المعرف:';
+
+  @override
+  String get settings_profile => 'الملف الشخصي';
+
+  @override
+  String get settings_appearance => 'المظهر';
+
+  @override
+  String get settings_theme_light => 'فاتح';
+
+  @override
+  String get settings_theme_dark => 'داكن';
+
+  @override
+  String get settings_theme_system => 'تلقائي';
+
+  @override
+  String get settings_language => 'اللغة';
+
+  @override
+  String get settings_language_ar => 'العربية';
+
+  @override
+  String get settings_language_en => 'English';
+
+  @override
+  String get settings_security => 'الأمان';
+
+  @override
+  String get settings_biometric => 'القفل البيومتري';
+
+  @override
+  String get settings_network => 'الشبكة';
+
+  @override
+  String get settings_power_mode => 'وضع الطاقة';
+
+  @override
+  String get settings_power_high => 'أداء عالي';
+
+  @override
+  String get settings_power_balanced => 'متوازن';
+
+  @override
+  String get settings_power_low => 'موفر للطاقة';
+
+  @override
+  String get common_cancel => 'إلغاء';
+
+  @override
+  String get common_save => 'حفظ';
+
+  @override
+  String get common_delete => 'حذف';
+
+  @override
+  String get common_edit => 'تعديل';
+
+  @override
+  String get common_done => 'تم';
+
+  @override
+  String get common_close => 'إغلاق';
+
+  @override
+  String get common_loading => 'جاري التحميل...';
+
+  @override
+  String get common_error => 'حدث خطأ';
+
+  @override
+  String get common_retry => 'إعادة المحاولة';
+
+  @override
+  String get common_search => 'بحث';
+
+  @override
+  String get common_send => 'إرسال';
+
+  @override
+  String get termsOfService => 'شروط الاستخدام';
 }

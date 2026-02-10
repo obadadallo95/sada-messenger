@@ -12,9 +12,13 @@ import '../../database/app_database.dart';
 class HandshakeProtocol {
   final Ref _ref;
   
+  // ignore: constant_identifier_names
   static const String HANDSHAKE_TYPE = 'HANDSHAKE';
+  // ignore: constant_identifier_names
   static const String HANDSHAKE_ACK_TYPE = 'HANDSHAKE_ACK';
+  // ignore: constant_identifier_names
   static const String STATUS_ACCEPTED = 'ACCEPTED';
+  // ignore: constant_identifier_names
   static const String STATUS_REJECTED = 'REJECTED';
   
   HandshakeProtocol(this._ref);

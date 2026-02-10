@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sada/l10n/generated/app_localizations.dart';
 import '../../../../core/router/routes.dart';
+import '../../../../core/widgets/empty_state.dart';
 import '../../data/repositories/chat_repository.dart';
 import '../widgets/chat_tile.dart';
 
@@ -24,25 +25,12 @@ class ChatPage extends ConsumerWidget {
       body: chatsAsync.when(
         data: (chats) {
           if (chats.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.chat_bubble_outline,
-                    size: 64.sp,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                  SizedBox(height: 16.h),
-                  Text(
-                    l10n.noChats,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontSize: 18.sp,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                  ),
-                ],
-              ),
+            return EmptyState(
+              icon: Icons.chat_bubble_outline,
+              title: l10n.noChats,
+              subtitle: 'ابدأ محادثة آمنة ومشفرة مع أصدقائك',
+              actionLabel: l10n.addFriend,
+              onAction: () => context.push(AppRoutes.addFriend),
             );
           }
           return ListView.builder(
@@ -58,25 +46,12 @@ class ChatPage extends ConsumerWidget {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.error_outline,
-                size: 64.sp,
-                color: Theme.of(context).colorScheme.error,
-              ),
-              SizedBox(height: 16.h),
-              Text(
-                l10n.errorLoadingChats,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontSize: 18.sp,
-                      color: Theme.of(context).colorScheme.error,
-                    ),
-              ),
-            ],
-          ),
+        error: (error, stack) => EmptyState(
+          icon: Icons.chat_bubble_outline,
+          title: l10n.noChats,
+          subtitle: 'ابدأ محادثة آمنة ومشفرة مع أصدقائك',
+          actionLabel: l10n.addFriend,
+          onAction: () => context.push(AppRoutes.addFriend),
         ),
       ),
     );
