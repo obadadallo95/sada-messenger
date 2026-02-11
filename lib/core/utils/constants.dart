@@ -10,5 +10,11 @@ class AppConstants {
   // قيم الوضع الافتراضي
   static const String defaultLocale = 'en';
   static const String defaultThemeMode = 'system';
+
+  // ==================== Relay / DTN Constants ====================
+
+  /// الحد الأقصى لعدد الحزم المخزنة في Relay Queue لكل جهاز.
+  /// هذا حد عددي مبدئي لمنع امتلاء التخزين (يمكن ضبطه لاحقاً أو استبداله بحساب حجمي بالـ MB).
+  static const int relayQueueMaxCount = 5000;
 }
 

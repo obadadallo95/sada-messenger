@@ -7,20 +7,7 @@ class MessageMapper {
   /// تحويل MessagesTableData إلى MessageModel
   static MessageModel toDomain(MessagesTableData data) {
     // تحويل status string إلى MessageStatus enum
-    MessageStatus status;
-    switch (data.status) {
-      case 'sent':
-        status = MessageStatus.sent;
-        break;
-      case 'delivered':
-        status = MessageStatus.delivered;
-        break;
-      case 'read':
-        status = MessageStatus.read;
-        break;
-      default:
-        status = MessageStatus.sent;
-    }
+    final status = _fromStatusString(data.status);
 
     return MessageModel(
       id: data.id,
@@ -39,24 +26,7 @@ class MessageMapper {
     String senderId,
   ) {
     // تحويل MessageStatus إلى string
-    String statusString;
-    switch (model.status) {
-      case MessageStatus.sending:
-        statusString = 'sending';
-        break;
-      case MessageStatus.sent:
-        statusString = 'sent';
-        break;
-      case MessageStatus.delivered:
-        statusString = 'delivered';
-        break;
-      case MessageStatus.read:
-        statusString = 'read';
-        break;
-      case MessageStatus.failed:
-        statusString = 'failed';
-        break;
-    }
+    final statusString = _toStatusString(model.status);
 
     return MessagesTableCompanion.insert(
       id: model.id,
@@ -69,6 +39,45 @@ class MessageMapper {
       isFromMe: Value(model.isMe),
       replyToId: const Value.absent(),
     );
+  }
+
+  /// تحويل string من قاعدة البيانات إلى MessageStatus آمن
+  static MessageStatus _fromStatusString(String raw) {
+    switch (raw) {
+      case 'draft':
+        return MessageStatus.draft;
+      case 'sending':
+        return MessageStatus.sending;
+      case 'sent':
+        return MessageStatus.sent;
+      case 'delivered':
+        return MessageStatus.delivered;
+      case 'read':
+        return MessageStatus.read;
+      case 'failed':
+        return MessageStatus.failed;
+      default:
+        // fallback معقول للحالات غير المعروفة أو القديمة
+        return MessageStatus.sent;
+    }
+  }
+
+  /// تحويل MessageStatus إلى string لقاعدة البيانات
+  static String _toStatusString(MessageStatus status) {
+    switch (status) {
+      case MessageStatus.draft:
+        return 'draft';
+      case MessageStatus.sending:
+        return 'sending';
+      case MessageStatus.sent:
+        return 'sent';
+      case MessageStatus.delivered:
+        return 'delivered';
+      case MessageStatus.read:
+        return 'read';
+      case MessageStatus.failed:
+        return 'failed';
+    }
   }
 }
 

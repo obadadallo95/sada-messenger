@@ -38,10 +38,54 @@ class ChatController extends _$ChatController {
       // التحقق من Duress Mode
       final authType = ref.read(currentAuthTypeProvider);
       if (authType == AuthType.duress) {
-        LogService.warning('محاولة إرسال رسالة في Duress Mode - سيتم إرسال بيانات وهمية');
-        // في Duress Mode، يمكن إرسال بيانات وهمية أو منع الإرسال
-        // للبساطة، سنمنع الإرسال
-        throw Exception('لا يمكن إرسال الرسائل في Duress Mode');
+        LogService.info('Duress Mode active - simulating message send');
+        
+        // في Duress Mode، نحفظ الرسالة في قاعدة البيانات الوهمية فقط
+        // ونحاكي الإرسال الناجح بدون إرسال فعلي عبر الشبكة
+        
+        // الحصول على معرف المستخدم الحالي
+        final currentUser = authService.currentUser;
+        if (currentUser == null) {
+          throw Exception('المستخدم غير مسجل الدخول');
+        }
+        final senderId = currentUser.userId;
+        
+        // توليد معرف فريد للرسالة
+        const uuid = Uuid();
+        final messageId = uuid.v4();
+        
+        // إنشاء MessageModel مع status = sending
+        final message = MessageModel(
+          id: messageId,
+          text: content,
+          encryptedText: content, // في Duress Mode نستخدم النص العادي
+          isMe: true,
+          timestamp: DateTime.now(),
+          status: MessageStatus.sending,
+        );
+        
+        // حفظ الرسالة في قاعدة البيانات الوهمية
+        final companion = MessageMapper.toCompanion(message, chatId, senderId);
+        await database.insertMessage(companion);
+        
+        // محاكاة الإرسال الناجح بعد تأخير قصير
+        Future.delayed(Duration(milliseconds: 500), () async {
+          await database.updateMessageStatus(messageId, 'sent');
+        });
+        
+        // محاكاة التسليم بعد تأخير أطول
+        Future.delayed(Duration(seconds: 2), () async {
+          await database.updateMessageStatus(messageId, 'delivered');
+        });
+        
+        // تحديث آخر رسالة في المحادثة
+        await database.updateLastMessage(chatId, content);
+        
+        // إعادة بناء المحادثات
+        ref.invalidate(chatRepositoryProvider);
+        
+        LogService.info('Duress Mode: رسالة وهمية تم حفظها بنجاح');
+        return; // لا نرسل عبر الشبكة الفعلية
       }
       
       // الحصول على معرف المستخدم الحالي
@@ -73,17 +117,8 @@ class ChatController extends _$ChatController {
       // توليد معرف فريد للرسالة
       const uuid = Uuid();
       final messageId = uuid.v4();
-      
-      // إنشاء MessageModel مع status = sending
-      final message = MessageModel(
-        id: messageId,
-        text: content,
-        isMe: true,
-        timestamp: DateTime.now(),
-        status: MessageStatus.sent, // سيتم تحديثه لاحقاً
-      );
-      
-      // تشفير الرسالة
+
+      // تشفير الرسالة أولاً حتى لا يتم حفظ نص عادي في قاعدة البيانات
       String encryptedContent;
       if (remotePublicKey != null) {
         try {
@@ -107,10 +142,20 @@ class ChatController extends _$ChatController {
         LogService.warning('لا يوجد مفتاح عام للطرف المستقبل - إرسال نص عادي');
         encryptedContent = content;
       }
-      
-      // حفظ الرسالة في قاعدة البيانات مع status = sent
+
+      // إنشاء MessageModel مع status = sending وتضمين النص المشفر
+      final message = MessageModel(
+        id: messageId,
+        text: content,
+        encryptedText: encryptedContent,
+        isMe: true,
+        timestamp: DateTime.now(),
+        status: MessageStatus.sending,
+      );
+
+      // حفظ الرسالة في قاعدة البيانات مع status = sending
       final companion = MessageMapper.toCompanion(
-        message, // status = sent بالفعل
+        message,
         chatId,
         senderId,
       );
@@ -129,6 +174,7 @@ class ChatController extends _$ChatController {
             senderId: senderId,
             maxHops: 10, // TTL: 10 hops
             type: 'message',
+            messageId: messageId,
           );
           
           if (sendSuccess) {

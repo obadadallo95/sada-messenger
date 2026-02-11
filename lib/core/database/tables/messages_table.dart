@@ -48,6 +48,9 @@ class MessagesTable extends Table {
   /// معرف الرسالة المرجعية (للرد على رسالة)
   TextColumn get replyToId => text().nullable()();
 
+  /// عدد محاولات الإرسال (لإعادة الإرسال التلقائي)
+  IntColumn get retryCount => integer().withDefault(const Constant(0))();
+
   @override
   Set<Column> get primaryKey => {id};
 }

@@ -121,16 +121,18 @@ class MeshService {
     String? senderId,
     int maxHops = 10,
     String? type,
+    String? messageId,
+    Map<String, dynamic>? metadata,
   }) async {
     try {
       final myDeviceId = await _getMyDeviceId();
       final finalSenderId = senderId ?? myDeviceId;
       
       // إنشاء MeshMessage
-      final messageId = const Uuid().v4();
+      final effectiveMessageId = messageId ?? const Uuid().v4();
       
       final meshMessage = MeshMessage(
-        messageId: messageId,
+        messageId: effectiveMessageId,
         originalSenderId: finalSenderId,
         finalDestinationId: peerId,
         encryptedContent: encryptedContent,
@@ -139,10 +141,15 @@ class MeshService {
         trace: [],
         timestamp: DateTime.now(),
         type: type,
+        metadata: metadata,
       );
       
       // إرسال الرسالة
-      return await _forwardMessage(meshMessage);
+      // 1. Store in RelayQueue (Store-Carry-Forward)
+      // Even if we are the sender, we store it to carry it until we meet a peer.
+      await _storeAndForward(meshMessage);
+      
+      return true;
     } catch (e) {
       LogService.error('خطأ في إرسال MeshMessage', e);
       return false;
@@ -325,13 +332,45 @@ class MeshService {
   Future<void> _processMessageForMe(MeshMessage meshMessage) async {
     try {
       LogService.info('🎯 معالجة رسالة موجهة لي: ${meshMessage.messageId}');
-      
-      // الرسالة سيتم معالجتها تلقائياً في IncomingMessageHandler
+
+      // إذا كانت الرسالة من نوع ACK فهي رسالة تحكم (Control Plane)
+      // ولا تُعرض للمستخدم، بل تُستخدم لتحديث حالة الرسالة الأصلية.
+      if (meshMessage.type == MeshMessage.typeAck) {
+        await _handleAck(meshMessage);
+        return;
+      }
+
+      // الرسائل العادية سيتم معالجتها تلقائياً في IncomingMessageHandler
       // لأن IncomingMessageHandler يستمع إلى onMessageReceived stream
       // و handleIncomingMeshMessage() يتم استدعاؤه قبل _handleIncomingMessage()
       // لذلك سيتم معالجة الرسالة في IncomingMessageHandler._handleIncomingMessage()
     } catch (e) {
       LogService.error('خطأ في معالجة الرسالة الموجهة لي', e);
+    }
+  }
+
+  /// معالجة ACK MeshMessage عند وصوله للمرسل الأصلي.
+  /// يستخدم originalMessageId المخزن في metadata لتحديث حالة الرسالة في DB.
+  Future<void> _handleAck(MeshMessage meshMessage) async {
+    try {
+      final metadata = meshMessage.metadata ?? const <String, dynamic>{};
+      final originalMessageId = metadata['originalMessageId'] as String?;
+
+      if (originalMessageId == null) {
+        LogService.warning('تم استقبال ACK بدون originalMessageId - سيتم تجاهله');
+        return;
+      }
+
+      final database = await _ref.read(appDatabaseProvider.future);
+      final updated = await database.updateMessageStatus(originalMessageId, 'delivered');
+
+      if (updated) {
+        LogService.info('✅ ACK received – تم تحديث حالة الرسالة إلى delivered: $originalMessageId');
+      } else {
+        LogService.warning('⚠️ ACK received ولكن لم يتم العثور على رسالة في DB: $originalMessageId');
+      }
+    } catch (e) {
+      LogService.error('خطأ في معالجة ACK MeshMessage', e);
     }
   }
 
@@ -351,22 +390,17 @@ class MeshService {
       // نحن فقط ننظر إلى finalDestinationId للتوجيه
       
       // إضافة رسالة إلى RelayQueue (المحتوى مشفر - لا نراه)
-      await database.enqueueRelayMessage(
+      await database.enqueueRelayPacket(
         RelayQueueTableCompanion.insert(
-          messageId: meshMessage.messageId,
-          originalSenderId: meshMessage.originalSenderId, // Header only
-          finalDestinationId: meshMessage.finalDestinationId, // Header only
-          encryptedContent: meshMessage.encryptedContent, // 🔒 Encrypted - Blind to us
-          hopCount: Value(meshMessage.hopCount),
-          maxHops: Value(meshMessage.maxHops),
+          packetId: meshMessage.messageId,
+          toHash: meshMessage.finalDestinationId, // Using ID as hash for now (Blind Relaying)
+          ttl: Value(meshMessage.maxHops),
+          payload: meshMessage.toJsonString(), // Encapsulate entire message as payload
+          createdAt: meshMessage.timestamp, // Pass DateTime directly, not Value check generated code normally
           trace: Value(jsonEncode(meshMessage.trace)),
-          timestamp: meshMessage.timestamp,
-          type: Value(meshMessage.type),
-          metadata: meshMessage.metadata != null 
-              ? Value(jsonEncode(meshMessage.metadata)) 
-              : const Value.absent(),
         ),
       );
+
       
       LogService.info('💾 تم تخزين الرسالة في RelayQueue (Blind Relay): ${meshMessage.messageId}');
       LogService.info('   - Destination: ${meshMessage.finalDestinationId}');
@@ -414,7 +448,7 @@ class MeshService {
   Future<void> flushRelayQueue(String newPeerId) async {
     try {
       final database = await _ref.read(appDatabaseProvider.future);
-      final queue = await database.getRelayQueue();
+      final queue = await database.getRelayPacketsForSync();
       
       if (queue.isEmpty) {
         LogService.info('📭 RelayQueue فارغة - لا توجد رسائل للإرسال');
@@ -426,29 +460,22 @@ class MeshService {
       for (final queuedMessage in queue) {
         try {
           // إعادة بناء MeshMessage من RelayQueueTableData
-          final trace = jsonDecode(queuedMessage.trace) as List;
-          final traceList = trace.map((e) => e.toString()).toList();
-          
-          final meshMessage = MeshMessage(
-            messageId: queuedMessage.messageId,
-            originalSenderId: queuedMessage.originalSenderId,
-            finalDestinationId: queuedMessage.finalDestinationId,
-            encryptedContent: queuedMessage.encryptedContent,
-            hopCount: queuedMessage.hopCount,
-            maxHops: queuedMessage.maxHops,
-            trace: traceList,
-            timestamp: queuedMessage.timestamp,
-            type: queuedMessage.type,
-            metadata: queuedMessage.metadata != null
-                ? jsonDecode(queuedMessage.metadata!) as Map<String, dynamic>
-                : null,
-          );
+          final Map<String, dynamic> payloadMap;
+          try {
+            payloadMap = jsonDecode(queuedMessage.payload) as Map<String, dynamic>;
+          } catch (e) {
+            LogService.error('فشل في فك تشفير payload للرسالة ${queuedMessage.packetId}', e);
+            await database.deletePacket(queuedMessage.packetId);
+            continue;
+          }
+
+          final meshMessage = MeshMessage.fromJson(payloadMap);
           
           // التحقق من صحة الرسالة قبل الإرسال
           final myDeviceId = await _getMyDeviceId();
           if (!meshMessage.isValid(myDeviceId)) {
             LogService.warning('⚠️ رسالة غير صالحة في RelayQueue: ${meshMessage.messageId}');
-            await database.removeFromRelayQueue(meshMessage.messageId);
+            await database.deletePacket(queuedMessage.packetId);
             continue;
           }
           
@@ -457,15 +484,15 @@ class MeshService {
           
           if (sent) {
             // حذف الرسالة من RelayQueue بعد الإرسال الناجح
-            await database.removeFromRelayQueue(meshMessage.messageId);
+            await database.deletePacket(queuedMessage.packetId);
             LogService.info('✅ تم إرسال رسالة من RelayQueue: ${meshMessage.messageId}');
           } else {
             // زيادة عدد المحاولات
-            await database.incrementRetryCount(meshMessage.messageId);
+            await database.incrementRetryCount(queuedMessage.packetId);
           }
         } catch (e) {
           LogService.error('خطأ في إرسال رسالة من RelayQueue', e);
-          await database.incrementRetryCount(queuedMessage.messageId);
+          await database.incrementRetryCount(queuedMessage.packetId);
         }
       }
       

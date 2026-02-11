@@ -20,7 +20,17 @@
     <!-- Android 13+ (API 33+) -->
     <uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES" android:usesPermissionFlags="neverForLocation" />
     <!-- Required for P2P discovery on older Android versions -->
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    
+    <!-- Bluetooth Permissions (Required for Nearby Connections) -->
+    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
+    <!-- Android 12+ (API 31+) -->
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:usesPermissionFlags="neverForLocation" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    
     <!-- WiFi State Permissions -->
     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
@@ -30,6 +40,8 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- WiFi P2P Feature -->
     <uses-feature android:name="android.hardware.wifi.direct" android:required="false" />
+    <!-- Bluetooth Feature -->
+    <uses-feature android:name="android.hardware.bluetooth" android:required="false" />
     
     <application
         android:label="sada"

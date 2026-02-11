@@ -63,6 +63,7 @@ class AuthService extends StateNotifier<AuthStatus> {
   static const String _masterPinHashKey = 'master_pin_hash';
   static const String _duressPinHashKey = 'duress_pin_hash';
   static const String _pinSaltKey = 'pin_salt';
+  static const String _authTypeKey = 'current_auth_type';
   
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage(
     aOptions: AndroidOptions(
@@ -318,12 +319,14 @@ class AuthService extends StateNotifier<AuthStatus> {
       
       if (masterPinHash != null && inputHash == masterPinHash) {
         _currentAuthType = AuthType.master;
+        await _secureStorage.write(key: _authTypeKey, value: 'master');
         LogService.info('تم التحقق من Master PIN بنجاح');
         return AuthType.master;
       }
       
       if (duressPinHash != null && inputHash == duressPinHash) {
         _currentAuthType = AuthType.duress;
+        await _secureStorage.write(key: _authTypeKey, value: 'duress');
         LogService.info('تم التحقق من Duress PIN - تم تفعيل Duress Mode');
         return AuthType.duress;
       }
@@ -349,8 +352,9 @@ class AuthService extends StateNotifier<AuthStatus> {
   
   /// إعادة تعيين نوع المصادقة (عند تسجيل الخروج)
   /// يجب استدعاؤها عند تسجيل الخروج أو إغلاق التطبيق
-  void resetAuthType() {
+  void resetAuthType() async {
     _currentAuthType = null;
+    await _secureStorage.delete(key: _authTypeKey);
     LogService.info('تم إعادة تعيين AuthType');
   }
 }

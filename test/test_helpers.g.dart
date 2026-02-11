@@ -1175,6 +1175,18 @@ class $MessagesTableTable extends MessagesTable
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _retryCountMeta = const VerificationMeta(
+    'retryCount',
+  );
+  @override
+  late final GeneratedColumn<int> retryCount = GeneratedColumn<int>(
+    'retry_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1186,6 +1198,7 @@ class $MessagesTableTable extends MessagesTable
     timestamp,
     isFromMe,
     replyToId,
+    retryCount,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1258,6 +1271,12 @@ class $MessagesTableTable extends MessagesTable
         replyToId.isAcceptableOrUnknown(data['reply_to_id']!, _replyToIdMeta),
       );
     }
+    if (data.containsKey('retry_count')) {
+      context.handle(
+        _retryCountMeta,
+        retryCount.isAcceptableOrUnknown(data['retry_count']!, _retryCountMeta),
+      );
+    }
     return context;
   }
 
@@ -1303,6 +1322,10 @@ class $MessagesTableTable extends MessagesTable
         DriftSqlType.string,
         data['${effectivePrefix}reply_to_id'],
       ),
+      retryCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}retry_count'],
+      )!,
     );
   }
 
@@ -1340,6 +1363,9 @@ class MessagesTableData extends DataClass
 
   /// معرف الرسالة المرجعية (للرد على رسالة)
   final String? replyToId;
+
+  /// عدد محاولات الإرسال (لإعادة الإرسال التلقائي)
+  final int retryCount;
   const MessagesTableData({
     required this.id,
     required this.chatId,
@@ -1350,6 +1376,7 @@ class MessagesTableData extends DataClass
     required this.timestamp,
     required this.isFromMe,
     this.replyToId,
+    required this.retryCount,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1365,6 +1392,7 @@ class MessagesTableData extends DataClass
     if (!nullToAbsent || replyToId != null) {
       map['reply_to_id'] = Variable<String>(replyToId);
     }
+    map['retry_count'] = Variable<int>(retryCount);
     return map;
   }
 
@@ -1381,6 +1409,7 @@ class MessagesTableData extends DataClass
       replyToId: replyToId == null && nullToAbsent
           ? const Value.absent()
           : Value(replyToId),
+      retryCount: Value(retryCount),
     );
   }
 
@@ -1399,6 +1428,7 @@ class MessagesTableData extends DataClass
       timestamp: serializer.fromJson<DateTime>(json['timestamp']),
       isFromMe: serializer.fromJson<bool>(json['isFromMe']),
       replyToId: serializer.fromJson<String?>(json['replyToId']),
+      retryCount: serializer.fromJson<int>(json['retryCount']),
     );
   }
   @override
@@ -1414,6 +1444,7 @@ class MessagesTableData extends DataClass
       'timestamp': serializer.toJson<DateTime>(timestamp),
       'isFromMe': serializer.toJson<bool>(isFromMe),
       'replyToId': serializer.toJson<String?>(replyToId),
+      'retryCount': serializer.toJson<int>(retryCount),
     };
   }
 
@@ -1427,6 +1458,7 @@ class MessagesTableData extends DataClass
     DateTime? timestamp,
     bool? isFromMe,
     Value<String?> replyToId = const Value.absent(),
+    int? retryCount,
   }) => MessagesTableData(
     id: id ?? this.id,
     chatId: chatId ?? this.chatId,
@@ -1437,6 +1469,7 @@ class MessagesTableData extends DataClass
     timestamp: timestamp ?? this.timestamp,
     isFromMe: isFromMe ?? this.isFromMe,
     replyToId: replyToId.present ? replyToId.value : this.replyToId,
+    retryCount: retryCount ?? this.retryCount,
   );
   MessagesTableData copyWithCompanion(MessagesTableCompanion data) {
     return MessagesTableData(
@@ -1449,6 +1482,9 @@ class MessagesTableData extends DataClass
       timestamp: data.timestamp.present ? data.timestamp.value : this.timestamp,
       isFromMe: data.isFromMe.present ? data.isFromMe.value : this.isFromMe,
       replyToId: data.replyToId.present ? data.replyToId.value : this.replyToId,
+      retryCount: data.retryCount.present
+          ? data.retryCount.value
+          : this.retryCount,
     );
   }
 
@@ -1463,7 +1499,8 @@ class MessagesTableData extends DataClass
           ..write('status: $status, ')
           ..write('timestamp: $timestamp, ')
           ..write('isFromMe: $isFromMe, ')
-          ..write('replyToId: $replyToId')
+          ..write('replyToId: $replyToId, ')
+          ..write('retryCount: $retryCount')
           ..write(')'))
         .toString();
   }
@@ -1479,6 +1516,7 @@ class MessagesTableData extends DataClass
     timestamp,
     isFromMe,
     replyToId,
+    retryCount,
   );
   @override
   bool operator ==(Object other) =>
@@ -1492,7 +1530,8 @@ class MessagesTableData extends DataClass
           other.status == this.status &&
           other.timestamp == this.timestamp &&
           other.isFromMe == this.isFromMe &&
-          other.replyToId == this.replyToId);
+          other.replyToId == this.replyToId &&
+          other.retryCount == this.retryCount);
 }
 
 class MessagesTableCompanion extends UpdateCompanion<MessagesTableData> {
@@ -1505,6 +1544,7 @@ class MessagesTableCompanion extends UpdateCompanion<MessagesTableData> {
   final Value<DateTime> timestamp;
   final Value<bool> isFromMe;
   final Value<String?> replyToId;
+  final Value<int> retryCount;
   final Value<int> rowid;
   const MessagesTableCompanion({
     this.id = const Value.absent(),
@@ -1516,6 +1556,7 @@ class MessagesTableCompanion extends UpdateCompanion<MessagesTableData> {
     this.timestamp = const Value.absent(),
     this.isFromMe = const Value.absent(),
     this.replyToId = const Value.absent(),
+    this.retryCount = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   MessagesTableCompanion.insert({
@@ -1528,6 +1569,7 @@ class MessagesTableCompanion extends UpdateCompanion<MessagesTableData> {
     this.timestamp = const Value.absent(),
     this.isFromMe = const Value.absent(),
     this.replyToId = const Value.absent(),
+    this.retryCount = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        chatId = Value(chatId),
@@ -1543,6 +1585,7 @@ class MessagesTableCompanion extends UpdateCompanion<MessagesTableData> {
     Expression<DateTime>? timestamp,
     Expression<bool>? isFromMe,
     Expression<String>? replyToId,
+    Expression<int>? retryCount,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -1555,6 +1598,7 @@ class MessagesTableCompanion extends UpdateCompanion<MessagesTableData> {
       if (timestamp != null) 'timestamp': timestamp,
       if (isFromMe != null) 'is_from_me': isFromMe,
       if (replyToId != null) 'reply_to_id': replyToId,
+      if (retryCount != null) 'retry_count': retryCount,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1569,6 +1613,7 @@ class MessagesTableCompanion extends UpdateCompanion<MessagesTableData> {
     Value<DateTime>? timestamp,
     Value<bool>? isFromMe,
     Value<String?>? replyToId,
+    Value<int>? retryCount,
     Value<int>? rowid,
   }) {
     return MessagesTableCompanion(
@@ -1581,6 +1626,7 @@ class MessagesTableCompanion extends UpdateCompanion<MessagesTableData> {
       timestamp: timestamp ?? this.timestamp,
       isFromMe: isFromMe ?? this.isFromMe,
       replyToId: replyToId ?? this.replyToId,
+      retryCount: retryCount ?? this.retryCount,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1615,6 +1661,9 @@ class MessagesTableCompanion extends UpdateCompanion<MessagesTableData> {
     if (replyToId.present) {
       map['reply_to_id'] = Variable<String>(replyToId.value);
     }
+    if (retryCount.present) {
+      map['retry_count'] = Variable<int>(retryCount.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1633,6 +1682,7 @@ class MessagesTableCompanion extends UpdateCompanion<MessagesTableData> {
           ..write('timestamp: $timestamp, ')
           ..write('isFromMe: $isFromMe, ')
           ..write('replyToId: $replyToId, ')
+          ..write('retryCount: $retryCount, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -2504,6 +2554,7 @@ typedef $$MessagesTableTableCreateCompanionBuilder =
       Value<DateTime> timestamp,
       Value<bool> isFromMe,
       Value<String?> replyToId,
+      Value<int> retryCount,
       Value<int> rowid,
     });
 typedef $$MessagesTableTableUpdateCompanionBuilder =
@@ -2517,6 +2568,7 @@ typedef $$MessagesTableTableUpdateCompanionBuilder =
       Value<DateTime> timestamp,
       Value<bool> isFromMe,
       Value<String?> replyToId,
+      Value<int> retryCount,
       Value<int> rowid,
     });
 
@@ -2598,6 +2650,11 @@ class $$MessagesTableTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<int> get retryCount => $composableBuilder(
+    column: $table.retryCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
   $$ChatsTableTableFilterComposer get chatId {
     final $$ChatsTableTableFilterComposer composer = $composerBuilder(
       composer: this,
@@ -2671,6 +2728,11 @@ class $$MessagesTableTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get retryCount => $composableBuilder(
+    column: $table.retryCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$ChatsTableTableOrderingComposer get chatId {
     final $$ChatsTableTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -2727,6 +2789,11 @@ class $$MessagesTableTableAnnotationComposer
 
   GeneratedColumn<String> get replyToId =>
       $composableBuilder(column: $table.replyToId, builder: (column) => column);
+
+  GeneratedColumn<int> get retryCount => $composableBuilder(
+    column: $table.retryCount,
+    builder: (column) => column,
+  );
 
   $$ChatsTableTableAnnotationComposer get chatId {
     final $$ChatsTableTableAnnotationComposer composer = $composerBuilder(
@@ -2789,6 +2856,7 @@ class $$MessagesTableTableTableManager
                 Value<DateTime> timestamp = const Value.absent(),
                 Value<bool> isFromMe = const Value.absent(),
                 Value<String?> replyToId = const Value.absent(),
+                Value<int> retryCount = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => MessagesTableCompanion(
                 id: id,
@@ -2800,6 +2868,7 @@ class $$MessagesTableTableTableManager
                 timestamp: timestamp,
                 isFromMe: isFromMe,
                 replyToId: replyToId,
+                retryCount: retryCount,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -2813,6 +2882,7 @@ class $$MessagesTableTableTableManager
                 Value<DateTime> timestamp = const Value.absent(),
                 Value<bool> isFromMe = const Value.absent(),
                 Value<String?> replyToId = const Value.absent(),
+                Value<int> retryCount = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => MessagesTableCompanion.insert(
                 id: id,
@@ -2824,6 +2894,7 @@ class $$MessagesTableTableTableManager
                 timestamp: timestamp,
                 isFromMe: isFromMe,
                 replyToId: replyToId,
+                retryCount: retryCount,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

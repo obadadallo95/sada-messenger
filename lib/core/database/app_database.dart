@@ -8,6 +8,7 @@ import 'tables/chats_table.dart';
 import 'tables/messages_table.dart';
 import 'tables/relay_queue_table.dart';
 import '../utils/log_service.dart';
+import '../utils/constants.dart';
 
 part 'app_database.g.dart';
 
@@ -41,7 +42,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration {
@@ -52,16 +53,21 @@ class AppDatabase extends _$AppDatabase {
       },
       onUpgrade: (Migrator m, int from, int to) async {
         LogService.info('ترقية قاعدة البيانات من schema $from إلى $to');
-        // عند الترقية من schema 1 إلى 2
+        // When upgrading from schema 1 to 2
         if (from < 2) {
-          // لا نعيد إنشاء الجداول - فقط نحدث schema version
-          // الجداول موجودة بالفعل، لا حاجة لإعادة إنشائها
-          LogService.info('تم الترقية إلى schema 2 - الجداول موجودة بالفعل');
+          LogService.info('تم الترقية إلى schema 2');
         }
-        // عند الترقية من schema 2 إلى 3 - إضافة RelayQueueTable
-        if (from < 3) {
-          LogService.info('إضافة RelayQueueTable للـ Store-Carry-Forward Mesh Routing');
+        // When upgrading from schema 2 or 3 to 4 (RelayQueueTable changes)
+        if (from < 4) {
+          LogService.info('تحديث RelayQueueTable لدعم Blind Relaying (Schema v4)');
+          await m.deleteTable('relay_queue_table');
           await m.createTable(relayQueueTable);
+        }
+        // When upgrading to schema 5 (Add retryCount)
+        if (from < 5) {
+          LogService.info('إضافة retryCount لتعقب محاولات الإرسال (Schema v5)');
+          await m.addColumn(relayQueueTable, relayQueueTable.retryCount);
+          await m.addColumn(messagesTable, messagesTable.retryCount);
         }
       },
     );
@@ -238,89 +244,157 @@ class AppDatabase extends _$AppDatabase {
 
   // ==================== Relay Queue DAOs ====================
 
-  /// إضافة رسالة إلى قائمة الانتظار للترحيل
-  Future<void> enqueueRelayMessage(RelayQueueTableCompanion message) async {
-    await into(relayQueueTable).insert(message, mode: InsertMode.replace);
-    LogService.info('تم إضافة رسالة إلى RelayQueue: ${message.messageId.value}');
+  /// Add a packet to the relay queue.
+  Future<void> enqueueRelayPacket(RelayQueueTableCompanion packet) async {
+    // قبل تخزين حزمة جديدة، نتحقق من حجم Relay Queue لتفادي امتلاء التخزين.
+    final currentSize = await getRelayStorageSize();
+    if (currentSize >= AppConstants.relayQueueMaxCount) {
+      final overflow = currentSize - AppConstants.relayQueueMaxCount + 1;
+      await _trimRelayQueue(overflow);
+    }
+
+    await into(relayQueueTable).insert(packet, mode: InsertMode.replace);
+    LogService.info('📦 تم تخزين Relay Packet: ${packet.packetId.value}');
   }
 
-  /// الحصول على جميع الرسائل في قائمة الانتظار
-  Future<List<RelayQueueTableData>> getRelayQueue() async {
+  /// Get all relay packets for syncing with another device.
+  /// Returns packets that are not expired and valid to send.
+  Future<List<RelayQueueTableData>> getRelayPacketsForSync() async {
+    // TODO: Implement bloom filter or vector summary check logic if needed here
+    // For now, return all valid packets
     return await (select(relayQueueTable)
           ..orderBy([(t) => OrderingTerm(expression: t.queuedAt)]))
         .get();
   }
 
-  /// الحصول على رسائل قائمة الانتظار الموجهة لجهاز معين
-  Future<List<RelayQueueTableData>> getRelayQueueForDestination(String destinationId) async {
+  /// Check if we have a packet for this specific target hash.
+  /// Used when checking "Is this for me?".
+  Future<List<RelayQueueTableData>> getPacketsForTargetHash(String targetHash) async {
     return await (select(relayQueueTable)
-          ..where((t) => t.finalDestinationId.equals(destinationId))
-          ..orderBy([(t) => OrderingTerm(expression: t.queuedAt)]))
+          ..where((t) => t.toHash.equals(targetHash)))
         .get();
   }
 
-  /// التحقق من وجود رسالة في قائمة الانتظار (deduplication)
-  Future<bool> isMessageInQueue(String messageId) async {
+  /// Check if a packet already exists in the queue (Deduplication).
+  Future<bool> hasPacket(String packetId) async {
     final result = await (select(relayQueueTable)
-          ..where((t) => t.messageId.equals(messageId)))
+          ..where((t) => t.packetId.equals(packetId)))
         .getSingleOrNull();
     return result != null;
   }
 
-  /// حذف رسالة من قائمة الانتظار (بعد إرسالها بنجاح)
-  Future<bool> removeFromRelayQueue(String messageId) async {
-    final rowsAffected = await (delete(relayQueueTable)
-          ..where((t) => t.messageId.equals(messageId)))
-        .go();
-    if (rowsAffected > 0) {
-      LogService.info('تم حذف رسالة من RelayQueue: $messageId');
-    }
-    return rowsAffected > 0;
-  }
-
-  /// حذف الرسائل القديمة (أكثر من 24 ساعة)
-  Future<int> cleanupOldRelayMessages() async {
-    final cutoffTime = DateTime.now().subtract(const Duration(hours: 24));
-    final rowsAffected = await (delete(relayQueueTable)
-          ..where((t) => t.timestamp.isSmallerThanValue(cutoffTime)))
-        .go();
-    if (rowsAffected > 0) {
-      LogService.info('تم حذف $rowsAffected رسالة قديمة من RelayQueue');
-    }
-    return rowsAffected;
-  }
-
-  /// تحديث عدد المحاولات
-  Future<void> incrementRetryCount(String messageId) async {
-    final message = await (select(relayQueueTable)
-          ..where((t) => t.messageId.equals(messageId)))
+  /// Get a single relay packet by ID, or null if it does not exist.
+  Future<RelayQueueTableData?> getRelayPacketById(String packetId) async {
+    return await (select(relayQueueTable)
+          ..where((t) => t.packetId.equals(packetId)))
         .getSingleOrNull();
-    
-    if (message != null) {
-      await (update(relayQueueTable)..where((t) => t.messageId.equals(messageId)))
-          .write(RelayQueueTableCompanion(
-        retryCount: Value(message.retryCount + 1),
-        lastRetryAt: Value(DateTime.now()),
-      ));
-    }
   }
 
-  /// حذف الرسائل التي تجاوزت الحد الأقصى للمحاولات (5 محاولات)
-  Future<int> removeFailedMessages() async {
-    const maxRetries = 5;
-    final rowsAffected = await (delete(relayQueueTable)
-          ..where((t) => t.retryCount.isBiggerThanValue(maxRetries)))
+  /// Delete a packet from the queue.
+  Future<bool> deletePacket(String packetId) async {
+    final rows = await (delete(relayQueueTable)
+          ..where((t) => t.packetId.equals(packetId)))
         .go();
-    if (rowsAffected > 0) {
-      LogService.info('تم حذف $rowsAffected رسالة فاشلة من RelayQueue');
-    }
-    return rowsAffected;
+    return rows > 0;
   }
 
-  @override
-  Future<void> close() {
-    LogService.info('إغلاق قاعدة البيانات: $_databaseFileName');
-    return super.close();
+  /// Cleanup expired packets (TTL check).
+  /// This should be run periodically.
+  Future<int> cleanupExpiredPackets() async {
+    // Determine cutoff based on TTL?
+    // Since TTL is per-packet (in hops or hours), we might need a more complex query
+    // or iterate. For simplicity/performance, let's assume a hard global limit for now
+    // or rely on the application logic to check `isExpired()` and delete.
+    
+    // Efficient approach: Delete packets older than global max limit (e.g. 7 days)
+    // regardless of internal TTL to save space.
+    final hardLimit = DateTime.now().subtract(const Duration(days: 7));
+    final rows = await (delete(relayQueueTable)
+          ..where((t) => t.createdAt.isSmallerThanValue(hardLimit)))
+        .go();
+    
+    if (rows > 0) LogService.info('🧹 تم تنظيف $rows حزم منتهية الصلاحية');
+    return rows;
+  }
+
+  /// Get total size of relay storage (optional constraint check).
+  Future<int> getRelayStorageSize() async {
+    // Drift doesn't have direct "size" query easily without custom SQL.
+    // Count is a proxy.
+    final count = await (selectOnly(relayQueueTable)..addColumns([relayQueueTable.packetId.count()])).getSingle();
+    return count.read(relayQueueTable.packetId.count()) ?? 0;
+  }
+
+  /// حذف عدد محدد من أقدم الحزم في Relay Queue للحفاظ على الحد الأقصى.
+  Future<void> _trimRelayQueue(int deleteCount) async {
+    if (deleteCount <= 0) return;
+
+    final oldestPackets = await (select(relayQueueTable)
+          ..orderBy([(t) => OrderingTerm(expression: t.queuedAt)]))
+        .get();
+
+    var removed = 0;
+    for (final packet in oldestPackets) {
+      if (removed >= deleteCount) break;
+      final rows = await (delete(relayQueueTable)
+            ..where((t) => t.packetId.equals(packet.packetId)))
+          .go();
+      if (rows > 0) {
+        removed += 1;
+      }
+    }
+
+    if (removed > 0) {
+      LogService.info('🧹 تم حذف $removed Relay Packets القديمة للحفاظ على سعة التخزين');
+    }
+  }
+
+  /// تنظيف الرسائل القديمة في Relay Queue (Congestion Control)
+  Future<int> cleanupOldRelayMessages() async {
+    // حذف الرسائل التي تجاوزت مدة معينة (مثلاً 7 أيام)
+    final expirationDate = DateTime.now().subtract(const Duration(days: 7));
+    
+    final rowsDeleted = await (delete(relayQueueTable)
+      ..where((t) => t.queuedAt.isSmallerThanValue(expirationDate)))
+      .go();
+      
+    if (rowsDeleted > 0) {
+      LogService.info('🧹 تم تنظيف $rowsDeleted رسائل Relay قديمة');
+    }
+    return rowsDeleted;
+  }
+
+  /// حذف الرسائل التي فشل إرسالها (status = failed)
+  /// ملاحظة: عادة لا نحذف الرسائل الفاشلة فوراً، لكن قد نحتاج لتنظيفها إذا تراكمت
+  Future<int> removeFailedMessages() async {
+    final rowsDeleted = await (delete(messagesTable)
+      ..where((t) => t.status.equals('failed')))
+      .go();
+      
+    if (rowsDeleted > 0) {
+      LogService.info('🧹 تم حذف $rowsDeleted رسائل فاشلة');
+    }
+    return rowsDeleted;
+  }
+
+  /// زيادة عدد محاولات الإرسال (Retry Count) لرسالة
+  Future<void> incrementRetryCount(String messageId) async {
+    // 1. Check Relay Queue
+    final relayPacket = await (select(relayQueueTable)..where((t) => t.packetId.equals(messageId))).getSingleOrNull();
+    if (relayPacket != null) {
+      final newCount = relayPacket.retryCount + 1;
+      await (update(relayQueueTable)..where((t) => t.packetId.equals(messageId)))
+          .write(RelayQueueTableCompanion(retryCount: Value(newCount)));
+      return; 
+    }
+
+    // 2. Check Messages Table
+    final message = await (select(messagesTable)..where((t) => t.id.equals(messageId))).getSingleOrNull();
+    if (message != null) {
+      final newCount = message.retryCount + 1;
+      await (update(messagesTable)..where((t) => t.id.equals(messageId)))
+          .write(MessagesTableCompanion(retryCount: Value(newCount)));
+    }
   }
 }
 

@@ -46,34 +46,71 @@ class IncomingMessageHandler {
     );
   }
 
+  /// Validate message structure before processing
+  bool _validateMessageStructure(Map<String, dynamic> json) {
+    // Check for MeshMessage format
+    final isMeshMessage = json.containsKey('originalSenderId') && 
+                          json.containsKey('finalDestinationId');
+    
+    if (isMeshMessage) {
+      // MeshMessage requires: messageId, originalSenderId, finalDestinationId, encryptedContent
+      final requiredFields = ['messageId', 'originalSenderId', 'finalDestinationId', 'encryptedContent'];
+      return requiredFields.every((field) => json.containsKey(field) && json[field] != null);
+    } else {
+      // Legacy format requires: senderId/peerId and content/message
+      final hasSender = json.containsKey('senderId') || json.containsKey('peerId');
+      final hasContent = json.containsKey('content') || json.containsKey('message');
+      return hasSender && hasContent;
+    }
+  }
+
   Future<void> _handleIncomingMessage(String messageJson) async {
     try {
       LogService.info('معالجة رسالة واردة: ${messageJson.substring(0, messageJson.length > 50 ? 50 : messageJson.length)}...');
       
-      // محاولة Parse كـ MeshMessage أولاً
-      Map<String, dynamic> messageData;
+      // Parse JSON with error handling
+      final Map<String, dynamic> messageData;
       try {
-        messageData = jsonDecode(messageJson);
+        final decoded = jsonDecode(messageJson);
+        if (decoded is! Map<String, dynamic>) {
+          LogService.warning('⚠️ Invalid message format: not a JSON object');
+          return;
+        }
+        messageData = decoded;
       } catch (e) {
-        // إذا لم يكن JSON، نتعامل معه كنص عادي (Legacy format)
-        messageData = {
-          'content': messageJson,
-          'senderId': 'unknown',
-        };
+        LogService.warning('⚠️ Failed to parse JSON payload', e);
+        return; // Drop malformed message
       }
       
-      // التحقق من أن هذه رسالة MeshMessage (تحتوي على messageId)
-      final bool isMeshMessage = messageData.containsKey('messageId') &&
-          messageData.containsKey('originalSenderId') &&
-          messageData.containsKey('finalDestinationId');
+      // Validate message structure
+      if (!_validateMessageStructure(messageData)) {
+        LogService.warning('⚠️ Message missing required fields');
+        return;
+      }
       
-      String? senderId;
-      String? encryptedContent;
+      // التحقق من نوع الرسالة (MeshMessage أو Legacy)
+      final isMeshMessage = messageData.containsKey('originalSenderId') && 
+                            messageData.containsKey('finalDestinationId');
+      
+      // التحقق من أن الرسالة ليست ACK (لا نعالجها هنا)
+      final isAck = messageData['type'] == MeshMessage.typeAck;
+      if (isAck) {
+        LogService.info('📨 ACK message received - سيتم معالجتها في MeshService');
+        return; // ACKs are handled by MeshService._handleAck
+      }
+      
+      // استخراج البيانات الأساسية (now guaranteed to be non-null by validation)
+      String senderId;
+      String encryptedContent;
+      String? meshMessageId;
+      String? originalSenderId;
       
       if (isMeshMessage) {
         // MeshMessage format
-        senderId = messageData['originalSenderId'] as String?;
-        encryptedContent = messageData['encryptedContent'] as String?;
+        senderId = messageData['originalSenderId'] as String;
+        encryptedContent = messageData['encryptedContent'] as String;
+        meshMessageId = messageData['messageId'] as String;
+        originalSenderId = messageData['originalSenderId'] as String;
         
         // التحقق من أن الرسالة موجهة لي
         final authService = _ref.read(authServiceProvider.notifier);
@@ -86,13 +123,8 @@ class IncomingMessageHandler {
         }
       } else {
         // Legacy format
-        senderId = messageData['senderId'] as String? ?? messageData['peerId'] as String?;
-        encryptedContent = messageData['content'] as String? ?? messageData['message'] as String?;
-      }
-      
-      if (senderId == null || encryptedContent == null) {
-        LogService.error('رسالة غير صحيحة: senderId أو content مفقود');
-        return;
+        senderId = (messageData['senderId'] ?? messageData['peerId']) as String;
+        encryptedContent = (messageData['content'] ?? messageData['message']) as String;
       }
 
       final database = await _ref.read(appDatabaseProvider.future);
@@ -212,6 +244,34 @@ class IncomingMessageHandler {
       _ref.invalidate(chatRepositoryProvider);
       
       LogService.info('تم حفظ الرسالة الواردة بنجاح: $messageId');
+
+      // ==================== إرسال ACK للمرسل الأصلي ====================
+      // يتم إرسال ACK فقط لرسائل MeshMessage (ليست CONTACT_EXCHANGE أو system-only).
+      if (isMeshMessage && meshMessageId != null && originalSenderId != null) {
+        final authService = _ref.read(authServiceProvider.notifier);
+        final currentUser = authService.currentUser;
+        final myId = currentUser?.userId;
+
+        if (myId != null) {
+          final meshService = _ref.read(meshServiceProvider);
+
+          // نستخدم metadata لحمل originalMessageId بدون تضمينه في payload.
+          final ackMetadata = <String, dynamic>{
+            'originalMessageId': meshMessageId,
+          };
+
+          await meshService.sendMeshMessage(
+            originalSenderId,
+            '', // لا نحتاج payload فعلي - الميتاداتا تكفي
+            senderId: myId,
+            maxHops: 10,
+            type: MeshMessage.typeAck,
+            metadata: ackMetadata,
+          );
+
+          LogService.info('📨 تم إرسال ACK للرسالة: $meshMessageId إلى $originalSenderId');
+        }
+      }
       
     } catch (e) {
       LogService.error('خطأ في معالجة الرسالة الواردة', e);

@@ -24,6 +24,12 @@ class MessageBubble extends StatelessWidget {
   Widget _buildStatusIcon(MessageStatus status, BuildContext context) {
     final theme = Theme.of(context);
     switch (status) {
+      case MessageStatus.draft:
+        return Icon(
+          Icons.edit,
+          size: 14.sp,
+          color: Colors.white.withValues(alpha: 0.5),
+        );
       case MessageStatus.sending:
         return SizedBox(
           width: 14.sp,

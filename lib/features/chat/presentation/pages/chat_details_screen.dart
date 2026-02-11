@@ -8,7 +8,10 @@ import '../../../../core/database/database_provider.dart';
 import '../../domain/models/chat_model.dart';
 import '../../data/repositories/messages_provider.dart';
 import '../../application/chat_controller.dart';
+import '../../application/chat_controller.dart';
+import '../../domain/models/message_model.dart';
 import '../widgets/message_bubble.dart';
+import '../../../network/presentation/widgets/network_status_chip.dart';
 
 /// شاشة تفاصيل المحادثة
 class ChatDetailsScreen extends ConsumerStatefulWidget {
@@ -131,16 +134,8 @@ class _ChatDetailsScreenState extends ConsumerState<ChatDetailsScreen> {
               Hero(
                 tag: 'chat_avatar_${widget.chat.id}',
                 child: CircleAvatar(
-                  radius: 20.r,
-                  backgroundColor: Color(widget.chat.avatarColor),
-                  child: Text(
-                    _getInitial(widget.chat.name),
-                    style: TextStyle(
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
+                  backgroundColor: Color(widget.chat.avatarColor), // Use real color
+                  child: Text(widget.chat.name.isNotEmpty ? widget.chat.name[0].toUpperCase() : '?'),
                 ),
               ),
               SizedBox(width: 12.w),
@@ -155,15 +150,36 @@ class _ChatDetailsScreenState extends ConsumerState<ChatDetailsScreen> {
                         color: Colors.white,
                       ),
                     ),
-                    Text(
-                      l10n.online,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: Colors.white.withValues(alpha: 0.7),
-                      ),
+                    Row(
+                      children: [
+                        Container(
+                          width: 6.w,
+                          height: 6.w,
+                          decoration: BoxDecoration(
+                            color: Colors.green, // TODO: Real online status if needed
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                               BoxShadow(
+                                color: Colors.green.withValues(alpha: 0.5),
+                                blurRadius: 4,
+                              ),
+                            ],
+                          ),
+                        ),
+                        SizedBox(width: 4.w),
+                        Text(
+                          l10n.online, // "Connected" or similar
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: Colors.white.withValues(alpha: 0.7),
+                            fontSize: 10.sp,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
+              const NetworkStatusChip(),
             ],
           ),
         ),
@@ -217,6 +233,22 @@ class _ChatDetailsScreenState extends ConsumerState<ChatDetailsScreen> {
               ),
             ),
           ),
+          // Delay Hint / Offline Warning
+          if (messagesAsync.valueOrNull?.isNotEmpty == true && 
+              messagesAsync.valueOrNull!.first.isMe && 
+              messagesAsync.valueOrNull!.first.status == MessageStatus.sending)
+             Padding(
+               padding: EdgeInsets.only(bottom: 8.h),
+               child: Text(
+                 'قد يستغرق التسليم وقتاً لعدم توفر اتصال مباشر بالشبكة',
+                 style: theme.textTheme.bodySmall?.copyWith(
+                   color: Colors.white.withValues(alpha: 0.5),
+                   fontSize: 10.sp,
+                 ),
+                 textAlign: TextAlign.center,
+               ),
+             ),
+
           // منطقة الإدخال - Floating Glass Pill
           Padding(
             padding: EdgeInsets.symmetric(

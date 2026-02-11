@@ -4,6 +4,7 @@ import 'dart:convert';
 /// يدعم Store-Carry-Forward Mesh Routing Protocol
 class MeshMessage {
   static const String typeContactExchange = 'CONTACT_EXCHANGE';
+  static const String typeAck = 'ACK';
   /// معرف فريد للرسالة (للتكرار)
   final String messageId;
   

@@ -1,12 +1,18 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/power_mode.dart';
 import '../utils/log_service.dart';
+import '../database/app_database.dart';
+import '../database/database_provider.dart';
+import '../network/router/epidemic_router.dart';
 
 /// خدمة الخلفية لإدارة Mesh Networking
 /// تتبع Duty Cycle بناءً على وضع الطاقة المحدد
@@ -143,6 +149,7 @@ Timer? _dutyCycleTimer;
 int _dutyCycleCounter = 0;
 bool _isScanning = false;
 int _peerCount = 0;
+EpidemicRouter? _router; // Epidemic Router instance in background
 
 /// FlutterLocalNotificationsPlugin للإشعارات المتقدمة
 final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
@@ -228,8 +235,76 @@ Future<void> _updateBackgroundNotification({
 /// نقطة البداية للخدمة الخلفية (Android)
 @pragma('vm:entry-point')
 void onStart(ServiceInstance service) async {
-  // تهيئة إشعارات الخدمة الخلفية
+  // 1. تهيئة WidgetsBinding
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // 2. تهيئة إشعارات الخدمة الخلفية
   await _initializeBackgroundNotifications(service);
+
+  // 3. Setup Riverpod container with Database
+  // استخدام try-catch لضمان عدم انهيار الخدمة عند فشل قاعدة البيانات
+  ProviderContainer? container;
+  try {
+    final database = AppDatabase.create('sada.sqlite');
+    container = ProviderContainer(
+      overrides: [
+        appDatabaseProvider.overrideWith((ref) => Future.value(database)),
+      ],
+    );
+    LogService.info('Database Initialized in Background Service');
+  } catch (e) {
+     LogService.error('CRITICAL: Failed to initialize Database in onStart', e);
+     // قد نحتاج لإعادة المحاولة أو إيقاف الخدمة
+  }
+
+  // 4. Initialize Epidemic Router
+  if (container != null) {
+    try {
+      const secureStorage = FlutterSecureStorage();
+      final userDataJson = await secureStorage.read(key: 'user_data');
+      if (userDataJson != null) {
+        final userData = jsonDecode(userDataJson);
+        final String userId = userData['userId'];
+        
+        // التحقق من Duress Mode - لا نبدأ الشبكة في وضع الإكراه
+        final authTypeStr = await secureStorage.read(key: 'current_auth_type');
+        if (authTypeStr == 'duress') {
+          LogService.info('🔒 Duress Mode active - mesh service disabled for security');
+          // لا نبدأ EpidemicRouter في Duress Mode لمنع أي نشاط شبكي حقيقي
+          // هذا يحمي هوية جهات الاتصال الحقيقية
+          return;
+        }
+        
+        _router = container.read(epidemicRouterProvider.notifier);
+        
+        // ربط Metrics Callbacks
+        // (سنحتاج لتحديث EpidemicRouter لدعم هذه الـ callbacks)
+        /*
+        _router!.onMetricsUpdated = (s, r, d) {
+             _updateMetrics(service, sent: s, received: r, dropped: d);
+        };
+        */
+
+        await _router!.initialize(userId, onPeerCountChanged: (count) {
+           _peerCount = count;
+           service.invoke('updatePeerCount', {'count': count});
+           if (service is AndroidServiceInstance) {
+             service.setForegroundNotificationInfo(
+               title: '📡 Sada Active',
+               content: 'Scanning... ${_peerCount > 0 ? ' • $_peerCount peers' : ''}',
+             );
+           }
+        }, onMetricsUpdated: (s, r, d) {
+             _updateMetrics(service, sent: s, received: r, dropped: d);
+        });
+        LogService.info('EpidemicRouter initialized in background for user: $userId');
+      } else {
+        LogService.warning('Cannot initialize EpidemicRouter: No user data found.');
+      }
+    } catch (e) {
+      LogService.error('Error initializing EpidemicRouter in background', e);
+    }
+  }
 
   if (service is AndroidServiceInstance) {
     // معالج إيقاف الخدمة
@@ -240,7 +315,6 @@ void onStart(ServiceInstance service) async {
     // معالج إيقاف التطبيق بالكامل
     service.on('exit_app').listen((event) {
       _shutdownService(service);
-      // إغلاق التطبيق بالكامل
       if (Platform.isAndroid) {
         exit(0);
       }
@@ -260,19 +334,13 @@ void onStart(ServiceInstance service) async {
     // معالج تحديث عدد الأقران
     service.on('updatePeerCount').listen((dynamic event) {
       if (event == null) return;
-      
       if (event is Map<String, dynamic>) {
         final countValue = event['count'];
         if (countValue is int) {
           _peerCount = countValue;
-          LogService.info('تم تحديث عدد الأقران: $_peerCount');
         }
-        return;
-      }
-      
-      if (event is int) {
-        _peerCount = event;
-        LogService.info('تم تحديث عدد الأقران: $_peerCount');
+      } else if (event is int) {
+         _peerCount = event;
       }
     });
 
@@ -282,15 +350,31 @@ void onStart(ServiceInstance service) async {
     });
   }
 
-  // بدء Duty Cycle بالقيمة الافتراضية
-  _startDutyCycle(service, PowerMode.balanced);
+  // 5. تحميل وضع الطاقة المحفوظ وبدء Duty Cycle
+  PowerMode initialMode = PowerMode.balanced;
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final storedValue = prefs.getString('power_mode');
+    if (storedValue != null) {
+      initialMode = PowerModeExtension.fromStorageString(storedValue);
+      LogService.info('Loaded stored PowerMode: ${initialMode.toStorageString()}');
+    }
+  } catch (e) {
+    LogService.error('Error loading stored PowerMode', e);
+  }
+
+  // بدء Duty Cycle
+  _startDutyCycle(service, initialMode);
 }
 
 /// إيقاف الخدمة بشكل صحيح
-void _shutdownService(AndroidServiceInstance service) {
+void _shutdownService(AndroidServiceInstance service) async {
   _dutyCycleTimer?.cancel();
   _dutyCycleTimer = null;
   
+  // Stop Network Logic
+  await _router?.stopService();
+
   // إلغاء الإشعار
   _localNotifications.cancel(id: 999);
   
@@ -327,6 +411,8 @@ void _startDutyCycle(ServiceInstance service, PowerMode mode) {
   if (mode == PowerMode.highPerformance) {
     // وضع الأداء العالي: مسح مستمر
     _isScanning = true;
+    _router?.startService(); // Start Router
+
     _dutyCycleTimer = Timer.periodic(Duration(seconds: 1), (timer) async {
       if (service is AndroidServiceInstance) {
         // تحديث إشعار متقدم
@@ -342,6 +428,7 @@ void _startDutyCycle(ServiceInstance service, PowerMode mode) {
           title: '📡 Sada Active',
           content: 'Scanning for peers...${_peerCount > 0 ? ' • $_peerCount peers' : ''}',
         );
+        service.invoke('updateStatus', {'status': 'Scanning', 'peerCount': _peerCount});
       }
     });
     LogService.info('🔋 وضع الأداء العالي: مسح مستمر');
@@ -368,12 +455,17 @@ void _startDutyCycle(ServiceInstance service, PowerMode mode) {
             title: '📡 Sada Active',
             content: 'Scanning... (${remainingScan}s)${_peerCount > 0 ? ' • $_peerCount peers' : ''}',
           );
+          service.invoke('updateStatus', {'status': 'Scanning ($remainingScan)', 'peerCount': _peerCount});
 
           // انتهاء فترة المسح
           if (_dutyCycleCounter >= scanDuration) {
             _isScanning = false;
+            _router?.stopService(); // STOP Router
             _dutyCycleCounter = 0;
             LogService.info('💤 الانتقال إلى النوم لمدة ${mode.sleepDurationMinutes} دقيقة');
+            
+            // Release WakeLock
+            _deactivateWakeLock(service);
           }
         } else {
           // فترة النوم
@@ -392,20 +484,74 @@ void _startDutyCycle(ServiceInstance service, PowerMode mode) {
             title: '🌙 Power Saving',
             content: 'Sleeping... (${remainingMinutes}m ${remainingSeconds}s)',
           );
+          service.invoke('updateStatus', {'status': 'Sleeping ($remainingMinutes:$remainingSeconds)', 'peerCount': _peerCount});
 
           // انتهاء فترة النوم
           if (_dutyCycleCounter >= sleepDuration) {
             _isScanning = true;
+            _router?.startService(); // START Router
             _dutyCycleCounter = 0;
             LogService.info('🔋 الاستيقاظ والبدء بالمسح');
+            
+            // Acquire WakeLock
+            _activateWakeLock(service);
           }
         }
       }
     });
     
-    // بدء المسح فوراً
+  // بدء المسح فوراً
     _isScanning = true;
+    _router?.startService(); // START Router
     LogService.info('🔋 بدء المسح لمدة $scanDuration ثانية');
+    
+    // Acquire WakeLock (Partial)
+    _activateWakeLock(service);
+  }
+}
+
+/// تفعيل WakeLock (Partial) عبر Native MethodChannel
+Future<void> _activateWakeLock(ServiceInstance service) async {
+  if (service is AndroidServiceInstance) {
+    try {
+      const platform = MethodChannel('org.sada.messenger/mesh');
+      await platform.invokeMethod('acquireWakeLock');
+      LogService.info('✅ Partial WakeLock Acquired');
+    } catch (e) {
+      LogService.error('خطأ في تفعيل WakeLock', e);
+    }
+  }
+}
+
+/// تعطيل WakeLock (Partial)
+Future<void> _deactivateWakeLock(ServiceInstance service) async {
+  if (service is AndroidServiceInstance) {
+    try {
+      const platform = MethodChannel('org.sada.messenger/mesh');
+      await platform.invokeMethod('releaseWakeLock');
+      LogService.info('🛑 Partial WakeLock Released');
+    } catch (e) {
+      LogService.error('خطأ في تعطيل WakeLock', e);
+    }
+  }
+}
+
+// --- Metrics ---
+int _totalSent = 0;
+int _totalReceived = 0;
+int _totalDropped = 0;
+
+void _updateMetrics(ServiceInstance service, {int sent = 0, int received = 0, int dropped = 0}) {
+  _totalSent += sent;
+  _totalReceived += received;
+  _totalDropped += dropped;
+  
+  if (service is AndroidServiceInstance) {
+    service.invoke('updateMetrics', {
+      'sent': _totalSent,
+      'received': _totalReceived,
+      'dropped': _totalDropped,
+    });
   }
 }
 

@@ -1,333 +1,201 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
-import 'package:sada/l10n/generated/app_localizations.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:go_router/go_router.dart';
-import 'package:lottie/lottie.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
-import '../../../../core/router/routes.dart';
-import '../../data/repositories/onboarding_repository.dart';
+import '../../../../core/widgets/mesh_gradient_background.dart';
 
-class OnboardingScreen extends ConsumerStatefulWidget {
+class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
 
   @override
-  ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
+  State<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
-class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
-  final PageController _pageController = PageController();
-  int _currentPage = 0;
-  bool _permissionsGranted = false;
+class _OnboardingScreenState extends State<OnboardingScreen> {
+  final PageController _controller = PageController();
+  bool _isLastPage = false;
 
-  List<OnboardingSlide> get _slides {
-    final l10n = AppLocalizations.of(context)!;
-    return [
-      OnboardingSlide(
-        title: l10n.noInternetNoProblem,
-        description: l10n.noInternetDescription,
-        lottieAsset: 'assets/json/Global Network.json',
-      ),
-      OnboardingSlide(
-        title: l10n.youAreTheNetwork,
-        description: l10n.youAreTheNetworkDescription,
-        lottieAsset: 'assets/json/Global Network.json',
-        isReusedAsset: true,
-      ),
-      OnboardingSlide(
-        title: l10n.invisibleAndSecure,
-        description: l10n.invisibleAndSecureDescription,
-        lottieAsset: 'assets/json/data security.json',
-      ),
-      OnboardingSlide(
-        title: l10n.readyToConnect,
-        description: l10n.readyToConnectDescription,
-        lottieAsset: 'assets/json/404 error page with cat.json',
-        isPermissionSlide: true,
-      ),
-    ];
-  }
-
-  Future<void> _completeOnboarding() async {
-    await ref.read(onboardingRepositoryProvider.notifier).completeOnboarding();
-    if (mounted) {
-      context.go(AppRoutes.register);
-    }
-  }
-
-  Future<void> _requestPermissions() async {
-    final permissions = [
-      Permission.location,
-      Permission.nearbyWifiDevices,
-      Permission.notification,
-    ];
-    
-    await permissions.request();
-    
-    // التحقق من حالة الصلاحيات
-    bool allGranted = true;
-    for (final permission in permissions) {
-      final status = await permission.status;
-      if (!status.isGranted) {
-        allGranted = false;
-        break;
-      }
-    }
-    
-    if (mounted) {
-      setState(() {
-        _permissionsGranted = allGranted;
-      });
-      
-      // الانتقال بعد تأخير قصير لإظهار التغذية الراجعة
-      await Future.delayed(const Duration(milliseconds: 500));
-      
-      if (mounted) {
-        _completeOnboarding();
-      }
-    }
-  }
+  final List<OnboardingPageModel> _pages = [
+    OnboardingPageModel(
+      title: 'خارج الشبكة؟ لا مشكلة.',
+      description: 'صدى يعمل بدون إنترنت أو أبراج اتصال. نستخدم تقنية Mesh لربط الهواتف ببعضها مباشرة.',
+      icon: Icons.wifi_off_rounded,
+      color: Colors.cyanAccent,
+    ),
+    OnboardingPageModel(
+      title: 'أنت جزء من الشبكة',
+      description: 'هاتفك يعمل كساعي بريد مشفر. الرسائل تنتقل من هاتف لآخر حتى تصل لهدفها.',
+      icon: Icons.hub_rounded,
+      color: Colors.purpleAccent,
+    ),
+    OnboardingPageModel(
+      title: 'مشفرة وآمنة تماماً',
+      description: 'لا سيرفرات، لا تتبع. الرسائل مشفرة ولا يمكن لأحد قراءتها غير المستلم الحقيقي.',
+      icon: Icons.security_rounded,
+      color: Colors.greenAccent,
+    ),
+    OnboardingPageModel(
+      title: 'قد يستغرق وقتاً',
+      description: 'لأننا نعتمد على حركة الناس، وصول الرسالة قد يتأخر قليلاً. الصبر مفتاح الأمان.',
+      icon: Icons.hourglass_bottom_rounded,
+      color: Colors.amberAccent,
+    ),
+  ];
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final l10n = AppLocalizations.of(context)!;
-    final slides = _slides;
-    
-    return Scaffold(
-      body: Stack(
-        children: [
-          // Background Gradient (Cyberpunk)
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  const Color(0xFF050A14), // Deep Midnight Blue
-                  const Color.fromARGB(255, 6, 28, 40), // Darker Teal/Blue
+
+    return MeshGradientBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Stack(
+          children: [
+            // Page View
+            PageView.builder(
+              controller: _controller,
+              itemCount: _pages.length,
+              onPageChanged: (index) {
+                setState(() {
+                  _isLastPage = index == _pages.length - 1;
+                });
+              },
+              itemBuilder: (context, index) {
+                return _buildPage(context, _pages[index]);
+              },
+            ),
+
+            // Bottom Controls
+            Positioned(
+              bottom: 40.h,
+              left: 20.w,
+              right: 20.w,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Indicators
+                  SmoothPageIndicator(
+                    controller: _controller,
+                    count: _pages.length,
+                    effect: ExpandingDotsEffect(
+                      activeDotColor: theme.colorScheme.primary,
+                      dotColor: Colors.white24,
+                      dotHeight: 8.h,
+                      dotWidth: 8.w,
+                      spacing: 8.w,
+                    ),
+                  ),
+
+                  // Next / Done Button
+                  ElevatedButton(
+                    onPressed: () {
+                      if (_isLastPage) {
+                        // TODO: Navigate to Auth/Main
+                        // Navigator.pushReplacementNamed(context, '/auth');
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('مرحباً بك في صدى')),
+                        );
+                      } else {
+                        _controller.nextPage(
+                          duration: const Duration(milliseconds: 500),
+                          curve: Curves.easeInOut,
+                        );
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      shape: const CircleBorder(),
+                      padding: EdgeInsets.all(16.w),
+                      backgroundColor: theme.colorScheme.primary,
+                      foregroundColor: Colors.black,
+                    ),
+                    child: Icon(_isLastPage ? Icons.check : Icons.arrow_forward),
+                  ),
                 ],
               ),
             ),
-          ),
-          
-          SafeArea(
-            child: Column(
-              children: [
-                // Skip Button
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: _completeOnboarding,
-                    child: Text(
-                      l10n.skip,
-                      style: TextStyle(
-                        fontSize: 16.sp,
-                        color: const Color(0xFF00D9FF).withValues(alpha: 0.9),
-                        fontWeight: FontWeight.w500,
-                      ),
+            
+            // Skip Button
+            if (!_isLastPage)
+              Positioned(
+                top: 50.h,
+                left: 20.w,
+                child: TextButton(
+                  onPressed: () {
+                    _controller.jumpToPage(_pages.length - 1);
+                  },
+                  child: Text(
+                    'تخطي',
+                    style: TextStyle(
+                      color: Colors.white54,
+                      fontSize: 16.sp,
                     ),
                   ),
                 ),
-                
-                Expanded(
-                  child: PageView.builder(
-                    controller: _pageController,
-                    onPageChanged: (index) {
-                      setState(() {
-                        _currentPage = index;
-                      });
-                    },
-                    itemCount: slides.length,
-                    itemBuilder: (context, index) {
-                      return _buildSlide(slides[index], theme);
-                    },
-                  ),
-                ),
-                
-                // Bottom Section: Indicator & Buttons
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 32.h),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      SmoothPageIndicator(
-                        controller: _pageController,
-                        count: slides.length,
-                        effect: ExpandingDotsEffect(
-                          activeDotColor: theme.colorScheme.primary,
-                          dotColor: theme.colorScheme.surfaceContainerHighest,
-                          dotHeight: 8.h,
-                          dotWidth: 8.w,
-                          spacing: 4,
-                        ),
-                      ),
-                      
-                      FloatingActionButton(
-                        onPressed: () {
-                          if (_currentPage == slides.length - 1) {
-                            if (slides[_currentPage].isPermissionSlide) {
-                              _requestPermissions();
-                            } else {
-                              _completeOnboarding();
-                            }
-                          } else {
-                            _pageController.nextPage(
-                              duration: const Duration(milliseconds: 300),
-                              curve: Curves.easeInOut,
-                            );
-                          }
-                        },
-                        backgroundColor: _permissionsGranted 
-                            ? Colors.green 
-                            : theme.colorScheme.primary,
-                        child: Icon(
-                          _currentPage == slides.length - 1 
-                              ? (_permissionsGranted ? Icons.check_circle : Icons.check)
-                              : Icons.arrow_forward,
-                          color: Colors.black,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+              ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildSlide(OnboardingSlide slide, ThemeData theme) {
+  Widget _buildPage(BuildContext context, OnboardingPageModel page) {
     return Padding(
-      padding: EdgeInsets.all(24.w),
+      padding: EdgeInsets.symmetric(horizontal: 32.w),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Expanded(
-            flex: 3,
-            child: SizedBox(
-              child: Lottie.asset(
-                slide.lottieAsset,
-                fit: BoxFit.contain,
-                errorBuilder: (context, error, stackTrace) {
-                  return Icon(
-                    Icons.image_not_supported,
-                    size: 100.sp,
-                    color: theme.colorScheme.error,
-                  );
-                },
-              ),
-            )
-            .animate()
-            .fadeIn(duration: 600.ms)
-            .scale(delay: 200.ms),
+          Container(
+            padding: EdgeInsets.all(40.w),
+            decoration: BoxDecoration(
+              color: page.color.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: page.color.withValues(alpha: 0.2),
+                  blurRadius: 30,
+                  spreadRadius: 5,
+                ),
+              ],
+            ),
+            child: Icon(
+              page.icon,
+              size: 80.sp,
+              color: page.color,
+            ),
           ),
-          
-          SizedBox(height: 32.h),
-          
+          SizedBox(height: 48.h),
           Text(
-            slide.title,
+            page.title,
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 28.sp,
-              fontWeight: FontWeight.bold,
-              color: const Color(0xFF00D9FF), // Cyan primary color
-              height: 1.2,
-            ),
-          )
-          .animate()
-          .fadeIn(delay: 300.ms, duration: 600.ms)
-          .moveY(begin: 20, end: 0),
-          
+          ),
           SizedBox(height: 16.h),
-          
           Text(
-            slide.description,
+            page.description,
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: Colors.white70,
+                  height: 1.5,
+                ),
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 16.sp,
-              color: Colors.white.withValues(alpha: 0.9),
-              height: 1.5,
-            ),
-          )
-          .animate()
-          .fadeIn(delay: 500.ms, duration: 600.ms)
-          .moveY(begin: 20, end: 0),
-          
-          if (slide.isPermissionSlide) ...[
-            SizedBox(height: 32.h),
-            _buildPermissionBadges(theme),
-          ],
+          ),
         ],
       ),
     );
   }
-  
-  Widget _buildPermissionBadges(ThemeData theme) {
-    final l10n = AppLocalizations.of(context)!;
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        _PermissionBadge(icon: Icons.location_on, label: l10n.permissionLocation),
-        SizedBox(width: 16.w),
-        _PermissionBadge(icon: Icons.notifications, label: l10n.permissionNotify),
-        SizedBox(width: 16.w),
-        _PermissionBadge(icon: Icons.wifi, label: l10n.permissionWifi),
-      ],
-    ).animate().fadeIn(delay: 800.ms).scale();
-  }
 }
 
-class _PermissionBadge extends StatelessWidget {
-  final IconData icon;
-  final String label;
-
-  const _PermissionBadge({required this.icon, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Column(
-      children: [
-        Container(
-          padding: EdgeInsets.all(12.w),
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surfaceContainerHighest,
-            shape: BoxShape.circle,
-            border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.3)),
-          ),
-          child: Icon(icon, color: theme.colorScheme.primary, size: 24.sp),
-        ),
-        SizedBox(height: 8.h),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12.sp,
-            color: Colors.white.withValues(alpha: 0.9),
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class OnboardingSlide {
+class OnboardingPageModel {
   final String title;
   final String description;
-  final String lottieAsset;
-  final bool isPermissionSlide;
-  final bool isReusedAsset;
+  final IconData icon;
+  final Color color;
 
-  OnboardingSlide({
+  OnboardingPageModel({
     required this.title,
     required this.description,
-    required this.lottieAsset,
-    this.isPermissionSlide = false,
-    this.isReusedAsset = false,
+    required this.icon,
+    required this.color,
   });
 }

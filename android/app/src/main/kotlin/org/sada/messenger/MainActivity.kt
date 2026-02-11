@@ -41,6 +41,9 @@ class MainActivity : FlutterFragmentActivity() {
     private val socketManager = SocketManager.getInstance()
     private lateinit var udpBroadcastManager: UdpBroadcastManager
 
+    // WakeLock for Background Service (P0-BG-2)
+    private var wakeLock: android.os.PowerManager.WakeLock? = null
+
     // BroadcastReceiver لاستقبال أحداث WiFi P2P
     private val wifiP2pReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -298,6 +301,37 @@ class MainActivity : FlutterFragmentActivity() {
                         } catch (e: Exception) {
                             Log.e(TAG, "Error getting APK path", e)
                             result.error("APK_PATH_ERROR", "Failed to get APK path: ${e.message}", null)
+                        }
+                    }
+
+                    "acquireWakeLock" -> {
+                        try {
+                            if (wakeLock == null) {
+                                val powerManager = getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+                                wakeLock = powerManager.newWakeLock(android.os.PowerManager.PARTIAL_WAKE_LOCK, "Sada::UploadWakielock")
+                                wakeLock?.setReferenceCounted(false)
+                            }
+                            if (wakeLock?.isHeld == false) {
+                                wakeLock?.acquire(10 * 60 * 1000L /*10 minutes*/)
+                                Log.d(TAG, "Partial WakeLock acquired")
+                            }
+                            result.success(true)
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Error acquiring WakeLock", e)
+                            result.error("WAKELOCK_ERROR", e.message, null)
+                        }
+                    }
+
+                    "releaseWakeLock" -> {
+                        try {
+                            if (wakeLock?.isHeld == true) {
+                                wakeLock?.release()
+                                Log.d(TAG, "Partial WakeLock released")
+                            }
+                            result.success(true)
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Error releasing WakeLock", e)
+                            result.error("WAKELOCK_ERROR", e.message, null)
                         }
                     }
 
