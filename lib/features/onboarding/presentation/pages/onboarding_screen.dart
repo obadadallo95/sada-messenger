@@ -14,6 +14,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _controller = PageController();
   bool _isLastPage = false;
 
+  final List<OnboardingPageModel> _pages = [
     OnboardingPageModel(
       title: 'تواصل بلا حدود',
       description: 'صدى يعمل حتى عند انقطاع الإنترنت. شبكتك هي الناس من حولك.',
@@ -34,10 +35,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     ),
     OnboardingPageModel(
       title: 'أمان وتشفير تام',
-      description: 'لا خوادم مركزية. رسائلك مشفرة ولا يمكن لأحد قراءتها غيرك أنت والمستلم.',
+      description: 'لا خوادر مركزية. رسائلك مشفرة ولا يمكن لأحد قراءتها غيرك أنت والمستلم.',
       icon: Icons.security_rounded,
       color: Colors.greenAccent,
     ),
+  ];
 
   @override
   Widget build(BuildContext context) {

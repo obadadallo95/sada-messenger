@@ -56,6 +56,7 @@ class _MeshDebugScreenState extends ConsumerState<MeshDebugScreen> {
     // Listen to transport metrics
     final metricsService = ref.read(metricsServiceProvider);
     _transportMetrics = metricsService.currentMetrics;
+    _metricsSubscription = metricsService.metricsStream.listen((metrics) {
       if (mounted) {
         setState(() {
           _transportMetrics = metrics;

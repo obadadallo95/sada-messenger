@@ -1006,3 +1006,4 @@ class SettingsScreen extends ConsumerWidget {
   }
 }
 
+}
