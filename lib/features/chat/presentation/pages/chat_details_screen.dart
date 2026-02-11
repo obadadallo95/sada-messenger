@@ -8,7 +8,6 @@ import '../../../../core/database/database_provider.dart';
 import '../../domain/models/chat_model.dart';
 import '../../data/repositories/messages_provider.dart';
 import '../../application/chat_controller.dart';
-import '../../application/chat_controller.dart';
 import '../../domain/models/message_model.dart';
 import '../widgets/message_bubble.dart';
 import '../../../network/presentation/widgets/network_status_chip.dart';
@@ -93,11 +92,6 @@ class _ChatDetailsScreenState extends ConsumerState<ChatDetailsScreen> {
         );
       }
     }
-  }
-
-  String _getInitial(String name) {
-    if (name.isEmpty) return '?';
-    return name[0].toUpperCase();
   }
 
   @override

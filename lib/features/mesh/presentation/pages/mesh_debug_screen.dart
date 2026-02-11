@@ -6,7 +6,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/models/power_mode.dart';
 import '../../../../core/services/background_service.dart';
-import '../../../../core/utils/log_service.dart';
 
 class MeshDebugScreen extends ConsumerStatefulWidget {
   const MeshDebugScreen({super.key});

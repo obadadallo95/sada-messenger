@@ -5,7 +5,6 @@ import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:drift/drift.dart' as drift;
 import 'package:sada/core/network/incoming_message_handler.dart';
 import 'package:sada/core/network/mesh_service.dart';
 import 'package:sada/core/network/models/mesh_message.dart';

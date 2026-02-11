@@ -17,7 +17,6 @@ import '../../../../core/services/auth_service.dart';
 import '../../../../core/database/database_provider.dart';
 import '../../../../core/database/app_database.dart';
 import '../../../../core/security/security_providers.dart';
-import '../../../../core/network/mesh_service.dart';
 import '../../../chat/domain/models/chat_model.dart';
 import '../../../../core/widgets/mesh_gradient_background.dart';
 import '../../../../core/widgets/glass_card.dart';
@@ -224,7 +223,6 @@ class _AddFriendScreenState extends ConsumerState<AddFriendScreen>
 
   Future<void> _addFriendToDatabase(String contactId, String name, String? publicKey) async {
     final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
     try {
       final authService = ref.read(authServiceProvider.notifier);
       final currentUser = authService.currentUser;

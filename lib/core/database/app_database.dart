@@ -18,6 +18,7 @@ part 'app_database.g.dart';
 @DriftDatabase(tables: [ContactsTable, ChatsTable, MessagesTable, RelayQueueTable])
 class AppDatabase extends _$AppDatabase {
   /// اسم ملف قاعدة البيانات
+  // ignore: unused_field
   final String _databaseFileName;
 
   AppDatabase._(this._databaseFileName) : super(_openConnection(_databaseFileName));

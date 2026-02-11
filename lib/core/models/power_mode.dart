@@ -102,5 +102,10 @@ extension PowerModeExtension on PowerMode {
     }
   }
 
+  /// اسم الوضع (يستخدم اللغة الحالية)
+  String get displayName => getDisplayNameAr();
+
+  /// وصف الوضع (يستخدم اللغة الحالية)
+  String get description => getDescriptionAr();
 }
 
