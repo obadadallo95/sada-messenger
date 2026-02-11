@@ -39,14 +39,13 @@ class HandshakeProtocol {
       final publicKeyBytes = await keyManager.getPublicKey();
       final publicKeyBase64 = base64Encode(publicKeyBytes);
 
-      // TODO: Re-enable Bloom Filter once build_runner issues are resolved
       // إنشاء Bloom Filter للمزامنة (P1-SYNC)
-      // final database = await _ref.read(appDatabaseProvider.future);
-      // final messageIds = await database.getAllKnownMessageIds();
+      final database = await _ref.read(appDatabaseProvider.future);
+      final messageIds = await database.getAllKnownMessageIds();
       final bloomFilter = BloomFilter();
-      // for (final id in messageIds) {
-      //   bloomFilter.add(id);
-      // }
+      for (final id in messageIds) {
+        bloomFilter.add(id);
+      }
 
       final handshake = {
         'type': HANDSHAKE_TYPE,
@@ -175,13 +174,12 @@ class HandshakeProtocol {
     // إضافة Bloom Filter الخاص بي في الرد أيضاً (لتحقيق التزامن ثنائي الاتجاه)
     String? myBfBase64;
     if (status == STATUS_ACCEPTED) {
-       // TODO: Re-enable once build_runner issues are resolved
-       // final database = await _ref.read(appDatabaseProvider.future);
-       // final messageIds = await database.getAllKnownMessageIds();
+       final database = await _ref.read(appDatabaseProvider.future);
+       final messageIds = await database.getAllKnownMessageIds();
        final bloomFilter = BloomFilter();
-       // for (final id in messageIds) {
-       //   bloomFilter.add(id);
-       // }
+       for (final id in messageIds) {
+         bloomFilter.add(id);
+       }
        myBfBase64 = bloomFilter.toBase64();
     }
 

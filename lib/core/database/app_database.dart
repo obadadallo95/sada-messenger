@@ -554,35 +554,34 @@ class AppDatabase extends _$AppDatabase {
     };
   }
 
-  // TODO: Re-enable once build_runner issues are resolved
-  // /// الحصول على جميع معرفات الرسائل المعروفة (من الرسائل و Relay Queue)
-  // /// يستخدم لبناء Bloom Filter للمزامنة
-  // Future<List<String>> getAllKnownMessageIds() async {
-  //   final allIds = <String>[];
-  //   
-  //   // Get message IDs using raw SQL to avoid code generation issues
-  //   final messageResult = await customSelect(
-  //     'SELECT id FROM messages_table',
-  //     readsFrom: {messagesTable},
-  //   ).get();
-  //   
-  //   for (final row in messageResult) {
-  //     final id = row.read<String>('id');
-  //     allIds.add(id);
-  //   }
-  //   
-  //   // Get relay packet IDs
-  //   final relayResult = await customSelect(
-  //     'SELECT packet_id FROM relay_queue_table',
-  //     readsFrom: {relayQueueTable},
-  //   ).get();
-  //   
-  //   for (final row in relayResult) {
-  //     final id = row.read<String>('packet_id');
-  //     allIds.add(id);
-  //   }
-  //   
-  //   return allIds;
-  // }
+  /// الحصول على جميع معرفات الرسائل المعروفة (من الرسائل و Relay Queue)
+  /// يستخدم لبناء Bloom Filter للمزامنة
+  Future<List<String>> getAllKnownMessageIds() async {
+    final allIds = <String>[];
+    
+    // Get message IDs using raw SQL to avoid code generation issues
+    final messageResult = await customSelect(
+      'SELECT id FROM messages_table',
+      readsFrom: {messagesTable},
+    ).get();
+    
+    for (final row in messageResult) {
+      final id = row.read<String>('id');
+      allIds.add(id);
+    }
+    
+    // Get relay packet IDs
+    final relayResult = await customSelect(
+      'SELECT packet_id FROM relay_queue_table',
+      readsFrom: {relayQueueTable},
+    ).get();
+    
+    for (final row in relayResult) {
+      final id = row.read<String>('packet_id');
+      allIds.add(id);
+    }
+    
+    return allIds;
+  }
 }
 
