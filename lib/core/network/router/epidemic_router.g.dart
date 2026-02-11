@@ -6,7 +6,7 @@ part of 'epidemic_router.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$epidemicRouterHash() => r'd7a25e3f383bda9d163fec1b9e6726bc80f10566';
+String _$epidemicRouterHash() => r'6c096c32faeeecc19816635ce422377bf0324920';
 
 /// Manages the "Epidemic Routing" strategy for the Delay-Tolerant Network.
 /// Handles:

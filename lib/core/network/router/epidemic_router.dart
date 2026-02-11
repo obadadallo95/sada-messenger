@@ -11,6 +11,7 @@ import '../../database/app_database.dart';
 import '../../database/database_provider.dart';
 import '../../utils/log_service.dart';
 import '../mesh_service.dart';
+import '../../services/metrics_service.dart';
 
 part 'epidemic_router.g.dart';
 
@@ -42,8 +43,9 @@ class EpidemicRouter extends _$EpidemicRouter {
   /// periodically. Every outbound payload consumes one token.
   final Map<String, int> _peerTokens = {};
 
-  static const int _maxTokensPerPeer = 20;
-  static const Duration _tokenRefillInterval = Duration(minutes: 1);
+  static const int _maxTokensPerPeer = 50;
+  static const int _tokenRefillAmount = 5;
+  static const Duration _tokenRefillInterval = Duration(seconds: 5);
 
   Timer? _tokenRefillTimer;
   void Function(int)? _onPeerCountChanged;
@@ -192,39 +194,8 @@ class EpidemicRouter extends _$EpidemicRouter {
   }
 
   // --- Duty Cycle & Battery Optimization ---
-  
-  Timer? _dutyCycleTimer;
-  static const Duration _scanDuration = Duration(minutes: 2);
-  static const Duration _sleepDuration = Duration(minutes: 5);
-
-  /// Start the Duty Cycle (Scan -> Sleep -> Scan ...).
-  void startDutyCycle() {
-    LogService.info('⏳ Starting Duty Cycle...');
-    _runScanCycle();
-    _dutyCycleTimer = Timer.periodic(_scanDuration + _sleepDuration, (timer) {
-      _runScanCycle();
-    });
-  }
-
-  /// Stop the Duty Cycle.
-  void stopDutyCycle() {
-    _dutyCycleTimer?.cancel();
-    stopService(); // Stops discovery
-  }
-
-  Future<void> _runScanCycle() async {
-    LogService.info('🔄 Duty Cycle: Waking up to SCAN...');
-    await startService(); // Start Discovery/Advertising
-    
-    // Scan for _scanDuration
-    Future.delayed(_scanDuration, () async {
-      LogService.info('zzz Duty Cycle: Sleeping...');
-      await stopService(); // Stop Discovery to save battery
-      // Advertising might need to stay on if we want to be discoverable?
-      // For true duty cycle, both usually sleep, or we use low-power BLE advertising if supported.
-      // Nearby Connections P2P_CLUSTER uses WiFiDirect/Bluetooth.
-    });
-  }
+  // Orchestrated by BackgroundService.
+  // We expose startService/stopService for the background service to control.
 
   // --- Handshake & Protocol ---
 
@@ -455,6 +426,15 @@ class EpidemicRouter extends _$EpidemicRouter {
     if (!_consumeToken(endpointId)) {
       LogService.warning('🚫 Token bucket exceeded for $endpointId – تم تجاهل payload من النوع: ${data['type']}');
       _onMetricsUpdated?.call(0, 0, 1); // Dropped
+      
+      // Also record in MetricsService if accessible via Riverpod Ref (which we have)
+      // Note: This class is a Riverpod provider, so we can use ref directly.
+      try {
+        final metrics = ref.read(metricsServiceProvider);
+        metrics.recordDuplicateIgnored(); // Abuse dup counter for now or add new one? 
+        // Let's stick to existing counters or just log.
+      } catch (_) {}
+      
       return;
     }
 
@@ -468,8 +448,12 @@ class EpidemicRouter extends _$EpidemicRouter {
 
     _tokenRefillTimer = Timer.periodic(_tokenRefillInterval, (_) {
       if (_peerTokens.isEmpty) return;
-      _peerTokens.updateAll((key, value) => _maxTokensPerPeer);
-      LogService.info('🔁 تم إعادة تعبئة Token Bucket لجميع الأقران');
+      
+      _peerTokens.updateAll((key, current) {
+         final newValue = current + _tokenRefillAmount;
+         return newValue > _maxTokensPerPeer ? _maxTokensPerPeer : newValue;
+      });
+      // LogService.info('🔁 Refilled tokens'); // Too verbose for 5s interval
     });
   }
 

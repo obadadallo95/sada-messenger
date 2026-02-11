@@ -20,6 +20,7 @@ import '../../features/groups/presentation/pages/create_group_screen.dart';
 import '../../features/groups/presentation/pages/groups_screen.dart';
 import '../../features/mesh/presentation/pages/mesh_debug_screen.dart';
 import '../../features/notifications/presentation/pages/notifications_screen.dart';
+import '../../features/duress/presentation/pages/safe_notes_screen.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/biometric_service.dart';
 import '../../core/database/database_provider.dart';
@@ -221,6 +222,11 @@ GoRouter appRouter(Ref ref) {
             path: AppRoutes.notifications,
             name: 'notifications',
             builder: (context, state) => const NotificationsScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.safeNotes,
+            name: 'safe-notes',
+            builder: (context, state) => const SafeNotesScreen(),
           ),
         ],
       ),

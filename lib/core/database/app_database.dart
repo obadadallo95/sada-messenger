@@ -23,6 +23,9 @@ class AppDatabase extends _$AppDatabase {
 
   AppDatabase._(this._databaseFileName) : super(_openConnection(_databaseFileName));
 
+  /// Constructor for testing with in-memory database
+  AppDatabase.forTesting(QueryExecutor executor) : _databaseFileName = 'memory', super(executor);
+
   /// إنشاء instance جديد من قاعدة البيانات
   /// [filename]: اسم ملف قاعدة البيانات (مثل 'sada_encrypted.sqlite' أو 'sada_dummy.sqlite')
   factory AppDatabase.create(String filename) {
@@ -43,7 +46,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration {
@@ -69,6 +72,11 @@ class AppDatabase extends _$AppDatabase {
           LogService.info('إضافة retryCount لتعقب محاولات الإرسال (Schema v5)');
           await m.addColumn(relayQueueTable, relayQueueTable.retryCount);
           await m.addColumn(messagesTable, messagesTable.retryCount);
+        }
+        // When upgrading to schema 6 (Add priority)
+        if (from < 6) {
+          LogService.info('إضافة priority لدعم Congestion Control (Schema v6)');
+          await m.addColumn(relayQueueTable, relayQueueTable.priority);
         }
       },
     );
@@ -172,13 +180,16 @@ class AppDatabase extends _$AppDatabase {
   // ==================== Messages DAOs ====================
 
   /// إدراج رسالة جديدة
+  /// إدراج رسالة جديدة (Atomic Transaction)
   Future<void> insertMessage(MessagesTableCompanion message) async {
-    await into(messagesTable).insert(message, mode: InsertMode.replace);
-    LogService.info('تم إدراج رسالة: ${message.id.value}');
-    
-    // تحديث آخر رسالة في المحادثة
-    final content = message.content.value;
-    await updateLastMessage(message.chatId.value, content);
+    await transaction(() async {
+      await into(messagesTable).insert(message, mode: InsertMode.replace);
+      LogService.info('تم إدراج رسالة: ${message.id.value}');
+      
+      // تحديث آخر رسالة في المحادثة
+      final content = message.content.value;
+      await updateLastMessage(message.chatId.value, content);
+    });
   }
 
   /// الحصول على جميع الرسائل في محادثة معينة
@@ -246,16 +257,56 @@ class AppDatabase extends _$AppDatabase {
   // ==================== Relay Queue DAOs ====================
 
   /// Add a packet to the relay queue.
+  /// Add a packet to the relay queue.
   Future<void> enqueueRelayPacket(RelayQueueTableCompanion packet) async {
-    // قبل تخزين حزمة جديدة، نتحقق من حجم Relay Queue لتفادي امتلاء التخزين.
-    final currentSize = await getRelayStorageSize();
-    if (currentSize >= AppConstants.relayQueueMaxCount) {
-      final overflow = currentSize - AppConstants.relayQueueMaxCount + 1;
-      await _trimRelayQueue(overflow);
+    // 1. Check if packet already exists (Deduplication)
+    final existing = await hasPacket(packet.packetId.value);
+    if (existing) {
+       // If it exists but new one has higher priority or is newer, maybe update?
+       // For now, simpler to just skip.
+       return;
+    }
+
+    // 2. Check limits and make space if needed
+    // Calculate size of new packet
+    final newPacketSize = packet.payload.value.length;
+    final maxBytes = AppConstants.relayQueueMaxBytes;
+    
+    final currentBytes = await getRelayQueueByteSize();
+    final currentCount = await getRelayStorageSize();
+    
+    bool needsTrim = (currentBytes + newPacketSize > maxBytes) || 
+                     (currentCount >= AppConstants.relayQueueMaxCount);
+
+    if (needsTrim) {
+       // Try to trim LOWER priority packets first
+       final incomingPriority = packet.priority.value;
+       
+       // Trim strategy:
+       // 1. Delete expired packets first (always good)
+       await cleanupExpiredPackets();
+       
+       // 2. Delete lowest priority packets (priority < incomingPriority)
+       // until we have space.
+       // Only if incoming is high priority (>=1), we aggressively delete lower ones.
+       
+       // 3. If still full, and incoming is low priority, drop incoming.
+       
+       // Let's implement a unified trim function that respects priority
+       await _makeSpaceForPacket(newPacketSize, incomingPriority);
+       
+       // Re-check space
+       final spaceAfterTrim = await getRelayQueueByteSize();
+       final countAfterTrim = await getRelayStorageSize();
+       
+       if (spaceAfterTrim + newPacketSize > maxBytes || countAfterTrim >= AppConstants.relayQueueMaxCount) {
+         LogService.warning('⚠️ Relay Queue ممتلئ - تم رفض الحزمة (أولوية منخفضة أو لا توجد مساحة): ${packet.packetId.value}');
+         return;
+       }
     }
 
     await into(relayQueueTable).insert(packet, mode: InsertMode.replace);
-    LogService.info('📦 تم تخزين Relay Packet: ${packet.packetId.value}');
+    LogService.info('📦 تم تخزين Relay Packet: ${packet.packetId.value} (الأولوية: ${packet.priority.value})');
   }
 
   /// Get all relay packets for syncing with another device.
@@ -326,28 +377,100 @@ class AppDatabase extends _$AppDatabase {
     return count.read(relayQueueTable.packetId.count()) ?? 0;
   }
 
-  /// حذف عدد محدد من أقدم الحزم في Relay Queue للحفاظ على الحد الأقصى.
-  Future<void> _trimRelayQueue(int deleteCount) async {
-    if (deleteCount <= 0) return;
+  /// Get total byte size of relay storage (approximate).
+  Future<int> getRelayQueueByteSize() async {
+    final packets = await (select(relayQueueTable)).get();
+    int totalBytes = 0;
+    for (final packet in packets) {
+      totalBytes += packet.payload.length; // Approximate based on payload size
+    }
+    return totalBytes;
+  }
 
-    final oldestPackets = await (select(relayQueueTable)
-          ..orderBy([(t) => OrderingTerm(expression: t.queuedAt)]))
+  /// إخلاء مساحة لحزمة جديدة بناءً على الأولوية
+  Future<void> _makeSpaceForPacket(int requiredBytes, int incomingPriority) async {
+    final maxBytes = AppConstants.relayQueueMaxBytes;
+    final maxCount = AppConstants.relayQueueMaxCount;
+    
+    // الحصول بسرعة على الحجم الحالي والعدد
+    int currentBytes = await getRelayQueueByteSize();
+    int currentCount = await getRelayStorageSize();
+    
+    bool bytesOk = (currentBytes + requiredBytes <= maxBytes);
+    bool countOk = (currentCount < maxCount); // Must be strictly less to add 1
+
+    if (bytesOk && countOk) return; // يوجد مساحة كافية
+    
+    // جلب جميع الحزم مرتبة:
+    // 1. الأقل أولوية أولاً (ASC)
+    // 2. الأقدم أولاً (ASC)
+    // لضمان حذف الأقل أهمية ثم الأقدم
+    final packets = await (select(relayQueueTable)
+          ..orderBy([
+            (t) => OrderingTerm(expression: t.priority, mode: OrderingMode.asc),
+            (t) => OrderingTerm(expression: t.queuedAt, mode: OrderingMode.asc),
+          ]))
         .get();
-
-    var removed = 0;
-    for (final packet in oldestPackets) {
-      if (removed >= deleteCount) break;
-      final rows = await (delete(relayQueueTable)
-            ..where((t) => t.packetId.equals(packet.packetId)))
-          .go();
-      if (rows > 0) {
-        removed += 1;
+        
+    int bytesFreed = 0;
+    int deletedCount = 0;
+    
+    for (final packet in packets) {
+      if (packet.priority > incomingPriority) {
+        // We reached packets that are more important than the new one.
+        // If we still don't have space, we can't make space. Stop.
+        break;
+      }
+      
+      await deletePacket(packet.packetId);
+      bytesFreed += packet.payload.length;
+      deletedCount++;
+      
+      currentBytes -= packet.payload.length;
+      currentCount--;
+      
+      bytesOk = (currentBytes + requiredBytes <= maxBytes);
+      countOk = (currentCount < maxCount);
+      
+      if (bytesOk && countOk) {
+        break; // Done
       }
     }
-
-    if (removed > 0) {
-      LogService.info('🧹 تم حذف $removed Relay Packets القديمة للحفاظ على سعة التخزين');
+    
+    if (deletedCount > 0) {
+      LogService.info('🧹 تم إخلاء مساحة: حذف $deletedCount حزم للحفاظ على الأولوية (Count: $countOk, Bytes: $bytesOk)');
     }
+  }
+
+  /// حذف عدد محدد من أقدم الحزم (Legacy - used only if needed directly)
+  Future<void> _trimRelayQueue(int deleteCount) async {
+     // Use unified logic or keep for simple count trimming
+     // For now, let's just delegate to makeSpace logic or keep simple FIFO for count limit
+     // Strict FIFO for count limit might kill High Priority packets.
+     // Better adapt this too.
+     
+     // For now, just call _makeSpaceForPacket with dummy byte size to force eviction?
+     // No, count limit is separate.
+     
+     // Let's reimplement trim to respect priority for count limit too.
+     if (deleteCount <= 0) return;
+     
+      final packets = await (select(relayQueueTable)
+          ..orderBy([
+            (t) => OrderingTerm(expression: t.priority, mode: OrderingMode.asc), // Delete low prio first
+            (t) => OrderingTerm(expression: t.queuedAt, mode: OrderingMode.asc), // Delete old first
+          ])
+          ..limit(deleteCount)) // Use cascade for limit
+        .get();
+
+     for (final p in packets) {
+       await deletePacket(p.packetId);
+     }
+  }
+
+  /// حذف أقدم الحزم (Legacy - replaced by _makeSpaceForPacket logic mostly)
+  Future<void> _trimRelayQueueByBytes(int maxBytes) async {
+      // Replaced by logic in enqueueRelayPacket
   }
 
   /// تنظيف الرسائل القديمة في Relay Queue (Congestion Control)
@@ -397,5 +520,69 @@ class AppDatabase extends _$AppDatabase {
           .write(MessagesTableCompanion(retryCount: Value(newCount)));
     }
   }
+  // ==================== Metrics ====================
+
+  /// الحصول على إحصائيات Relay Queue
+  Future<Map<String, dynamic>> getRelayQueueMetrics() async {
+    final count = await getRelayStorageSize();
+    final bytes = await getRelayQueueByteSize();
+    
+    // Breakdown by Priority
+    final highPriorityCount = await (selectOnly(relayQueueTable)
+      ..addColumns([relayQueueTable.packetId.count()])
+      ..where(relayQueueTable.priority.equals(2)))
+      .getSingle();
+      
+    final standardPriorityCount = await (selectOnly(relayQueueTable)
+      ..addColumns([relayQueueTable.packetId.count()])
+      ..where(relayQueueTable.priority.equals(1)))
+      .getSingle();
+      
+    final lowPriorityCount = await (selectOnly(relayQueueTable)
+      ..addColumns([relayQueueTable.packetId.count()])
+      ..where(relayQueueTable.priority.equals(0)))
+      .getSingle();
+
+    return {
+      'totalCount': count,
+      'totalBytes': bytes,
+      'highPriority': highPriorityCount.read(relayQueueTable.packetId.count()) ?? 0,
+      'standardPriority': standardPriorityCount.read(relayQueueTable.packetId.count()) ?? 0,
+      'lowPriority': lowPriorityCount.read(relayQueueTable.packetId.count()) ?? 0,
+      'limitBytes': AppConstants.relayQueueMaxBytes,
+      'limitCount': AppConstants.relayQueueMaxCount,
+    };
+  }
+
+  // TODO: Re-enable once build_runner issues are resolved
+  // /// الحصول على جميع معرفات الرسائل المعروفة (من الرسائل و Relay Queue)
+  // /// يستخدم لبناء Bloom Filter للمزامنة
+  // Future<List<String>> getAllKnownMessageIds() async {
+  //   final allIds = <String>[];
+  //   
+  //   // Get message IDs using raw SQL to avoid code generation issues
+  //   final messageResult = await customSelect(
+  //     'SELECT id FROM messages_table',
+  //     readsFrom: {messagesTable},
+  //   ).get();
+  //   
+  //   for (final row in messageResult) {
+  //     final id = row.read<String>('id');
+  //     allIds.add(id);
+  //   }
+  //   
+  //   // Get relay packet IDs
+  //   final relayResult = await customSelect(
+  //     'SELECT packet_id FROM relay_queue_table',
+  //     readsFrom: {relayQueueTable},
+  //   ).get();
+  //   
+  //   for (final row in relayResult) {
+  //     final id = row.read<String>('packet_id');
+  //     allIds.add(id);
+  //   }
+  //   
+  //   return allIds;
+  // }
 }
 

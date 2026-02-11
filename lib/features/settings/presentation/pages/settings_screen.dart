@@ -201,6 +201,8 @@ class SettingsScreen extends ConsumerWidget {
                   _buildPowerModeTile(context, ref, l10n),
                   Divider(height: AppDimensions.spacingLg),
                   _buildBatteryOptimizationTile(context, l10n),
+                  Divider(height: AppDimensions.spacingLg),
+                  _buildBatteryGuideTile(context, l10n),
                 ],
               ),
             ),
@@ -601,7 +603,124 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  /// بناء عنصر قفل التطبيق
+  /// بناء عنصر دليل تحسين البطارية
+  Widget _buildBatteryGuideTile(
+    BuildContext context,
+    AppLocalizations l10n,
+  ) {
+    return SettingsTile(
+      icon: Icons.tips_and_updates_outlined,
+      iconColor: Colors.orange,
+      iconBackgroundColor: Colors.orange.withValues(alpha: 0.1),
+      title: Localizations.localeOf(context).languageCode == 'ar' 
+          ? 'دليل تحسين الأداء' 
+          : 'Performance Guide',
+      subtitle: Localizations.localeOf(context).languageCode == 'ar'
+          ? 'كيف تحافظ على اتصال الشبكة مستقراً'
+          : 'How to keep mesh connection stable',
+      onTap: () => _showBatteryGuideDialog(context),
+    );
+  }
+
+  /// عرض حوار دليل البطارية
+  void _showBatteryGuideDialog(BuildContext context) {
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.tips_and_updates, color: Colors.orange),
+            SizedBox(width: 8.w),
+            Expanded(
+              child: Text(
+                isArabic ? 'نصائح لشبكة مستقرة' : 'Stable Mesh Tips',
+                style: TextStyle(fontSize: 18.sp),
+              ),
+            ),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildGuideItem(
+                context,
+                icon: Icons.history,
+                title: isArabic ? 'لا تغلق التطبيق' : 'Don\'t Kill the App',
+                description: isArabic 
+                    ? 'لتعمل الشبكة، يجب أن يبقى التطبيق في الخلفية. لا تقم بإزالته من قائمة "التطبيقات الحديثة" (Recent Apps).'
+                    : 'For the mesh to work, the app must stay in the background. Do not swipe it away from Recent Apps.',
+              ),
+              SizedBox(height: 16.h),
+              _buildGuideItem(
+                context,
+                icon: Icons.battery_alert,
+                title: isArabic ? 'تعطيل تحسين البطارية' : 'Disable Battery Optimization',
+                description: isArabic
+                    ? 'تأكد من استثناء التطبيق من "تحسين البطارية" في إعدادات النظام لضمان عدم قتل النظام للخدمة.'
+                    : 'Ensure the app is excluded from "Battery Optimization" in system settings so the OS doesn\'t kill the service.',
+              ),
+              SizedBox(height: 16.h),
+              _buildGuideItem(
+                context,
+                icon: Icons.speed,
+                title: isArabic ? 'اختر الوضع المناسب' : 'Choose Right Mode',
+                description: isArabic
+                    ? 'استخدم "أداء عالي" للمحادثات النشطة الفورية، و"متوازن" لتوفير البطارية مع استقبال الرسائل بتأخير بسيط.'
+                    : 'Use "High Performance" for instant active chats, and "Balanced" to save battery with slight delay in receiving messages.',
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(isArabic ? 'حسناً' : 'Got it'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGuideItem(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String description,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 24.sp, color: Theme.of(context).colorScheme.primary),
+        SizedBox(width: 12.w),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14.sp,
+                ),
+              ),
+              SizedBox(height: 4.h),
+              Text(
+                description,
+                style: TextStyle(
+                  fontSize: 12.sp,
+                  color: Colors.grey[600],
+                  height: 1.4,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
   Widget _buildAppLockTile(
     BuildContext context,
     WidgetRef ref,

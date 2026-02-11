@@ -6,6 +6,8 @@ import 'package:sada/core/security/key_manager.dart';
 import 'package:sada/core/security/encryption_service.dart';
 import 'package:sada/core/services/auth_service.dart';
 import 'package:sada/core/utils/log_service.dart';
+import 'package:sada/core/utils/bloom_filter.dart';
+import 'package:sada/core/utils/constants.dart';
 import 'test_helpers.dart';
 
 /// ============================================
@@ -353,5 +355,90 @@ void main() {
       LogService.info('   Duress PIN: $duressPin → ${duressAuthResult.name}');
     });
   });
+
+  /// ============================================
+  /// SCENARIO D: The Sync Optimizer (Bloom Filter)
+  /// ============================================
+  group('Scenario D: The Sync Optimizer (Bloom Filter)', () {
+    test('1. Empty Bloom Filter has no false positives for new items', () {
+      final bf = BloomFilter();
+      
+      expect(bf.contains('msg1'), isFalse);
+      expect(bf.contains('msg2'), isFalse);
+      expect(bf.contains('msg3'), isFalse);
+      
+      LogService.info('✅ Empty Bloom Filter works correctly');
+    });
+
+    test('2. Bloom Filter correctly identifies known messages', () {
+      final bf = BloomFilter();
+      
+      bf.add('msg1');
+      bf.add('msg2');
+      bf.add('msg3');
+      
+      expect(bf.contains('msg1'), isTrue);
+      expect(bf.contains('msg2'), isTrue);
+      expect(bf.contains('msg3'), isTrue);
+      expect(bf.contains('msg4'), isFalse);
+      
+      LogService.info('✅ Bloom Filter identifies known messages');
+      LogService.info('   Known: msg1, msg2, msg3');
+      LogService.info('   Unknown: msg4');
+    });
+
+    test('3. Bloom Filter sync reduces redundant sends', () {
+      // محاكاة: Device A لديه 100 رسالة
+      final deviceAMessages = List.generate(100, (i) => 'msg_$i');
+      final bfA = BloomFilter();
+      for (final msg in deviceAMessages) {
+        bfA.add(msg);
+      }
+      
+      // محاكاة: Device B لديه 80 رسالة مشتركة + 20 جديدة
+      final deviceBMessages = [
+        ...deviceAMessages.sublist(0, 80), // 80 مشتركة
+        ...List.generate(20, (i) => 'msg_new_$i'), // 20 جديدة
+      ];
+      
+      // B يفحص ما يجب إرساله إلى A
+      final toSend = deviceBMessages.where((msg) => !bfA.contains(msg)).toList();
+      
+      // يجب أن يرسل فقط الـ 20 الجديدة
+      expect(toSend.length, lessThanOrEqualTo(22)); // ~20 + ~1% false positives
+      
+      final reductionPercent = ((100 - toSend.length) / 100 * 100).round();
+      
+      LogService.info('✅ Bloom Filter reduces bandwidth');
+      LogService.info('   Total messages: 100');
+      LogService.info('   Messages to send: ${toSend.length}');
+      LogService.info('   Reduction: ~$reductionPercent%');
+    });
+
+    test('4. Bloom Filter serialization for network transmission', () {
+      final bf1 = BloomFilter();
+      bf1.add('msg1');
+      bf1.add('msg2');
+      
+      // تحويل إلى Base64 (للإرسال عبر الشبكة)
+      final base64 = bf1.toBase64();
+      expect(base64, isNotEmpty);
+      
+      // إعادة بناء من Base64
+      final bf2 = BloomFilter.fromBase64(base64);
+      
+      // التحقق من أن البيانات محفوظة
+      expect(bf2.contains('msg1'), isTrue);
+      expect(bf2.contains('msg2'), isTrue);
+      expect(bf2.contains('msg3'), isFalse);
+      
+      LogService.info('✅ Bloom Filter serialization works');
+      LogService.info('   Base64 size: ${base64.length} bytes');
+    });
+  });
+
+  // TODO: Add Scenario E (Multi-hop Relay) and Scenario F (Congestion Control)
+  // once build_runner issues are resolved and TestDatabase has RelayQueue methods
 }
+
 

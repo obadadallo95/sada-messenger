@@ -1,0 +1,419 @@
+# 🤖 Cursor AI — Sada Messenger Project Prompt
+
+> **كيفية الاستخدام**: انسخ هذا الملف كاملاً وضعه في:
+> - `.cursor/rules/sada.mdc` (Cursor Rules - الأفضل)
+> - أو الصقه في بداية أي محادثة مع Cursor
+
+---
+
+## 1. PROJECT IDENTITY
+
+You are working on **Sada (صدى) Messenger** — a privacy-first, offline mesh messaging app built with Flutter for Android.
+
+**Core Mission**: Allow people to communicate securely **without internet, without cellular networks, and without central servers** using WiFi Direct (via Google Nearby Connections API) and Bluetooth LE.
+
+**Primary Use Case**: Activists, journalists, and communities in areas with restricted or monitored internet access.
+
+**Language Policy**:
+- Code: English only (variable names, comments, function names)
+- User-facing strings: Arabic + English via ARB localization files
+- When talking to the developer: respond in Arabic
+
+---
+
+## 2. TECH STACK (Do NOT suggest alternatives unless asked)
+
+```
+Framework:        Flutter (Dart) — Android only for now
+State Mgmt:       Riverpod (Notifier + AsyncNotifier patterns)
+Navigation:       GoRouter
+Database:         Drift ORM over SQLite (Schema v5)
+Encryption:       libsodium via flutter_sodium (X25519 + XSalsa20-Poly1305)
+Key Storage:      FlutterSecureStorage
+Mesh Transport:   Google Nearby Connections API (NearbyConnections flutter plugin)
+Background:       flutter_background_service
+Dependency Inj:   Riverpod providers
+Localization:     Flutter intl + ARB files (Arabic/English)
+UI Design:        Material 3, Glassmorphism, Dark-first
+```
+
+---
+
+## 3. PROJECT STRUCTURE
+
+```
+lib/
+├── core/
+│   ├── database/
+│   │   ├── app_database.dart          ← Drift DB (Schema v5, 4 tables)
+│   │   ├── tables/
+│   │   │   ├── contacts_table.dart
+│   │   │   ├── chats_table.dart
+│   │   │   ├── messages_table.dart
+│   │   │   └── relay_queue_table.dart ← Store-Carry-Forward packets
+│   │   └── providers/
+│   │       └── database_provider.dart
+│   ├── security/
+│   │   ├── encryption_service.dart    ← X25519 + XSalsa20-Poly1305
+│   │   ├── key_manager.dart           ← KeyPair generation + SecureStorage
+│   │   └── auth_service.dart          ← PIN + Biometric + Duress Mode
+│   ├── network/
+│   │   ├── mesh_service.dart          ← Main mesh coordinator
+│   │   ├── incoming_message_handler.dart
+│   │   ├── router/
+│   │   │   └── epidemic_router.dart   ← Nearby Connections + Store-Carry-Forward
+│   │   └── models/
+│   │       ├── mesh_message.dart
+│   │       └── relay_packet.dart
+│   └── services/
+│       ├── background_service.dart    ← Foreground service + duty cycle
+│       └── log_service.dart
+├── features/
+│   ├── auth/
+│   ├── chat/
+│   │   ├── application/
+│   │   │   └── chat_controller.dart   ← sendMessage() 213 lines (IMPLEMENTED)
+│   │   ├── data/
+│   │   │   └── repositories/
+│   │   │       └── chat_repository.dart
+│   │   └── presentation/
+│   │       └── pages/
+│   │           └── chat_screen.dart
+│   ├── contacts/
+│   ├── groups/                        ← ⚠️ Placeholder (SharedPreferences only)
+│   ├── discovery/
+│   ├── onboarding/
+│   └── settings/
+└── main.dart
+```
+
+---
+
+## 4. DATABASE SCHEMA (Drift v5 — ALREADY IMPLEMENTED)
+
+```dart
+// ✅ DO NOT recreate. These tables exist in app_database.dart
+
+@DriftDatabase(tables: [ContactsTable, ChatsTable, MessagesTable, RelayQueueTable])
+class AppDatabase extends _$AppDatabase {
+  @override
+  int get schemaVersion => 5;
+}
+
+// ContactsTable: id, userId, name, publicKey, avatar, status, createdAt
+// ChatsTable: id, peerId, peerName, lastMessage, lastMessageTime, unreadCount
+// MessagesTable: id, chatId, senderId, content, encryptedText, status,
+//                isFromMe, timestamp, messageType, mediaPath
+// RelayQueueTable: packetId, targetId, payload, ttl, hops, trace,
+//                  queuedAt, priority (planned)
+```
+
+**Available DAOs** (use these, don't write raw SQL):
+```dart
+database.insertContact(companion)
+database.getAllContacts()
+database.getContactById(id)
+database.watchChats()              // Stream<List<ChatsTableData>>
+database.getChatById(id)
+database.insertMessage(companion)
+database.updateMessageStatus(messageId, status)
+database.getMessagesForChat(chatId)
+database.getRelayPacketsForSync()
+database.enqueueRelayPacket(companion)
+database.markRelayPacketDelivered(packetId)
+```
+
+---
+
+## 5. ENCRYPTION ARCHITECTURE (ALREADY IMPLEMENTED)
+
+```
+Key Exchange Flow:
+User A shows QR code → User B scans it → B saves A's publicKey in ContactsTable
+
+Encryption Flow (per message):
+1. Get recipient's publicKey from ContactsTable
+2. encryptionService.calculateSharedSecret(remotePublicKeyBytes)  // X25519
+3. encryptionService.encryptMessage(plaintext, sharedKey)          // XSalsa20-Poly1305
+4. Store encryptedText in MessagesTable
+5. Send via MeshService
+
+Decryption Flow:
+1. Get sender's publicKey from ContactsTable
+2. encryptionService.calculateSharedSecret(senderPublicKeyBytes)
+3. encryptionService.decryptMessage(ciphertext, sharedKey)
+4. Display plaintext in UI
+```
+
+**Security Rules — NEVER violate these:**
+- NEVER log plaintext message content
+- NEVER log private keys or shared secrets
+- NEVER store plaintext in encryptedText column
+- NEVER send unencrypted messages over mesh (except ACKs with care)
+- ALWAYS use FlutterSecureStorage for private keys, never SharedPreferences
+
+---
+
+## 6. DURESS MODE (FULLY IMPLEMENTED — DO NOT BREAK)
+
+```
+Normal PIN (e.g., 1234) → Opens real app with real database
+Duress PIN (e.g., 4321) → Opens identical-looking app with fake database
+
+Implementation:
+- auth_service.dart handles PIN validation
+- Two separate Drift databases: real_db.sqlite + duress_db.sqlite
+- appDatabaseProvider returns correct DB based on auth state
+- All repositories must check isDuressMode before writing real data
+- In Duress Mode: simulate send but write to fake DB only
+```
+
+**When modifying auth flow or database initialization — always verify Duress Mode still works.**
+
+---
+
+## 7. MESH NETWORK ARCHITECTURE
+
+### Transport Layer
+```
+Google Nearby Connections API
+├── Strategy: P2P_CLUSTER (many-to-many)
+├── Advertising: startAdvertising() in background service
+├── Discovery: startDiscovery() in background service
+└── Payload: BYTES type only (JSON-encoded MeshMessage)
+```
+
+### DTN (Delay-Tolerant Network) / Store-Carry-Forward
+```
+When peer is NOT reachable directly:
+1. Message stored in RelayQueueTable with TTL + maxHops
+2. When ANY peer connects → handshake → exchange relay queue summaries
+3. Forward packets that target peer hasn't seen (deduplication via trace field)
+4. Recipient reconstructs message → sends ACK back via same relay mechanism
+5. TTL decrements per hop. maxHops = 10 default. Expired packets deleted.
+```
+
+### Message Flow
+```dart
+// MeshMessage JSON structure (sent over Nearby Connections)
+{
+  "type": "message" | "ack" | "handshake" | "relay",
+  "messageId": "uuid-v4",
+  "senderId": "hex-pubkey-prefix",
+  "targetId": "hex-pubkey-prefix",
+  "content": "base64-encrypted-payload",
+  "timestamp": 1234567890,
+  "ttl": 86400,      // seconds
+  "maxHops": 10,
+  "hops": 0          // increments per relay
+}
+```
+
+### ACK Flow (⚠️ PARTIALLY IMPLEMENTED — P0 Priority)
+```
+Current state:
+- MeshMessage.typeAck exists ✅
+- _handleAck() in mesh_service.dart exists ✅  
+- ACK generation in incoming_message_handler.dart exists ✅
+- ACK does NOT reliably travel back via multi-hop ⚠️
+
+Known issue: Reverse routing of ACK through relay nodes not guaranteed
+Fix needed: ACK should be queued in RelayQueue like regular messages
+```
+
+---
+
+## 8. CURRENT P0 TASKS (Blockers for Field Release)
+
+### P0-ACK: Fix ACK Pipeline
+**Problem**: ACK doesn't reliably return to original sender in multi-hop scenarios.
+**Fix approach**: Route ACK as RelayPacket with targetId = original senderId.
+**Files**: `mesh_service.dart`, `incoming_message_handler.dart`, `epidemic_router.dart`
+**Key challenge**: Reverse routing — node B must know how to route ACK back to A.
+
+### P0-CON: Tune Congestion Control
+**Current**: Token bucket with `_maxTokensPerPeer = 20`, refill every 1 minute.
+**Problem**: Not validated under high peer density. No byte-based quota.
+**Fix needed**:
+- Adaptive token limits based on peer count
+- Byte-based RelayQueue limit (100MB target) alongside count-based (5000)
+- Priority flag for direct messages vs relay
+**Files**: `epidemic_router.dart`, `app_database.dart`, `constants.dart`
+
+### P0-BG: Background Service Hardening
+**Current**: Foreground service with duty cycle exists.
+**Problem**: Wake lock not tied to active connection state; battery drain risk.
+**Fix needed**:
+- Acquire wake lock only when peer connected, release after sync
+- Test battery soak (8+ hours background)
+- Handle Android 12+ battery optimization prompts
+**Files**: `background_service.dart`, `AndroidManifest.xml`
+
+### P0-UX: DTN Delay Explanations
+**Problem**: Users don't understand why messages take hours to deliver.
+**Fix needed**: Onboarding slides explaining offline-first + delayed delivery.
+**Files**: `onboarding_screen.dart`, `message_bubble.dart` (status indicators)
+
+### P0-FAIL: Security Hardening
+**Fix needed**:
+- Atomic: encryption + DB insert in single transaction
+- Robust JSON parsing with try/catch everywhere in relay pipeline
+- No sensitive data in logs (add static analysis rule)
+**Files**: `chat_controller.dart`, `incoming_message_handler.dart`, `log_service.dart`
+
+---
+
+## 9. CODING CONVENTIONS
+
+### Riverpod Patterns
+```dart
+// ✅ Correct — AsyncNotifier for async state
+@riverpod
+class ChatController extends _$ChatController {
+  @override
+  Future<List<Message>> build(String chatId) async {
+    final db = await ref.watch(appDatabaseProvider.future);
+    return db.getMessagesForChat(chatId);
+  }
+}
+
+// ✅ Reading providers in services (not UI)
+final db = await ref.read(appDatabaseProvider.future);
+
+// ❌ Never use ref.watch() outside build()
+// ❌ Never use ChangeNotifier
+// ❌ Never use setState() for business logic
+```
+
+### Error Handling
+```dart
+// ✅ Always use try-catch in mesh/encryption operations
+try {
+  final encrypted = await encryptionService.encryptMessage(content, sharedKey);
+} catch (e) {
+  LogService.error('Encryption failed', e);
+  // Update message status to 'failed' in DB
+  rethrow;
+}
+
+// ✅ Log with context, never log sensitive data
+LogService.info('Message sent: ${messageId} to ${peerId.substring(0, 8)}...');
+// ❌ LogService.info('Message content: $content');  // NEVER
+// ❌ LogService.info('Shared key: ${sharedKey}');   // NEVER
+```
+
+### File Organization
+```dart
+// ✅ One class per file
+// ✅ Feature-first structure (not type-first)
+// ✅ Barrel exports via feature/index.dart files
+// ✅ Constants in lib/core/utils/constants.dart (AppConstants class)
+```
+
+---
+
+## 10. WHAT IS ALREADY DONE — DO NOT RECREATE
+
+| Component | Status | Location |
+|-----------|--------|----------|
+| Drift Database + all tables | ✅ Complete | `core/database/` |
+| Key generation + secure storage | ✅ Complete | `core/security/key_manager.dart` |
+| X25519 + XSalsa20-Poly1305 encryption | ✅ Complete | `core/security/encryption_service.dart` |
+| sendMessage() with encryption + DB + mesh | ✅ Complete (213 lines) | `features/chat/application/chat_controller.dart` |
+| Incoming message handler + decryption | ✅ Complete | `core/network/incoming_message_handler.dart` |
+| Epidemic router + Nearby Connections | ✅ Complete | `core/network/router/epidemic_router.dart` |
+| Store-Carry-Forward relay queue | ✅ Complete | `core/network/mesh_service.dart` + DB |
+| Duress Mode (dual DB + fake UI) | ✅ Complete | `core/security/auth_service.dart` |
+| QR code key exchange | ✅ Complete | `features/contacts/` |
+| Material 3 UI + RTL + Dark theme | ✅ Complete | `features/*/presentation/` |
+| Arabic + English localization | ✅ Complete | `lib/l10n/*.arb` |
+| Background service + duty cycle | ✅ Present, needs hardening | `core/services/background_service.dart` |
+
+---
+
+## 11. KNOWN GAPS — NEEDS WORK
+
+| Component | Gap | Priority |
+|-----------|-----|----------|
+| ACK multi-hop routing | Reverse path not guaranteed | P0 |
+| Congestion control tuning | Not validated under load | P0 |
+| Background battery optimization | Wake lock not context-aware | P0 |
+| Groups feature | Placeholder only (SharedPreferences) | P1 |
+| Bloom filter sync | Not implemented | P1 |
+| Test coverage | ACK, relay, handshake tests lacking | P1 |
+| File/media transfer | Not implemented | P2 |
+| iOS support | Not implemented | P2 |
+
+---
+
+## 12. FIELD RELEASE CRITERIA (Definition of Done)
+
+The app is field-ready when:
+- [ ] All P0 tasks completed and tested
+- [ ] ACK received within 30 seconds on direct connection
+- [ ] Message delivered within 5 minutes via 2-hop relay
+- [ ] App runs 8+ hours in background without crash
+- [ ] Battery drain < 5% per hour in idle mesh mode
+- [ ] Duress Mode indistinguishable from normal mode
+- [ ] 5 successful smoke tests on real Android devices (API 29+)
+- [ ] No sensitive data in logs (verified by grep)
+
+---
+
+## 13. HOW TO ASK ME GOOD QUESTIONS
+
+When you need clarification, ask about:
+- **Specific file paths** — "which file handles X?"
+- **Current behavior vs expected** — describe both
+- **Reproduction steps** — how to trigger the bug
+
+When I give you a task:
+1. Read the relevant file first before suggesting changes
+2. Check if the functionality already exists before adding new code
+3. Respect the existing patterns (Riverpod, async/await, error handling)
+4. Test mentally: does this break Duress Mode?
+5. Test mentally: does this log any sensitive data?
+
+---
+
+## 14. QUICK REFERENCE — COMMON OPERATIONS
+
+```dart
+// Get database
+final db = await ref.read(appDatabaseProvider.future);
+
+// Get current user's key pair
+final keyPair = await ref.read(keyManagerProvider).loadKeyPair();
+final myPublicKey = base64Encode(keyPair!.pk);
+
+// Encrypt a message for a contact
+final contact = await db.getContactById(contactId);
+final remotePublicKeyBytes = base64Decode(contact!.publicKey!);
+final sharedKey = await encryptionService.calculateSharedSecret(remotePublicKeyBytes);
+final encrypted = encryptionService.encryptMessage(plaintext, sharedKey);
+
+// Send via mesh
+await meshService.sendMeshMessage(peerId, encrypted, senderId: myId);
+
+// Insert message to DB
+await db.insertMessage(MessagesTableCompanion(
+  id: Value(const Uuid().v4()),
+  chatId: Value(chatId),
+  senderId: Value(myId),
+  content: Value(plaintext),
+  encryptedText: Value(encrypted),
+  status: const Value('sending'),
+  isFromMe: const Value(true),
+  timestamp: Value(DateTime.now()),
+));
+
+// Update message status
+await db.updateMessageStatus(messageId, 'delivered');
+
+// Check if in Duress Mode
+final isDuress = ref.read(authServiceProvider).isDuressMode;
+```
+
+---
+
+*Last updated: 2025 | Version: 1.0 | Project: Sada Messenger*

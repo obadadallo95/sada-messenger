@@ -6,9 +6,10 @@ import 'core/utils/log_service.dart';
 import 'core/network/incoming_message_handler.dart';
 
 /// نقطة الدخول الرئيسية للتطبيق
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
+  await LogService.init();
   LogService.info('بدء تشغيل تطبيق Sada');
   
   runApp(

@@ -14,32 +14,30 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _controller = PageController();
   bool _isLastPage = false;
 
-  final List<OnboardingPageModel> _pages = [
     OnboardingPageModel(
-      title: 'خارج الشبكة؟ لا مشكلة.',
-      description: 'صدى يعمل بدون إنترنت أو أبراج اتصال. نستخدم تقنية Mesh لربط الهواتف ببعضها مباشرة.',
-      icon: Icons.wifi_off_rounded,
+      title: 'تواصل بلا حدود',
+      description: 'صدى يعمل حتى عند انقطاع الإنترنت. شبكتك هي الناس من حولك.',
+      icon: Icons.public_off_rounded,
       color: Colors.cyanAccent,
     ),
     OnboardingPageModel(
-      title: 'أنت جزء من الشبكة',
-      description: 'هاتفك يعمل كساعي بريد مشفر. الرسائل تنتقل من هاتف لآخر حتى تصل لهدفها.',
+      title: 'شبكة البشر (Mesh)',
+      description: 'رسائلك تقفز من هاتف لآخر عبر WiFi و Bluetooth حتى تصل لصديقك البعيد.',
       icon: Icons.hub_rounded,
       color: Colors.purpleAccent,
     ),
     OnboardingPageModel(
-      title: 'مشفرة وآمنة تماماً',
-      description: 'لا سيرفرات، لا تتبع. الرسائل مشفرة ولا يمكن لأحد قراءتها غير المستلم الحقيقي.',
-      icon: Icons.security_rounded,
-      color: Colors.greenAccent,
-    ),
-    OnboardingPageModel(
-      title: 'قد يستغرق وقتاً',
-      description: 'لأننا نعتمد على حركة الناس، وصول الرسالة قد يتأخر قليلاً. الصبر مفتاح الأمان.',
+      title: 'التأخير متوقع',
+      description: 'لأن الرسائل تسافر مع الناس، قد تتأخر قليلاً حتى تلتقي الهواتف. الصبر يعني الوصول.',
       icon: Icons.hourglass_bottom_rounded,
       color: Colors.amberAccent,
     ),
-  ];
+    OnboardingPageModel(
+      title: 'أمان وتشفير تام',
+      description: 'لا خوادم مركزية. رسائلك مشفرة ولا يمكن لأحد قراءتها غيرك أنت والمستلم.',
+      icon: Icons.security_rounded,
+      color: Colors.greenAccent,
+    ),
 
   @override
   Widget build(BuildContext context) {

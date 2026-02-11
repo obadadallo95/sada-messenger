@@ -35,6 +35,9 @@ class AppRoutes {
   // Notifications route
   static const String notifications = '/notifications';
 
+  // Safe Notes (Duress/Confiscation)
+  static const String safeNotes = '/safe_notes';
+
   // المسار الافتراضي (يبدأ من Splash)
   static const String initial = splash;
 }

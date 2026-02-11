@@ -29,6 +29,9 @@ class RelayQueueTable extends Table {
 
   /// Number of times the packet has been forwarded/retried.
   IntColumn get retryCount => integer().withDefault(const Constant(0))();
+  
+  /// Priority level: 0=Low, 1=Standard (default), 2=High (ACKs, Admin)
+  IntColumn get priority => integer().withDefault(const Constant(1))();
 
   @override
   Set<Column> get primaryKey => {packetId};

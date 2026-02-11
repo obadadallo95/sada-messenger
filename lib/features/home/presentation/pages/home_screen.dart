@@ -158,6 +158,43 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   ),
                 ),
                 SizedBox(height: 12.h),
+                // Safe Notes Option
+                ScaleTransition(
+                  scale: _speedDialAnimation,
+                  child: Material(
+                    color: Colors.teal[600],
+                    borderRadius: BorderRadius.circular(28.r),
+                    child: InkWell(
+                      onTap: () {
+                        _toggleSpeedDial();
+                        context.push(AppRoutes.safeNotes);
+                      },
+                      borderRadius: BorderRadius.circular(28.r),
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 16.w,
+                          vertical: 12.h,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.notes, color: Colors.white),
+                            SizedBox(width: 8.w),
+                            Text(
+                              l10n.localeName == 'ar' ? 'ملاحظاتي' : 'My Notes',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 14.sp,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(height: 12.h),
                 // Create Group Option
                 ScaleTransition(
                   scale: _speedDialAnimation,

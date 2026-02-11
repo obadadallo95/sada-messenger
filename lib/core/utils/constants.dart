@@ -15,6 +15,10 @@ class AppConstants {
 
   /// الحد الأقصى لعدد الحزم المخزنة في Relay Queue لكل جهاز.
   /// هذا حد عددي مبدئي لمنع امتلاء التخزين (يمكن ضبطه لاحقاً أو استبداله بحساب حجمي بالـ MB).
-  static const int relayQueueMaxCount = 5000;
+  static int relayQueueMaxCount = 5000;
+
+  /// الحد الأقصى لحجم التخزين المسموح به لـ Relay Queue (بالبايت).
+  /// 100 MB كحد أقصى لمنع استهلاك مساحة الجهاز.
+  static int relayQueueMaxBytes = 100 * 1024 * 1024; // 100 MB
 }
 

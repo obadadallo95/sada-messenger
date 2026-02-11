@@ -11,6 +11,7 @@ import '../network/mesh_service.dart';
 import 'models/mesh_message.dart';
 import '../services/auth_service.dart';
 import '../services/notification_provider.dart';
+import '../services/metrics_service.dart';
 import '../../features/chat/data/mappers/message_mapper.dart';
 import '../../features/chat/data/repositories/chat_repository.dart';
 import '../../features/chat/domain/models/message_model.dart';
@@ -77,6 +78,9 @@ class IncomingMessageHandler {
           return;
         }
         messageData = decoded;
+        
+        final metricsService = _ref.read(metricsServiceProvider);
+        metricsService.recordMessageReceived();
       } catch (e) {
         LogService.warning('⚠️ Failed to parse JSON payload', e);
         return; // Drop malformed message
@@ -92,12 +96,8 @@ class IncomingMessageHandler {
       final isMeshMessage = messageData.containsKey('originalSenderId') && 
                             messageData.containsKey('finalDestinationId');
       
-      // التحقق من أن الرسالة ليست ACK (لا نعالجها هنا)
+      // التحقق من أن الرسالة ليست ACK (سنعالجها هنا الآن لدعم التشفير)
       final isAck = messageData['type'] == MeshMessage.typeAck;
-      if (isAck) {
-        LogService.info('📨 ACK message received - سيتم معالجتها في MeshService');
-        return; // ACKs are handled by MeshService._handleAck
-      }
       
       // استخراج البيانات الأساسية (now guaranteed to be non-null by validation)
       String senderId;
@@ -129,48 +129,17 @@ class IncomingMessageHandler {
 
       final database = await _ref.read(appDatabaseProvider.future);
 
-      // ==================== MUTUAL CONTACT EXCHANGE ====================
-      // التحقق من نوع الرسالة
-      // إذا كانت CONTACT_EXCHANGE، نتجاوز فحص القائمة البيضاء
-      final isContactExchange = messageData['type'] == MeshMessage.typeContactExchange;
-      
-      if (isContactExchange) {
-         await _handleContactExchange(
-           senderId: senderId, 
-           content: encryptedContent, 
-           database: database
-         );
-         return;
-      }
-      // ===============================================================
-      
       // ==================== SECURITY: Contact Whitelisting ====================
       // التحقق من أن المرسل هو جهة اتصال معروفة قبل معالجة الرسالة
-      // database defined above
-      
-      // التحقق من وجود المرسل في جهات الاتصال
       final contact = await database.getContactById(senderId);
       if (contact == null) {
         // المرسل ليس في جهات الاتصال - رفض الرسالة (Anti-Spam)
         LogService.warning('🚫 تم رفض رسالة من مرسل غير معروف: $senderId');
-        LogService.info('   - المرسل ليس في جهات الاتصال');
-        LogService.info('   - الرسالة تم تجاهلها لحماية الخصوصية (Anti-Spam)');
-        return; // Silently drop the message
+        return;
       }
       
-      // التحقق من أن المرسل غير محظور
       if (contact.isBlocked) {
         LogService.warning('🚫 تم رفض رسالة من مرسل محظور: $senderId');
-        return; // Silently drop the message
-      }
-      
-      LogService.info('✅ المرسل معروف - متابعة معالجة الرسالة');
-      
-      // البحث عن المحادثة مع هذا المرسل
-      final chat = await database.getChatByPeerId(senderId);
-      if (chat == null) {
-        LogService.warning('المحادثة غير موجودة للمرسل: $senderId');
-        // يمكن إنشاء محادثة جديدة هنا إذا لزم الأمر
         return;
       }
       
@@ -178,103 +147,207 @@ class IncomingMessageHandler {
       String decryptedMessage;
       try {
         final encryptionService = _ref.read(encryptionServiceProvider);
-        
-        // الحصول على المفتاح العام للمرسل (contact موجود بالفعل من التحقق السابق)
         if (contact.publicKey != null) {
           try {
             final remotePublicKeyBytes = base64Decode(contact.publicKey!);
             final sharedKey = await encryptionService.calculateSharedSecret(remotePublicKeyBytes);
             decryptedMessage = encryptionService.decryptMessage(encryptedContent, sharedKey);
-            LogService.info('تم فك تشفير الرسالة بنجاح');
           } catch (e) {
             LogService.error('خطأ في فك تشفير الرسالة', e);
-            decryptedMessage = encryptedContent; // استخدام النص المشفر كنص عادي
+            decryptedMessage = encryptedContent;
           }
         } else {
-          LogService.warning('لا يوجد مفتاح عام للمرسل - استخدام النص المشفر');
-          decryptedMessage = encryptedContent;
+           decryptedMessage = encryptedContent;
         }
       } catch (e) {
-        LogService.error('خطأ في فك تشفير الرسالة', e);
-        decryptedMessage = encryptedContent; // استخدام النص المشفر كنص عادي
+        decryptedMessage = encryptedContent;
       }
-      
-      // التحقق من نوع الرسالة - هل هي إشعار إضافة صديق؟
-      try {
-        final messageData = jsonDecode(decryptedMessage);
-        if (messageData['type'] == 'friend_added') {
-          // معالجة إشعار إضافة صديق
-          await _handleFriendAddedNotification(
-            senderId: senderId,
-            senderName: messageData['senderName'] as String? ?? 'Friend',
-            database: database,
-          );
-          return; // لا نحفظ هذه الرسالة كرسالة عادية
+
+      // ==================== ACK HANDLING ====================
+      if (isAck) {
+        try {
+          LogService.info('🔍 Decoding ACK: $decryptedMessage');
+          final payload = jsonDecode(decryptedMessage);
+          final originalMessageId = payload['originalMessageId'] as String?;
+          
+          if (originalMessageId != null) {
+            await database.updateMessageStatus(originalMessageId, 'delivered');
+            LogService.info('✅ ACK آمن تم استلامه وتحديث الرسالة: $originalMessageId');
+          } else {
+            // Fallback: Check metadata if payload fails (Legacy support)
+            // Note: Metadata is in raw messageData, handled by MeshService mostly, 
+            // but we can check here if needed. For now, rely on payload.
+            LogService.warning('⚠️ ACK فارغ أو غير صالح');
+          }
+        } catch (e) {
+          LogService.error('خطأ في معالجة محتوى ACK', e);
         }
-      } catch (e) {
-        // ليست JSON أو ليست إشعار - نتابع كرسالة عادية
+        
+        final metricsService = _ref.read(metricsServiceProvider);
+        metricsService.recordAckReceived();
+        return; // انتهى معالجة ACK
       }
+
+      // ==================== NORMAL MESSAGE HANDLING ====================
       
-      // توليد معرف فريد للرسالة
-      const uuid = Uuid();
-      final messageId = uuid.v4();
-      
-      // إنشاء MessageModel
-      final message = MessageModel(
-        id: messageId,
-        text: decryptedMessage,
-        encryptedText: encryptedContent,
-        isMe: false,
-        timestamp: DateTime.now(),
-        status: MessageStatus.delivered,
+      // 6. Normal message processing
+      await _processDecryptedMessage(
+        senderId, 
+        decryptedMessage, 
+        encryptedContent, 
+        meshMessageId, 
+        originalSenderId, 
+        isMeshMessage, 
+        database
       );
-      
-      // حفظ الرسالة في قاعدة البيانات
-      final companion = MessageMapper.toCompanion(
-        message,
-        chat.id,
-        senderId,
-      );
-      await database.insertMessage(companion);
-      
-      // تحديث آخر رسالة في المحادثة
-      await database.updateLastMessage(chat.id, decryptedMessage);
-      
-      // إعادة بناء المحادثات
-      _ref.invalidate(chatRepositoryProvider);
-      
-      LogService.info('تم حفظ الرسالة الواردة بنجاح: $messageId');
-
-      // ==================== إرسال ACK للمرسل الأصلي ====================
-      // يتم إرسال ACK فقط لرسائل MeshMessage (ليست CONTACT_EXCHANGE أو system-only).
-      if (isMeshMessage && meshMessageId != null && originalSenderId != null) {
-        final authService = _ref.read(authServiceProvider.notifier);
-        final currentUser = authService.currentUser;
-        final myId = currentUser?.userId;
-
-        if (myId != null) {
-          final meshService = _ref.read(meshServiceProvider);
-
-          // نستخدم metadata لحمل originalMessageId بدون تضمينه في payload.
-          final ackMetadata = <String, dynamic>{
-            'originalMessageId': meshMessageId,
-          };
-
-          await meshService.sendMeshMessage(
-            originalSenderId,
-            '', // لا نحتاج payload فعلي - الميتاداتا تكفي
-            senderId: myId,
-            maxHops: 10,
-            type: MeshMessage.typeAck,
-            metadata: ackMetadata,
-          );
-
-          LogService.info('📨 تم إرسال ACK للرسالة: $meshMessageId إلى $originalSenderId');
-        }
-      }
       
     } catch (e) {
-      LogService.error('خطأ في معالجة الرسالة الواردة', e);
+       LogService.error('خطأ', e);
+    }
+
+  }
+
+  // Helper method to keep _handleIncomingMessage clean
+  Future<void> _processDecryptedMessage(
+      String senderId, String decryptedMessage, String encryptedContent, 
+      String? meshMessageId, String? originalSenderId, bool isMeshMessage, 
+      AppDatabase database) async {
+      
+      // 1. Deduplication
+      if (isMeshMessage && meshMessageId != null) {
+        final existing = await database.getMessageById(meshMessageId);
+        if (existing != null) {
+          LogService.info('⚠️ رسالة مكررة تم تجاهلها: $meshMessageId');
+          // Send ACK anyway as confirmation
+          if (originalSenderId != null) {
+             await _sendAckForMessage(originalSenderId, meshMessageId);
+          }
+          final metricsService = _ref.read(metricsServiceProvider);
+          metricsService.recordDuplicateIgnored();
+          return;
+        }
+      }
+
+      // 2. Get or Create Chat
+      var chat = await database.getChatByPeerId(senderId);
+      
+      if (chat == null) {
+          // Create new chat
+          final chatUuid = const Uuid().v4();
+          final contact = await database.getContactById(senderId);
+          final name = contact?.name ?? 'Unknown';
+
+          await database.insertChat(ChatsTableCompanion.insert(
+             id: chatUuid,
+             peerId: Value(senderId),
+             lastUpdated: Value(DateTime.now()),
+             isGroup: const Value(false),
+             avatarColor: Value(_generateAvatarColor(name)),
+          ));
+          // Retrieve properly
+          chat = await database.getChatByPeerId(senderId); 
+      }
+      
+      if (chat == null) {
+         LogService.error('فشل العثور على محادثة للمرسل: $senderId');
+         return;
+      }
+
+      // 3. Insert Message
+      final messageId = meshMessageId ?? const Uuid().v4();
+      final timestamp = DateTime.now();
+
+      await database.insertMessage(MessagesTableCompanion.insert(
+        id: messageId,
+        chatId: chat.id,
+        senderId: senderId,
+        content: decryptedMessage,
+        type: const Value('text'),
+        status: const Value('received'),
+        timestamp: Value(timestamp),
+        isFromMe: const Value(false),
+      ));
+      
+      LogService.info('📥 تم استلام وحفظ رسالة جديدة: $messageId');
+
+      // 4. Update UI & Notify
+      _ref.invalidate(chatRepositoryProvider);
+      
+      final notificationService = _ref.read(notificationServiceProvider);
+      // Get sender name
+      final contact = await database.getContactById(senderId);
+      final senderName = contact?.name ?? 'Unknown';
+      
+      await notificationService.showChatNotification(
+          id: senderId.hashCode,
+          title: senderName,
+          body: decryptedMessage,
+          payload: jsonEncode({
+             'type': 'chat_message',
+             'chatId': chat.id,
+             'peerId': senderId,
+          }),
+      );
+
+      // 5. Send ACK
+      if (isMeshMessage && meshMessageId != null && originalSenderId != null) {
+        await _sendAckForMessage(originalSenderId, meshMessageId);
+      }
+  }
+
+  /// إرسال ACK مشفر وآمن
+  Future<void> _sendAckForMessage(String originalSenderId, String originalMessageId) async {
+    try {
+      final authService = _ref.read(authServiceProvider.notifier);
+      final currentUser = authService.currentUser;
+      final myId = currentUser?.userId;
+
+      if (myId == null) return;
+
+      final meshService = _ref.read(meshServiceProvider);
+      final encryptionService = _ref.read(encryptionServiceProvider);
+      final database = await _ref.read(appDatabaseProvider.future);
+
+      // تجهيز Payload
+      final ackPayload = jsonEncode({
+        'originalMessageId': originalMessageId,
+        'ackSenderId': myId,
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
+      });
+
+      // تشفير Payload
+      String encryptedAck = ackPayload;
+      final contact = await database.getContactById(originalSenderId);
+      if (contact?.publicKey != null) {
+        try {
+          final remoteKey = base64Decode(contact!.publicKey!);
+          final sharedKey = await encryptionService.calculateSharedSecret(remoteKey);
+          encryptedAck = encryptionService.encryptMessage(ackPayload, sharedKey);
+        } catch (e) {
+          LogService.warning('فشل تشفير ACK', e);
+        }
+      }
+
+      // Metadata for legacy/routing optimizations (optional)
+      final ackMetadata = {
+        'originalMessageId': originalMessageId, // For routing priority if needed
+      };
+
+      await meshService.sendMeshMessage(
+        originalSenderId,
+        encryptedAck,
+        senderId: myId,
+        maxHops: 10,
+        type: MeshMessage.typeAck,
+        metadata: ackMetadata,
+      );
+
+      LogService.info('📨 تم إرسال ACK مشفر للرسالة: $originalMessageId');
+      
+      final metricsService = _ref.read(metricsServiceProvider);
+      metricsService.recordAckSent();
+    } catch (e) {
+      LogService.error('فشل إرسال ACK', e);
     }
   }
 

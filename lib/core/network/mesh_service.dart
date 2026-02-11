@@ -7,11 +7,13 @@ import 'package:uuid/uuid.dart';
 import '../utils/log_service.dart';
 import '../security/security_providers.dart';
 import '../security/encryption_service.dart';
+import '../utils/bloom_filter.dart';
 import '../services/notification_provider.dart';
 import '../services/notification_service.dart';
 import '../database/database_provider.dart';
 import '../database/app_database.dart';
 import '../services/auth_service.dart';
+import '../services/metrics_service.dart';
 import 'models/mesh_message.dart';
 import 'discovery/udp_broadcast_service.dart';
 import '../power/discovery_strategy.dart';
@@ -33,7 +35,16 @@ class MeshService {
   
   /// Set لتتبع الأجهزة المتصلة التي أكملت Handshake
   final Set<String> _connectedPeers = {};
-  
+  final _connectedPeersController = StreamController<List<String>>.broadcast();
+
+  /// خرائط Bloom Filters للأجهزة المتصلة لتجنب إرسال رسائل مكررة
+  final Map<String, BloomFilter> _peerBloomFilters = {};
+
+  /// Stream للأجهزة المتصلة (لواجهة المستخدم)
+  Stream<List<String>> get connectedPeersStream => _connectedPeersController.stream;
+  /// الحصول على القائمة الحالية
+  List<String> get connectedPeers => _connectedPeers.toList();
+
   /// Ref للوصول إلى Providers
   final Ref _ref;
   
@@ -333,11 +344,14 @@ class MeshService {
     try {
       LogService.info('🎯 معالجة رسالة موجهة لي: ${meshMessage.messageId}');
 
-      // إذا كانت الرسالة من نوع ACK فهي رسالة تحكم (Control Plane)
-      // ولا تُعرض للمستخدم، بل تُستخدم لتحديث حالة الرسالة الأصلية.
+      // ملاحظة: الرسائل من نوع ACK تمت معالجتها سابقاً في IncomingMessageHandler بشكل أمن (مشفرة)
+      // ولكن لغرض الـ backward compatibility أو في حال لم يتم تشفيرها، 
+      // يمكن معالجة الـ Metadata هنا إذا لزم الأمر.
+      // حالياً، سنترك المعالجة لـ IncomingMessageHandler لتوحيد المنطق.
+      
       if (meshMessage.type == MeshMessage.typeAck) {
-        await _handleAck(meshMessage);
-        return;
+         LogService.info('📨 ACK message routed to IncomingMessageHandler via stream.');
+         return; 
       }
 
       // الرسائل العادية سيتم معالجتها تلقائياً في IncomingMessageHandler
@@ -366,6 +380,9 @@ class MeshService {
 
       if (updated) {
         LogService.info('✅ ACK received – تم تحديث حالة الرسالة إلى delivered: $originalMessageId');
+        
+        final metricsService = _ref.read(metricsServiceProvider);
+        metricsService.recordMessageDelivered();
       } else {
         LogService.warning('⚠️ ACK received ولكن لم يتم العثور على رسالة في DB: $originalMessageId');
       }
@@ -479,6 +496,17 @@ class MeshService {
             continue;
           }
           
+          // Bloom Filter Optimization (P1-SYNC)
+          final peerBF = _peerBloomFilters[newPeerId];
+          if (peerBF != null && peerBF.contains(meshMessage.messageId)) {
+             // الجهاز الآخر *ربما* لديه هذه الرسالة
+             // بما أننا نستخدم Store-Carry-Forward، تخطيها يوفر Bandwidth
+             // False Positive risk: 1% (مقبول لشبكة Mesh)
+             // يمكن تحسينها بـ Vector Summary later
+             LogService.info('⏭️ تخطي إرسال ${meshMessage.messageId} إلى $newPeerId (موجود حسب Bloom Filter)');
+             continue;
+          }
+
           // إعادة توجيه الرسالة
           final sent = await _forwardMessage(meshMessage);
           
@@ -510,9 +538,9 @@ class MeshService {
     try {
       _handshakeProtocol ??= _ref.read(handshakeProtocolProvider);
 
-      final ackMessage = await _handshakeProtocol!.processIncomingHandshake(handshakeJson);
+      final result = await _handshakeProtocol!.processIncomingHandshake(handshakeJson);
       
-      if (ackMessage != null) {
+      if (result != null) {
         // إرسال Handshake ACK
         final handshake = jsonDecode(handshakeJson) as Map<String, dynamic>;
         final peerId = handshake['peerId'] as String?;
@@ -522,12 +550,12 @@ class MeshService {
             'socket_write',
             {
               'peerId': peerId,
-              'message': ackMessage,
+              'message': result.ackMessage,
             },
           );
           
           // إكمال Handshake
-          await _completeHandshake(peerId);
+          await _completeHandshake(peerId, result.peerBloomFilter);
         }
       }
     } catch (e) {
@@ -540,15 +568,15 @@ class MeshService {
     try {
       _handshakeProtocol ??= _ref.read(handshakeProtocolProvider);
 
-      final accepted = await _handshakeProtocol!.processHandshakeAck(ackJson);
+      final result = await _handshakeProtocol!.processHandshakeAck(ackJson);
       
-      if (accepted) {
+      if (result.isAccepted) {
         final ack = jsonDecode(ackJson) as Map<String, dynamic>;
         final peerId = ack['peerId'] as String?;
         
         if (peerId != null) {
           // إكمال Handshake
-          await _completeHandshake(peerId);
+          await _completeHandshake(peerId, result.peerBloomFilter);
         }
       }
     } catch (e) {
@@ -657,13 +685,22 @@ class MeshService {
   }
 
   /// إكمال Handshake (يتم استدعاؤه عند استقبال Handshake ACK)
-  Future<void> _completeHandshake(String peerId) async {
+  Future<void> _completeHandshake(String peerId, [BloomFilter? peerBF]) async {
     try {
       if (_connectedPeers.contains(peerId)) {
-        return; // Handshake مكتمل بالفعل
+        // تحديث Bloom Filter حتى لو كنا متصلين بالفعل (قد يكون إعادة اتصال سريع)
+        if (peerBF != null) {
+          _peerBloomFilters[peerId] = peerBF;
+        }
+        return; 
       }
 
       _connectedPeers.add(peerId);
+      if (peerBF != null) {
+        _peerBloomFilters[peerId] = peerBF;
+      }
+      
+      _connectedPeersController.add(_connectedPeers.toList());
       LogService.info('✅ Handshake مكتمل مع: $peerId');
       
       // 🔥 CRUCIAL: إرسال RelayQueue فوراً بعد Handshake
@@ -679,10 +716,14 @@ class MeshService {
     return _connectedPeers.contains(peerId);
   }
 
-  /// تحديث Discovery Interval (يتم استدعاؤه عند تغيير Battery Mode)
   void updateDiscoveryInterval(int intervalSeconds) {
     _udpBroadcastService?.updateInterval(intervalSeconds);
     LogService.info('تم تحديث Discovery Interval إلى: ${intervalSeconds}s');
+  }
+
+  void dispose() {
+    _connectedPeersController.close();
+    _peerBloomFilters.clear();
   }
 }
 
