@@ -56,13 +56,42 @@ class RelayPacket {
   }
 
   factory RelayPacket.fromJson(Map<String, dynamic> json) {
+    final packetId = json['packetId']?.toString();
+    final toHash = json['toHash']?.toString();
+    final payload = json['payload']?.toString();
+
+    if (packetId == null || packetId.isEmpty) {
+      throw const FormatException('RelayPacket.packetId is missing');
+    }
+    if (toHash == null || toHash.isEmpty) {
+      throw const FormatException('RelayPacket.toHash is missing');
+    }
+    if (payload == null) {
+      throw const FormatException('RelayPacket.payload is missing');
+    }
+
+    final ttlValue = json['ttl'];
+    final ttl = ttlValue is int
+        ? ttlValue
+        : int.tryParse(ttlValue?.toString() ?? '') ?? 0;
+
+    final createdAtRaw = json['createdAt']?.toString();
+    final createdAt = createdAtRaw == null
+        ? DateTime.now()
+        : DateTime.tryParse(createdAtRaw) ?? DateTime.now();
+
+    final traceRaw = json['trace'];
+    final trace = traceRaw is List
+        ? traceRaw.map((e) => e.toString()).toList(growable: false)
+        : const <String>[];
+
     return RelayPacket(
-      packetId: json['packetId'] as String,
-      toHash: json['toHash'] as String,
-      ttl: json['ttl'] as int,
-      payload: json['payload'] as String,
-      createdAt: DateTime.parse(json['createdAt'] as String),
-      trace: List<String>.from(json['trace'] as List? ?? []),
+      packetId: packetId,
+      toHash: toHash,
+      ttl: ttl,
+      payload: payload,
+      createdAt: createdAt,
+      trace: trace,
     );
   }
 
@@ -98,7 +127,7 @@ class RelayPacket {
   RelayPacket addHop(String deviceId) {
     // We can hash the device ID to keep the trace anonymous but verifiable for loops
     final hopHash = sha256.convert(utf8.encode(deviceId)).toString();
-    
+
     // Check for loops
     if (trace.contains(hopHash)) {
       // Loop detected, maybe decrease TTL faster or handle elsewhere

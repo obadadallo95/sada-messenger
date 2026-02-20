@@ -19,12 +19,32 @@ class GroupsScreen extends ConsumerStatefulWidget {
 }
 
 class _GroupsScreenState extends ConsumerState<GroupsScreen> {
+  late final Stream<List<ChatModel>> _nearbyGroupsStream;
+  Future<List<ChatModel>>? _myGroupsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _nearbyGroupsStream = ref.read(groupsRepositoryProvider).getNearbyGroups();
+    _refreshMyGroups();
+  }
+
+  void _refreshMyGroups() {
+    setState(() {
+      _myGroupsFuture = ref.read(groupsRepositoryProvider).getMyGroups();
+    });
+  }
+
+  Future<void> _openCreateGroup() async {
+    await context.push(AppRoutes.createGroup);
+    if (!mounted) return;
+    _refreshMyGroups();
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-    final nearbyGroupsStream = ref.read(groupsRepositoryProvider).getNearbyGroups();
-    final myGroupsFuture = ref.read(groupsRepositoryProvider).getMyGroups();
 
     return Scaffold(
       body: CustomScrollView(
@@ -80,7 +100,7 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen> {
                   ),
                   SizedBox(height: 12.h),
                   FutureBuilder<List<ChatModel>>(
-                    future: myGroupsFuture,
+                    future: _myGroupsFuture,
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
                         return SizedBox(
@@ -88,18 +108,16 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen> {
                           child: Center(child: CircularProgressIndicator()),
                         );
                       }
-                      
+
                       if (snapshot.hasError) {
                         return SizedBox(
                           height: 120.h,
-                          child: Center(
-                            child: Text('خطأ في تحميل المجموعات'),
-                          ),
+                          child: Center(child: Text('خطأ في تحميل المجموعات')),
                         );
                       }
-                      
+
                       final groups = snapshot.data ?? [];
-                      
+
                       if (groups.isEmpty) {
                         return Container(
                           height: 120.h,
@@ -112,7 +130,7 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen> {
                           ),
                         );
                       }
-                      
+
                       return SizedBox(
                         height: 120.h,
                         child: ListView.builder(
@@ -120,7 +138,11 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen> {
                           itemCount: groups.length,
                           itemBuilder: (context, index) {
                             final group = groups[index];
-                            return _buildGroupCard(context, group, isJoined: true);
+                            return _buildGroupCard(
+                              context,
+                              group,
+                              isJoined: true,
+                            );
                           },
                         ),
                       );
@@ -147,7 +169,7 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen> {
 
           // Nearby Groups List
           StreamBuilder<List<ChatModel>>(
-            stream: nearbyGroupsStream,
+            stream: _nearbyGroupsStream,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return SliverFillRemaining(
@@ -166,9 +188,7 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen> {
 
               if (snapshot.hasError) {
                 return SliverFillRemaining(
-                  child: Center(
-                    child: Text('خطأ: ${snapshot.error}'),
-                  ),
+                  child: Center(child: Text('خطأ: ${snapshot.error}')),
                 );
               }
 
@@ -181,34 +201,31 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen> {
                     title: 'لا توجد مجتمعات',
                     subtitle: 'اكتشف مجموعات في منطقتك أو أنشئ مجتمعاً جديداً',
                     actionLabel: 'إنشاء مجتمع',
-                    onAction: () => context.push(AppRoutes.createGroup),
+                    onAction: _openCreateGroup,
                   ),
                 );
               }
 
               return SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final group = groups[index];
-                    return Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 16.w,
-                        vertical: 8.h,
-                      ),
-                      child: _buildGroupCard(context, group, isJoined: false),
-                    );
-                  },
-                  childCount: groups.length,
-                ),
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  final group = groups[index];
+                  return Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 16.w,
+                      vertical: 8.h,
+                    ),
+                    child: _buildGroupCard(context, group, isJoined: false),
+                  );
+                }, childCount: groups.length),
               );
             },
           ),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
+        onPressed: () async {
           HapticFeedback.lightImpact();
-          context.push(AppRoutes.createGroup);
+          await _openCreateGroup();
         },
         icon: Icon(Icons.add),
         label: Text(l10n.createCommunity),
@@ -217,15 +234,17 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen> {
   }
 
   /// بناء بطاقة مجموعة
-  Widget _buildGroupCard(BuildContext context, ChatModel group, {required bool isJoined}) {
+  Widget _buildGroupCard(
+    BuildContext context,
+    ChatModel group, {
+    required bool isJoined,
+  }) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
 
     return Card(
       elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16.r),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
       child: InkWell(
         onTap: () {
           HapticFeedback.lightImpact();
@@ -253,7 +272,7 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen> {
                 ),
               ),
               SizedBox(width: 16.w),
-              
+
               // Group Info
               Expanded(
                 child: Column(
@@ -298,18 +317,23 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen> {
                   ],
                 ),
               ),
-              
+
               // Join Button
               if (!isJoined)
                 FadeInRight(
                   child: ElevatedButton(
                     onPressed: () async {
                       try {
-                        await ref.read(groupsRepositoryProvider).joinGroup(group.id);
+                        await ref
+                            .read(groupsRepositoryProvider)
+                            .joinGroup(group.id);
+                        _refreshMyGroups();
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text('تم الانضمام إلى ${group.groupName}'),
+                              content: Text(
+                                'تم الانضمام إلى ${group.groupName}',
+                              ),
                             ),
                           );
                         }
@@ -339,4 +363,3 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen> {
     );
   }
 }
-

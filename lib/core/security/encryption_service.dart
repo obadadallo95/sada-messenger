@@ -2,6 +2,9 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:sodium_libs/sodium_libs.dart' hide SodiumInit;
 import 'package:sodium_libs/sodium_libs.dart' as sodium_libs show SodiumInit;
+import 'package:sodium_libs/sodium_libs_sumo.dart'
+    as sodium_sumo_libs
+    show SodiumSumo, SodiumSumoInit;
 import '../utils/log_service.dart';
 import 'key_manager.dart';
 
@@ -10,6 +13,7 @@ import 'key_manager.dart';
 class EncryptionService {
   final KeyManager _keyManager;
   Sodium? _sodium;
+  sodium_sumo_libs.SodiumSumo? _sodiumSumo;
 
   EncryptionService(this._keyManager);
 
@@ -18,6 +22,7 @@ class EncryptionService {
     try {
       await _keyManager.initialize();
       _sodium = await sodium_libs.SodiumInit.init();
+      _sodiumSumo = await sodium_sumo_libs.SodiumSumoInit.init();
       LogService.info('تم تهيئة خدمة التشفير');
     } catch (e) {
       LogService.error('خطأ في تهيئة خدمة التشفير', e);
@@ -27,7 +32,7 @@ class EncryptionService {
 
   /// التحقق من تهيئة libsodium
   void _ensureInitialized() {
-    if (_sodium == null) {
+    if (_sodium == null || _sodiumSumo == null) {
       throw StateError('libsodium غير مهيأ. استدعِ initialize() أولاً.');
     }
   }
@@ -38,44 +43,62 @@ class EncryptionService {
   Future<Uint8List> calculateSharedSecret(Uint8List remotePublicKey) async {
     _ensureInitialized();
     final sodium = _sodium!;
+    final sodiumSumo = _sodiumSumo!;
 
     try {
+      if (remotePublicKey.length != sodium.crypto.box.publicKeyBytes) {
+        throw ArgumentError(
+          'طول المفتاح العام غير صالح: ${remotePublicKey.length} '
+          '(expected ${sodium.crypto.box.publicKeyBytes})',
+        );
+      }
+
       // الحصول على المفتاح الخاص
       final myPrivateKey = await _keyManager.getPrivateKey();
+      if (myPrivateKey.length != sodium.crypto.box.secretKeyBytes) {
+        throw StateError(
+          'طول المفتاح الخاص غير صالح: ${myPrivateKey.length} '
+          '(expected ${sodium.crypto.box.secretKeyBytes})',
+        );
+      }
 
-      // حساب Shared Secret باستخدام ECDH
-      // sodium_libs API: استخدام crypto.box.precalculate
-      final secretKey = SecureKey.fromList(sodium, myPrivateKey);
-      final precalculatedBox = sodium.crypto.box.precalculate(
-        publicKey: remotePublicKey,
-        secretKey: secretKey,
-      );
+      // 🔐 اشتقاق صحيح عبر ECDH:
+      // crypto_scalarmult(remotePublicKey, myPrivateKey) ثم Blake2b KDF.
+      final myPrivateSecureKey = SecureKey.fromList(sodium, myPrivateKey);
+      SecureKey? sharedSecretSecureKey;
+      try {
+        sharedSecretSecureKey = sodiumSumo.crypto.scalarmult(
+          n: myPrivateSecureKey,
+          p: remotePublicKey,
+        );
 
-      // ⚠️ مهم جداً: Hash Shared Secret باستخدام Blake2b
-      // لا تستخدم Shared Secret الخام مباشرة
-      // نستخدم precalculatedBox للحصول على shared key
-      // لكن للبساطة، سنستخدم genericHash مباشرة على publicKey + privateKey
-      final combined = Uint8List(remotePublicKey.length + myPrivateKey.length);
-      combined.setRange(0, remotePublicKey.length, remotePublicKey);
-      combined.setRange(remotePublicKey.length, combined.length, myPrivateKey);
-      
-      // استخدام createConsumer للـ hash
-      final consumer = sodium.crypto.genericHash.createConsumer(
-        outLen: 32, // 32 bytes للـ session key
-        key: null, // بدون key إضافي
-      );
-      consumer.add(combined);
-      final sessionKey = await consumer.close();
-      
-      // تنظيف
-      secretKey.dispose();
-      precalculatedBox.dispose();
+        final ecdhSharedSecret = sharedSecretSecureKey.runUnlockedSync(
+          (bytes) => Uint8List.fromList(bytes),
+        );
 
-      // مسح Shared Secret من الذاكرة
-      // (libsodium قد يقوم بذلك تلقائياً، لكن من الأفضل التأكد)
+        const derivationContext = 'sada-e2e-session-key-v1';
+        final contextBytes = utf8.encode(derivationContext);
+        final keyMaterial = Uint8List(
+          ecdhSharedSecret.length + contextBytes.length,
+        );
+        keyMaterial.setRange(0, ecdhSharedSecret.length, ecdhSharedSecret);
+        keyMaterial.setRange(
+          ecdhSharedSecret.length,
+          keyMaterial.length,
+          contextBytes,
+        );
 
-      LogService.info('تم حساب Shared Secret بنجاح');
-      return sessionKey;
+        final sessionKey = sodium.crypto.genericHash(
+          message: keyMaterial,
+          outLen: sodium.crypto.secretBox.keyBytes,
+        );
+
+        LogService.info('تم اشتقاق Shared Secret (ECDH) بنجاح');
+        return sessionKey;
+      } finally {
+        sharedSecretSecureKey?.dispose();
+        myPrivateSecureKey.dispose();
+      }
     } catch (e) {
       LogService.error('خطأ في حساب Shared Secret', e);
       rethrow;
@@ -157,7 +180,8 @@ class EncryptionService {
       return plainText;
     } catch (e) {
       // فشل MAC - الرسالة تم التلاعب بها أو المفتاح خاطئ
-      if (e.toString().contains('MAC') || e.toString().contains('verification')) {
+      if (e.toString().contains('MAC') ||
+          e.toString().contains('verification')) {
         LogService.error('فشل فك التشفير - MAC غير صحيح', e);
         throw Exception('فشل فك التشفير: الرسالة قد تكون تم التلاعب بها');
       }
@@ -180,4 +204,3 @@ class EncryptionService {
     return sodium.randombytes.buf(length);
   }
 }
-

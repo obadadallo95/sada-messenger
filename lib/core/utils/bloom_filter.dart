@@ -1,3 +1,5 @@
+// ignore_for_file: constant_identifier_names
+
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -15,14 +17,21 @@ class BloomFilter {
   static const int DEFAULT_SIZE = 8192;
   static const int DEFAULT_HASHES = 5;
 
-  BloomFilter({int sizeInBits = DEFAULT_SIZE, int numHashFunctions = DEFAULT_HASHES}) {
+  BloomFilter({
+    int sizeInBits = DEFAULT_SIZE,
+    int numHashFunctions = DEFAULT_HASHES,
+  }) {
     _sizeInBits = sizeInBits;
     _numHashFunctions = numHashFunctions;
     _bits = Uint8List((_sizeInBits + 7) ~/ 8);
   }
 
   /// إنشاء فلتر من Base64 (للاستقبال من الشبكة)
-  factory BloomFilter.fromBase64(String base64String, {int sizeInBits = DEFAULT_SIZE, int numHashFunctions = DEFAULT_HASHES}) {
+  factory BloomFilter.fromBase64(
+    String base64String, {
+    int sizeInBits = DEFAULT_SIZE,
+    int numHashFunctions = DEFAULT_HASHES,
+  }) {
     final bytes = base64Decode(base64String);
     final filter = BloomFilter._internal();
     filter._sizeInBits = bytes.length * 8;
@@ -82,7 +91,7 @@ class BloomFilter {
   /// خوارزمية FNV-1a Hash (معدلة لإنتاج قيم متعددة باستخدام Seed/Salt)
   int _fnv1a(List<int> bytes, int seed) {
     int hash = 2166136261; // FNV offset basis
-    
+
     // Mix the seed (salt) first
     hash ^= seed;
     hash *= 16777619; // FNV prime
@@ -91,7 +100,7 @@ class BloomFilter {
       hash ^= byte;
       hash *= 16777619;
     }
-    
+
     // Ensure positive integer
     return hash & 0x7FFFFFFF;
   }

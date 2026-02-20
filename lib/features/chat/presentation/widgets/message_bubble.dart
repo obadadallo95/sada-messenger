@@ -8,10 +8,7 @@ import '../../domain/models/message_model.dart';
 class MessageBubble extends StatelessWidget {
   final MessageModel message;
 
-  const MessageBubble({
-    super.key,
-    required this.message,
-  });
+  const MessageBubble({super.key, required this.message});
 
   /// تنسيق الوقت
   String _formatTime(DateTime timestamp) {
@@ -26,22 +23,19 @@ class MessageBubble extends StatelessWidget {
     switch (status) {
       case MessageStatus.draft:
         return Icon(
-          Icons.edit,
+          Icons.schedule,
           size: 14.sp,
           color: Colors.white.withValues(alpha: 0.5),
         );
       case MessageStatus.sending:
-        return SizedBox(
-          width: 14.sp,
-          height: 14.sp,
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-            valueColor: AlwaysStoppedAnimation<Color>(Colors.white.withValues(alpha: 0.7)),
-          ),
+        return Icon(
+          Icons.schedule,
+          size: 14.sp,
+          color: Colors.white.withValues(alpha: 0.7),
         );
       case MessageStatus.sent:
         return Icon(
-          Icons.check,
+          Icons.rocket_launch,
           size: 14.sp,
           color: Colors.white.withValues(alpha: 0.7),
         );
@@ -84,10 +78,7 @@ class MessageBubble extends StatelessWidget {
             top: 4.h,
             bottom: 4.h,
           ),
-          padding: EdgeInsets.symmetric(
-            horizontal: 16.w,
-            vertical: 12.h,
-          ),
+          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
@@ -165,10 +156,7 @@ class MessageBubble extends StatelessWidget {
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
               child: Container(
-                padding: EdgeInsets.symmetric(
-                  horizontal: 16.w,
-                  vertical: 12.h,
-                ),
+                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
                 decoration: BoxDecoration(
                   color: theme.colorScheme.surface.withValues(alpha: 0.4),
                   border: Border.all(

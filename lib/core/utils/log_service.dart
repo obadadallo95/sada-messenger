@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:logger/logger.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:flutter/foundation.dart';
 import 'file_output.dart';
 
 /// خدمة السجلات (Logging) للتطبيق
@@ -43,6 +44,7 @@ class LogService {
   static void fatal(String message, [dynamic error, StackTrace? stackTrace]) {
     _logger.f(message, error: error, stackTrace: stackTrace);
   }
+
   static File? _logFile;
 
   /// تهيئة LogService مع ملف السجلات
@@ -53,12 +55,13 @@ class LogService {
       if (!logDir.existsSync()) {
         logDir.createSync(recursive: true);
       }
-      
+
       // اسم الملف بناءً على التاريخ الحالي (بشكل يومي)
       final now = DateTime.now();
-      final fileName = 'sada_log_${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}.txt';
+      final fileName =
+          'sada_log_${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}.txt';
       _logFile = File('${logDir.path}/$fileName');
-      
+
       // إعادة تهيئة Logger بـ MultiOutput (Console + File)
       _logger = Logger(
         printer: PrettyPrinter(
@@ -69,22 +72,18 @@ class LogService {
           printEmojis: true,
           dateTimeFormat: DateTimeFormat.onlyTimeAndSinceStart,
         ),
-        output: MultiOutput([
-          ConsoleOutput(),
-          SadaFileOutput(file: _logFile!),
-        ]),
+        output: MultiOutput([ConsoleOutput(), SadaFileOutput(file: _logFile!)]),
       );
-      
+
       info('✅ تم تهيئة LogService مع ملف السجلات: ${_logFile!.path}');
     } catch (e) {
-      print('Failed to initialize file logging: $e');
+      debugPrint('Failed to initialize file logging: $e');
     }
   }
 
   /// الحصول على مسار ملف السجلات الحالي
   static String? get currentLogFilePath => _logFile?.path;
-  
+
   /// الحصول على ملف السجلات
   static File? get logFile => _logFile;
 }
-

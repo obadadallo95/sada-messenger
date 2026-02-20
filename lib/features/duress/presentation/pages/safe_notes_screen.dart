@@ -26,27 +26,32 @@ class SafeNotesScreen extends StatelessWidget {
       SafeNote(
         category: 'Work',
         title: 'Meeting Notes - Aug 15',
-        content: 'Agenda:\n1. Q3 Budget Review\n2. New Marketing Campaign ideas\n3. Team building event planning\n\nAction Items:\n- Send report by Friday\n- Call supplier for quotes',
+        content:
+            'Agenda:\n1. Q3 Budget Review\n2. New Marketing Campaign ideas\n3. Team building event planning\n\nAction Items:\n- Send report by Friday\n- Call supplier for quotes',
       ),
       SafeNote(
         category: 'Personal',
         title: 'Grocery List',
-        content: '- Milk\n- Eggs\n- Bread (Whole wheat)\n- Apples\n- Chicken breast\n- Rice\n- Tomatoes\n- Olive oil',
+        content:
+            '- Milk\n- Eggs\n- Bread (Whole wheat)\n- Apples\n- Chicken breast\n- Rice\n- Tomatoes\n- Olive oil',
       ),
       SafeNote(
         category: 'Recipes',
         title: 'Grandma\'s Lentil Soup',
-        content: 'Ingredients:\n- 1 cup red lentils\n- 1 onion, chopped\n- 2 carrots, diced\n- 1 tsp cumin\n- Salt & pepper\n\nMethod:\nFry onion and carrots. Add lentils and water. Simmer for 20 mins. Blend if desired. Serve with lemon.',
+        content:
+            'Ingredients:\n- 1 cup red lentils\n- 1 onion, chopped\n- 2 carrots, diced\n- 1 tsp cumin\n- Salt & pepper\n\nMethod:\nFry onion and carrots. Add lentils and water. Simmer for 20 mins. Blend if desired. Serve with lemon.',
       ),
       SafeNote(
         category: 'Ideas',
         title: 'App Ideas',
-        content: '1. Plant watering reminder\n2. Book club organizer\n3. Local coffee shop finder\n4. Daily habit tracker with simple UI',
+        content:
+            '1. Plant watering reminder\n2. Book club organizer\n3. Local coffee shop finder\n4. Daily habit tracker with simple UI',
       ),
       SafeNote(
         category: 'Poetry',
         title: 'Favorite Poem',
-        content: 'The woods are lovely, dark and deep,\nBut I have promises to keep,\nAnd miles to go before I sleep,\nAnd miles to go before I sleep.',
+        content:
+            'The woods are lovely, dark and deep,\nBut I have promises to keep,\nAnd miles to go before I sleep,\nAnd miles to go before I sleep.',
       ),
     ];
   }
@@ -68,7 +73,7 @@ class SafeNotesScreen extends StatelessWidget {
         body: ListView.separated(
           padding: EdgeInsets.all(16.w),
           itemCount: _notes.length,
-          separatorBuilder: (_, __) => SizedBox(height: 12.h),
+          separatorBuilder: (_, index) => SizedBox(height: 12.h),
           itemBuilder: (context, index) {
             final note = _notes[index];
             return GlassCard(
@@ -81,9 +86,12 @@ class SafeNotesScreen extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Container(
-                          padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 8.w,
+                            vertical: 4.h,
+                          ),
                           decoration: BoxDecoration(
-                            color: AppColors.primary.withOpacity(0.2),
+                            color: AppColors.primary.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(4.r),
                           ),
                           child: Text(
@@ -96,9 +104,15 @@ class SafeNotesScreen extends StatelessWidget {
                           ),
                         ),
                         IconButton(
-                          icon: Icon(Icons.copy, size: 18.sp, color: Colors.grey),
+                          icon: Icon(
+                            Icons.copy,
+                            size: 18.sp,
+                            color: Colors.grey,
+                          ),
                           onPressed: () {
-                            Clipboard.setData(ClipboardData(text: note.content));
+                            Clipboard.setData(
+                              ClipboardData(text: note.content),
+                            );
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(content: Text('Copied to clipboard')),
                             );

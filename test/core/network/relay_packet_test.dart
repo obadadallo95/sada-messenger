@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:drift/drift.dart';
+import 'package:drift/drift.dart' hide isNotNull;
 import 'package:drift/native.dart';
 import 'package:sada/core/database/app_database.dart';
 import 'package:sada/core/utils/constants.dart';
@@ -95,8 +95,14 @@ void main() {
       );
 
       // Assert
-      final highPriorityPacket = await database.getRelayPacketById('high_priority');
-      expect(highPriorityPacket, isNotNull, reason: 'High priority packet should be enqueued');
+      final highPriorityPacket = await database.getRelayPacketById(
+        'high_priority',
+      );
+      expect(
+        highPriorityPacket,
+        isNotNull,
+        reason: 'High priority packet should be enqueued',
+      );
 
       final queueSize = await database.getRelayStorageSize();
       expect(queueSize, lessThanOrEqualTo(AppConstants.relayQueueMaxCount));
@@ -129,7 +135,9 @@ void main() {
         toHash: 'user1',
         ttl: const Value(10),
         payload: 'old data',
-        createdAt: DateTime.now().subtract(const Duration(days: 8)), // Older than 7 days
+        createdAt: DateTime.now().subtract(
+          const Duration(days: 8),
+        ), // Older than 7 days
       );
 
       final recentPacket = RelayQueueTableCompanion.insert(

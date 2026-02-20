@@ -6,6 +6,7 @@ import 'package:animate_do/animate_do.dart';
 import '../../../../core/router/routes.dart';
 import 'package:sada/l10n/generated/app_localizations.dart';
 import '../../data/groups_repository.dart';
+import '../../../chat/data/repositories/chat_repository.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 
@@ -22,7 +23,7 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _passwordController = TextEditingController();
-  
+
   bool _isPublic = true;
   bool _isLoading = false;
 
@@ -50,13 +51,16 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
         password: _isPublic ? null : _passwordController.text.trim(),
       );
 
+      // حفظ المجموعة كمحادثة حقيقية في Drift حتى تظهر في شاشة الدردشات.
+      await ref.read(chatRepositoryProvider.notifier).insertChat(group);
+
       if (!mounted) return;
 
       // الانتقال إلى شاشة المحادثة
-      context.go('${AppRoutes.chat}/${group.id}');
+      context.go('${AppRoutes.chat}/${group.id}', extra: group);
     } catch (e) {
       if (!mounted) return;
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('فشل إنشاء المجموعة: $e'),
@@ -78,10 +82,7 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.createCommunity),
-        elevation: 0,
-      ),
+      appBar: AppBar(title: Text(l10n.createCommunity), elevation: 0),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: EdgeInsets.all(24.w),
@@ -113,18 +114,18 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
                   delay: const Duration(milliseconds: 100),
                   child: TextFormField(
                     controller: _nameController,
-                    style: AppTypography.bodyLarge(context).copyWith(
-                      color: AppColors.textPrimary,
-                    ),
+                    style: AppTypography.bodyLarge(
+                      context,
+                    ).copyWith(color: AppColors.textPrimary),
                     decoration: InputDecoration(
                       labelText: l10n.groupName,
                       hintText: l10n.groupNameHint,
-                      labelStyle: AppTypography.bodyMedium(context).copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                      hintStyle: AppTypography.bodyMedium(context).copyWith(
-                        color: AppColors.textTertiary,
-                      ),
+                      labelStyle: AppTypography.bodyMedium(
+                        context,
+                      ).copyWith(color: AppColors.textSecondary),
+                      hintStyle: AppTypography.bodyMedium(
+                        context,
+                      ).copyWith(color: AppColors.textTertiary),
                       prefixIcon: Icon(
                         Icons.group,
                         color: theme.colorScheme.onSurfaceVariant,
@@ -134,9 +135,7 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12.r),
-                        borderSide: BorderSide(
-                          color: AppColors.border,
-                        ),
+                        borderSide: BorderSide(color: AppColors.border),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12.r),
@@ -164,18 +163,18 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
                   delay: const Duration(milliseconds: 200),
                   child: TextFormField(
                     controller: _descriptionController,
-                    style: AppTypography.bodyLarge(context).copyWith(
-                      color: AppColors.textPrimary,
-                    ),
+                    style: AppTypography.bodyLarge(
+                      context,
+                    ).copyWith(color: AppColors.textPrimary),
                     decoration: InputDecoration(
                       labelText: l10n.groupDescription,
                       hintText: l10n.groupDescriptionHint,
-                      labelStyle: AppTypography.bodyMedium(context).copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                      hintStyle: AppTypography.bodyMedium(context).copyWith(
-                        color: AppColors.textTertiary,
-                      ),
+                      labelStyle: AppTypography.bodyMedium(
+                        context,
+                      ).copyWith(color: AppColors.textSecondary),
+                      hintStyle: AppTypography.bodyMedium(
+                        context,
+                      ).copyWith(color: AppColors.textTertiary),
                       prefixIcon: Icon(
                         Icons.description,
                         color: AppColors.textSecondary,
@@ -185,9 +184,7 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12.r),
-                        borderSide: BorderSide(
-                          color: AppColors.border,
-                        ),
+                        borderSide: BorderSide(color: AppColors.border),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12.r),
@@ -222,15 +219,17 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
                     child: SwitchListTile(
                       title: Text(
                         l10n.publicGroup,
-                        style: AppTypography.titleMedium(context).copyWith(
-                          color: AppColors.textPrimary,
-                        ),
+                        style: AppTypography.titleMedium(
+                          context,
+                        ).copyWith(color: AppColors.textPrimary),
                       ),
                       subtitle: Text(
-                        _isPublic ? l10n.publicGroupDescription : l10n.privateGroupDescription,
-                        style: AppTypography.bodyMedium(context).copyWith(
-                          color: AppColors.textSecondary,
-                        ),
+                        _isPublic
+                            ? l10n.publicGroupDescription
+                            : l10n.privateGroupDescription,
+                        style: AppTypography.bodyMedium(
+                          context,
+                        ).copyWith(color: AppColors.textSecondary),
                       ),
                       value: _isPublic,
                       onChanged: (value) {
@@ -249,18 +248,18 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
                     delay: const Duration(milliseconds: 400),
                     child: TextFormField(
                       controller: _passwordController,
-                      style: AppTypography.bodyLarge(context).copyWith(
-                        color: AppColors.textPrimary,
-                      ),
+                      style: AppTypography.bodyLarge(
+                        context,
+                      ).copyWith(color: AppColors.textPrimary),
                       decoration: InputDecoration(
                         labelText: l10n.groupPassword,
                         hintText: l10n.groupPasswordHint,
-                        labelStyle: AppTypography.bodyMedium(context).copyWith(
-                          color: AppColors.textSecondary,
-                        ),
-                        hintStyle: AppTypography.bodyMedium(context).copyWith(
-                          color: AppColors.textTertiary,
-                        ),
+                        labelStyle: AppTypography.bodyMedium(
+                          context,
+                        ).copyWith(color: AppColors.textSecondary),
+                        hintStyle: AppTypography.bodyMedium(
+                          context,
+                        ).copyWith(color: AppColors.textTertiary),
                         prefixIcon: Icon(
                           Icons.lock,
                           color: AppColors.textSecondary,
@@ -270,9 +269,7 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12.r),
-                          borderSide: BorderSide(
-                            color: AppColors.border,
-                          ),
+                          borderSide: BorderSide(color: AppColors.border),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12.r),
@@ -284,7 +281,8 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
                       ),
                       obscureText: true,
                       validator: (value) {
-                        if (!_isPublic && (value == null || value.trim().isEmpty)) {
+                        if (!_isPublic &&
+                            (value == null || value.trim().isEmpty)) {
                           return l10n.groupPasswordRequired;
                         }
                         return null;
@@ -314,9 +312,9 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
                           : Icon(Icons.rocket_launch),
                       label: Text(
                         l10n.launchGroup,
-                        style: AppTypography.buttonLarge(context).copyWith(
-                          color: AppColors.onPrimary,
-                        ),
+                        style: AppTypography.buttonLarge(
+                          context,
+                        ).copyWith(color: AppColors.onPrimary),
                       ),
                       style: ElevatedButton.styleFrom(
                         shape: RoundedRectangleBorder(
@@ -334,4 +332,3 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
     );
   }
 }
-

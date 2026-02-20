@@ -1,23 +1,26 @@
-import 'dart:async';
+// ignore_for_file: deprecated_member_use
+
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:flutter_background_service/flutter_background_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/models/power_mode.dart';
 import '../../../../core/services/background_service.dart';
 import '../../../../core/widgets/mesh_gradient_background.dart';
+import '../providers/network_state_provider.dart';
+import '../providers/relay_queue_provider.dart';
 
-class NetworkDashboardScreen extends StatefulWidget {
+class NetworkDashboardScreen extends ConsumerStatefulWidget {
   const NetworkDashboardScreen({super.key});
 
   @override
-  State<NetworkDashboardScreen> createState() => _NetworkDashboardScreenState();
+  ConsumerState<NetworkDashboardScreen> createState() =>
+      _NetworkDashboardScreenState();
 }
 
-class _NetworkDashboardScreenState extends State<NetworkDashboardScreen> {
-  int _peerCount = 0;
-  String _status = 'Initializing...';
+class _NetworkDashboardScreenState
+    extends ConsumerState<NetworkDashboardScreen> {
   PowerMode _currentPowerMode = PowerMode.balanced;
   final ScrollController _scrollController = ScrollController();
 
@@ -25,7 +28,6 @@ class _NetworkDashboardScreenState extends State<NetworkDashboardScreen> {
   void initState() {
     super.initState();
     _loadInitialState();
-    _listenToService();
   }
 
   Future<void> _loadInitialState() async {
@@ -38,27 +40,6 @@ class _NetworkDashboardScreenState extends State<NetworkDashboardScreen> {
     }
   }
 
-  void _listenToService() {
-    FlutterBackgroundService().on('updatePeerCount').listen((event) {
-      if (mounted && event != null) {
-        setState(() {
-          _peerCount = event['count'] ?? 0;
-        });
-      }
-    });
-
-    FlutterBackgroundService().on('updateStatus').listen((event) {
-      if (mounted && event != null) {
-        setState(() {
-          _status = event['status'] ?? '';
-          if (event['peerCount'] != null) {
-            _peerCount = event['peerCount'];
-          }
-        });
-      }
-    });
-  }
-
   @override
   void dispose() {
     _scrollController.dispose();
@@ -68,6 +49,9 @@ class _NetworkDashboardScreenState extends State<NetworkDashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final networkState = ref.watch(networkStateProvider);
+    final relayCountAsync = ref.watch(relayQueueCountProvider);
+    final relayCount = relayCountAsync.valueOrNull ?? 0;
 
     return MeshGradientBackground(
       child: Scaffold(
@@ -92,14 +76,20 @@ class _NetworkDashboardScreenState extends State<NetworkDashboardScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _buildNetworkHealthCard(theme),
+              _buildNetworkHealthCard(theme, networkState),
               SizedBox(height: 16.h),
-              _buildStatsGrid(theme),
+              _buildStatsGrid(theme, networkState),
+              SizedBox(height: 12.h),
+              _buildRelayTransparencyCard(
+                theme,
+                relayCount: relayCount,
+                isLoading: relayCountAsync.isLoading,
+              ),
               SizedBox(height: 24.h),
               Text(
                 'وضع الطاقة والشبكة',
                 style: theme.textTheme.titleMedium?.copyWith(
-                  color: Colors.white70,
+                  color: theme.colorScheme.onSurfaceVariant,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -112,22 +102,64 @@ class _NetworkDashboardScreenState extends State<NetworkDashboardScreen> {
     );
   }
 
-  Widget _buildNetworkHealthCard(ThemeData theme) {
+  Widget _buildRelayTransparencyCard(
+    ThemeData theme, {
+    required int relayCount,
+    required bool isLoading,
+  }) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primaryContainer.withValues(alpha: 0.22),
+        borderRadius: BorderRadius.circular(16.r),
+        border: Border.all(
+          color: theme.colorScheme.primary.withValues(alpha: 0.35),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.inventory_2_outlined,
+            color: theme.colorScheme.primary,
+            size: 22.sp,
+          ),
+          SizedBox(width: 10.w),
+          Expanded(
+            child: Text(
+              isLoading
+                  ? 'جارٍ تحديث عدد الحزم المشفرة...'
+                  : '📦 تحمل الآن $relayCount حزمة مشفرة لصالح الشبكة',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurface,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNetworkHealthCard(ThemeData theme, NetworkState networkState) {
     Color healthColor;
     String healthText;
     IconData healthIcon;
 
-    if (_peerCount > 2) {
-      healthColor = Colors.greenAccent;
+    if (networkState.peerCount > 2) {
+      healthColor = theme.colorScheme.tertiary;
       healthText = 'ممتازة';
       healthIcon = Icons.wifi_tethering;
-    } else if (_peerCount > 0) {
-      healthColor = Colors.blueAccent;
+    } else if (networkState.peerCount > 0) {
+      healthColor = theme.colorScheme.primary;
       healthText = 'جيدة';
       healthIcon = Icons.wifi;
-    } else {
-      healthColor = Colors.orangeAccent;
+    } else if (networkState.isScanning) {
+      healthColor = theme.colorScheme.secondary;
       healthText = 'بحث...';
+      healthIcon = Icons.radar;
+    } else {
+      healthColor = theme.colorScheme.outline;
+      healthText = 'غير متصلة';
       healthIcon = Icons.signal_wifi_statusbar_connected_no_internet_4;
     }
 
@@ -165,18 +197,20 @@ class _NetworkDashboardScreenState extends State<NetworkDashboardScreen> {
               Text(
                 'حالة الشبكة الحالية',
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  color: Colors.white70,
+                  color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
               SizedBox(height: 16.h),
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
                 decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.3),
+                  color: theme.colorScheme.surfaceContainerHighest.withValues(
+                    alpha: 0.5,
+                  ),
                   borderRadius: BorderRadius.circular(12.r),
                 ),
                 child: Text(
-                  _status,
+                  networkState.status,
                   style: theme.textTheme.bodySmall?.copyWith(
                     fontFamily: 'monospace',
                     color: healthColor.withValues(alpha: 0.8),
@@ -190,14 +224,14 @@ class _NetworkDashboardScreenState extends State<NetworkDashboardScreen> {
     );
   }
 
-  Widget _buildStatsGrid(ThemeData theme) {
+  Widget _buildStatsGrid(ThemeData theme, NetworkState networkState) {
     return Row(
       children: [
         Expanded(
           child: _buildStatCard(
             theme,
             title: 'المتصلين',
-            value: '$_peerCount',
+            value: '${networkState.peerCount}',
             unit: 'جهاز',
             icon: Icons.group_work,
             color: theme.colorScheme.secondary,
@@ -211,19 +245,21 @@ class _NetworkDashboardScreenState extends State<NetworkDashboardScreen> {
             value: _currentPowerMode.displayName.split(' ').first,
             unit: '',
             icon: Icons.bolt,
-            color: Colors.amberAccent,
+            color: theme.colorScheme.tertiary,
           ),
         ),
       ],
     );
   }
 
-  Widget _buildStatCard(ThemeData theme,
-      {required String title,
-      required String value,
-      required String unit,
-      required IconData icon,
-      required Color color}) {
+  Widget _buildStatCard(
+    ThemeData theme, {
+    required String title,
+    required String value,
+    required String unit,
+    required IconData icon,
+    required Color color,
+  }) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(20.r),
       child: BackdropFilter(
@@ -232,7 +268,9 @@ class _NetworkDashboardScreenState extends State<NetworkDashboardScreen> {
           padding: EdgeInsets.all(16.w),
           decoration: BoxDecoration(
             color: theme.colorScheme.surface.withValues(alpha: 0.2),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+            border: Border.all(
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
+            ),
             borderRadius: BorderRadius.circular(20.r),
           ),
           child: Column(
@@ -243,14 +281,16 @@ class _NetworkDashboardScreenState extends State<NetworkDashboardScreen> {
               Text(
                 value,
                 style: theme.textTheme.headlineMedium?.copyWith(
-                  color: Colors.white,
+                  color: theme.colorScheme.onSurface,
                   fontWeight: FontWeight.bold,
                 ),
               ),
               if (unit.isNotEmpty)
                 Text(
                   unit,
-                  style: theme.textTheme.bodySmall?.copyWith(color: Colors.white54),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                 ),
               SizedBox(height: 4.h),
               Text(
@@ -284,11 +324,8 @@ class _NetworkDashboardScreenState extends State<NetworkDashboardScreen> {
                     setState(() {
                       _currentPowerMode = mode;
                     });
-                     // Update Prefs
                     final prefs = await SharedPreferences.getInstance();
                     await prefs.setString('power_mode', mode.toStorageString());
-                    
-                    // Notify Background Service
                     BackgroundService.instance.updatePowerMode(mode);
                   },
                   child: Container(
@@ -300,7 +337,9 @@ class _NetworkDashboardScreenState extends State<NetworkDashboardScreen> {
                       border: Border.all(
                         color: isSelected
                             ? theme.colorScheme.primary
-                            : Colors.white.withValues(alpha: 0.1),
+                            : theme.colorScheme.onSurface.withValues(
+                                alpha: 0.1,
+                              ),
                       ),
                       borderRadius: BorderRadius.circular(16.r),
                     ),
@@ -309,7 +348,7 @@ class _NetworkDashboardScreenState extends State<NetworkDashboardScreen> {
                         Radio<PowerMode>(
                           value: mode,
                           groupValue: _currentPowerMode,
-                          onChanged: null, // Handled by InkWell
+                          onChanged: null,
                           activeColor: theme.colorScheme.primary,
                         ),
                         SizedBox(width: 8.w),
@@ -320,14 +359,14 @@ class _NetworkDashboardScreenState extends State<NetworkDashboardScreen> {
                               Text(
                                 mode.displayName,
                                 style: theme.textTheme.titleSmall?.copyWith(
-                                  color: Colors.white,
+                                  color: theme.colorScheme.onSurface,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
                               Text(
                                 mode.description,
                                 style: theme.textTheme.bodySmall?.copyWith(
-                                  color: Colors.white70,
+                                  color: theme.colorScheme.onSurfaceVariant,
                                 ),
                               ),
                             ],

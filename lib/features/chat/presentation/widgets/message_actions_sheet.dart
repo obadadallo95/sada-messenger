@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import '../../domain/models/message_model.dart';
 
 /// Bottom sheet لعرض خيارات الرسالة
@@ -10,12 +9,12 @@ class MessageActionsSheet extends StatelessWidget {
   final VoidCallback? onRetry;
 
   const MessageActionsSheet({
-    Key? key,
+    super.key,
     required this.message,
     this.onCopy,
     this.onDelete,
     this.onRetry,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +37,7 @@ class MessageActionsSheet extends StatelessWidget {
               borderRadius: BorderRadius.circular(2),
             ),
           ),
-          
+
           // Copy option
           if (onCopy != null)
             ListTile(
@@ -49,7 +48,7 @@ class MessageActionsSheet extends StatelessWidget {
                 onCopy!();
               },
             ),
-          
+
           // Retry option (only for failed messages)
           if (onRetry != null && message.status == MessageStatus.failed)
             ListTile(
@@ -60,7 +59,7 @@ class MessageActionsSheet extends StatelessWidget {
                 onRetry!();
               },
             ),
-          
+
           // Delete option
           if (onDelete != null)
             ListTile(
@@ -71,7 +70,7 @@ class MessageActionsSheet extends StatelessWidget {
                 onDelete!();
               },
             ),
-          
+
           // Cancel
           const Divider(),
           ListTile(

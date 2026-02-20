@@ -37,7 +37,7 @@ class ThemeNotifier extends _$ThemeNotifier {
       );
     } catch (e) {
       LogService.error('خطأ في تحميل وضع الثيم', e);
-      return ThemeModeOption.system;
+      return ThemeModeOption.dark;
     }
   }
 
@@ -67,7 +67,7 @@ class ThemeNotifier extends _$ThemeNotifier {
             return ThemeMode.system;
         }
       },
-      orElse: () => ThemeMode.system,
+      orElse: () => ThemeMode.dark,
     );
   }
 }
@@ -81,8 +81,7 @@ ThemeData theme(Ref ref) {
       final isLight = mode == ThemeModeOption.light;
       return isLight ? AppTheme.lightTheme : AppTheme.darkTheme;
     },
-    loading: () => AppTheme.lightTheme,
-    error: (_, _) => AppTheme.lightTheme,
+    loading: () => AppTheme.darkTheme,
+    error: (_, _) => AppTheme.darkTheme,
   );
 }
-

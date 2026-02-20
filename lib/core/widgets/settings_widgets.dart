@@ -89,12 +89,28 @@ class SettingsTile extends StatelessWidget {
     final defaultIconColor = iconColor ?? theme.colorScheme.primary;
     final defaultIconBgColor =
         iconBackgroundColor ?? theme.colorScheme.primaryContainer;
+    final constrainedTrailing = trailing == null
+        ? null
+        : ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: MediaQuery.of(context).size.width * 0.42,
+            ),
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerRight,
+                child: trailing,
+              ),
+            ),
+          );
 
     return ListTile(
       contentPadding: EdgeInsets.symmetric(
         horizontal: 16.w,
         vertical: 8.h,
       ),
+      minLeadingWidth: 40.w,
       leading: Container(
         width: 40.w,
         height: 40.h,
@@ -110,6 +126,8 @@ class SettingsTile extends StatelessWidget {
       ),
       title: Text(
         title,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
         style: theme.textTheme.titleMedium?.copyWith(
           fontSize: 16.sp,
           fontWeight: FontWeight.w600,
@@ -123,9 +141,11 @@ class SettingsTile extends StatelessWidget {
                 fontSize: 13.sp,
                 color: const Color(0xFF94A3B8), // AppColors.textSecondary
               ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             )
           : null,
-      trailing: trailing ??
+      trailing: constrainedTrailing ??
           (showArrow && onTap != null
               ? Icon(
                   Icons.chevron_right,
@@ -174,6 +194,7 @@ class SettingsSwitchTile extends StatelessWidget {
         horizontal: 16.w,
         vertical: 8.h,
       ),
+      minLeadingWidth: 40.w,
       leading: Container(
         width: 40.w,
         height: 40.h,
@@ -189,6 +210,8 @@ class SettingsSwitchTile extends StatelessWidget {
       ),
       title: Text(
         title,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
         style: theme.textTheme.titleMedium?.copyWith(
           fontSize: 16.sp,
           fontWeight: FontWeight.w600,
@@ -202,6 +225,8 @@ class SettingsSwitchTile extends StatelessWidget {
                 fontSize: 13.sp,
                 color: const Color(0xFF94A3B8), // AppColors.textSecondary
               ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             )
           : null,
       trailing: Switch(
@@ -214,4 +239,3 @@ class SettingsSwitchTile extends StatelessWidget {
     );
   }
 }
-

@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 /// نظام الخطوط الجديد
 /// يستخدم Cairo للعربي و Inter للإنجليزي
@@ -26,31 +24,35 @@ class AppTypography {
       }
     }
     
-    final isArabic = locale?.languageCode == 'ar' || 
-                     (locale == null && 
-                      WidgetsBinding.instance.platformDispatcher.locales.isNotEmpty &&
-                      WidgetsBinding.instance.platformDispatcher.locales.first.languageCode == 'ar');
-    
-    final baseStyle = isArabic 
-        ? GoogleFonts.cairo(
-            fontSize: fontSize,
-            fontWeight: fontWeight,
-            height: height,
-          )
-        : GoogleFonts.inter(
-            fontSize: fontSize,
-            fontWeight: fontWeight,
-            height: height,
-          );
-    
-    return baseStyle.copyWith(color: color);
+    final isArabic = locale?.languageCode == 'ar' ||
+        (locale == null &&
+            WidgetsBinding.instance.platformDispatcher.locales.isNotEmpty &&
+            WidgetsBinding
+                    .instance.platformDispatcher.locales.first.languageCode ==
+                'ar');
+
+    // Use stable local/system fonts to avoid runtime font-fetch issues
+    // that can cause missing text after app resume/update on some devices.
+    return TextStyle(
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      height: height,
+      color: color,
+      fontFamily: isArabic ? 'sans-serif' : null,
+      fontFamilyFallback: const [
+        'Noto Sans Arabic',
+        'Noto Sans',
+        'Roboto',
+        'sans-serif',
+      ],
+    );
   }
 
   // ==================== للعناوين الكبيرة (Bold) ====================
   
   static TextStyle headlineLarge([BuildContext? context]) => _getFontStyle(
     context: context,
-    fontSize: 32.sp,
+    fontSize: 32,
     fontWeight: FontWeight.bold,
     color: const Color(0xFFFFFFFF),
     height: 1.2,
@@ -58,7 +60,7 @@ class AppTypography {
 
   static TextStyle headlineMedium([BuildContext? context]) => _getFontStyle(
     context: context,
-    fontSize: 24.sp,
+    fontSize: 24,
     fontWeight: FontWeight.bold,
     color: const Color(0xFFFFFFFF),
     height: 1.3,
@@ -66,7 +68,7 @@ class AppTypography {
 
   static TextStyle headlineSmall([BuildContext? context]) => _getFontStyle(
     context: context,
-    fontSize: 20.sp,
+    fontSize: 20,
     fontWeight: FontWeight.bold,
     color: const Color(0xFFFFFFFF),
     height: 1.3,
@@ -76,7 +78,7 @@ class AppTypography {
   
   static TextStyle titleLarge([BuildContext? context]) => _getFontStyle(
     context: context,
-    fontSize: 20.sp,
+    fontSize: 20,
     fontWeight: FontWeight.w600,
     color: const Color(0xFFFFFFFF),
     height: 1.4,
@@ -84,7 +86,7 @@ class AppTypography {
 
   static TextStyle titleMedium([BuildContext? context]) => _getFontStyle(
     context: context,
-    fontSize: 16.sp,
+    fontSize: 16,
     fontWeight: FontWeight.w600,
     color: const Color(0xFFFFFFFF),
     height: 1.4,
@@ -92,7 +94,7 @@ class AppTypography {
 
   static TextStyle titleSmall([BuildContext? context]) => _getFontStyle(
     context: context,
-    fontSize: 14.sp,
+    fontSize: 14,
     fontWeight: FontWeight.w600,
     color: const Color(0xFFFFFFFF),
     height: 1.4,
@@ -102,7 +104,7 @@ class AppTypography {
   
   static TextStyle bodyLarge([BuildContext? context]) => _getFontStyle(
     context: context,
-    fontSize: 16.sp,
+    fontSize: 16,
     fontWeight: FontWeight.normal,
     color: const Color(0xFF94A3B8),
     height: 1.5,
@@ -110,7 +112,7 @@ class AppTypography {
 
   static TextStyle bodyMedium([BuildContext? context]) => _getFontStyle(
     context: context,
-    fontSize: 14.sp,
+    fontSize: 14,
     fontWeight: FontWeight.normal,
     color: const Color(0xFF94A3B8),
     height: 1.5,
@@ -118,7 +120,7 @@ class AppTypography {
 
   static TextStyle bodySmall([BuildContext? context]) => _getFontStyle(
     context: context,
-    fontSize: 12.sp,
+    fontSize: 12,
     fontWeight: FontWeight.normal,
     color: const Color(0xFF94A3B8),
     height: 1.5,
@@ -128,7 +130,7 @@ class AppTypography {
   
   static TextStyle labelLarge([BuildContext? context]) => _getFontStyle(
     context: context,
-    fontSize: 14.sp,
+    fontSize: 14,
     fontWeight: FontWeight.w500,
     color: const Color(0xFFFFFFFF),
     height: 1.4,
@@ -136,7 +138,7 @@ class AppTypography {
 
   static TextStyle labelMedium([BuildContext? context]) => _getFontStyle(
     context: context,
-    fontSize: 12.sp,
+    fontSize: 12,
     fontWeight: FontWeight.w500,
     color: const Color(0xFF94A3B8),
     height: 1.4,
@@ -144,7 +146,7 @@ class AppTypography {
 
   static TextStyle labelSmall([BuildContext? context]) => _getFontStyle(
     context: context,
-    fontSize: 11.sp,
+    fontSize: 11,
     fontWeight: FontWeight.w500,
     color: const Color(0xFF64748B),
     height: 1.4,
@@ -154,7 +156,7 @@ class AppTypography {
   
   static TextStyle buttonLarge([BuildContext? context]) => _getFontStyle(
     context: context,
-    fontSize: 16.sp,
+    fontSize: 16,
     fontWeight: FontWeight.w600,
     color: const Color(0xFF000000),
     height: 1.4,
@@ -162,7 +164,7 @@ class AppTypography {
 
   static TextStyle buttonMedium([BuildContext? context]) => _getFontStyle(
     context: context,
-    fontSize: 14.sp,
+    fontSize: 14,
     fontWeight: FontWeight.w600,
     color: const Color(0xFF000000),
     height: 1.4,
@@ -170,7 +172,7 @@ class AppTypography {
 
   static TextStyle buttonSmall([BuildContext? context]) => _getFontStyle(
     context: context,
-    fontSize: 12.sp,
+    fontSize: 12,
     fontWeight: FontWeight.w600,
     color: const Color(0xFF000000),
     height: 1.4,
@@ -188,4 +190,3 @@ class AppTypography {
     return style.copyWith(color: style.color?.withValues(alpha: opacity));
   }
 }
-

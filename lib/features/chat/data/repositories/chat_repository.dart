@@ -6,6 +6,9 @@ import '../../../../core/database/app_database.dart';
 import '../../../../core/utils/log_service.dart';
 import '../mappers/chat_mapper.dart';
 import '../mappers/message_mapper.dart';
+import '../../../../core/security/security_providers.dart';
+import 'dart:convert';
+import 'dart:typed_data';
 
 part 'chat_repository.g.dart';
 
@@ -75,18 +78,79 @@ class ChatRepository extends _$ChatRepository {
   }
 
   /// الحصول على رسائل محادثة معينة
+  /// الحصول على رسائل محادثة معينة
   Future<List<MessageModel>> getMessages(String chatId) async {
     try {
       final database = await ref.read(appDatabaseProvider.future);
       final messages = await database.getMessagesForChat(chatId);
-      
-      // تحويل MessagesTableData إلى MessageModel
-      return messages.map((msg) => MessageMapper.toDomain(msg)).toList();
+      final encryptionService = ref.read(encryptionServiceProvider);
+
+      // 1. محاولة الحصول على Shared Key لفك التشفير
+      Uint8List? sharedKey;
+      try {
+        // نحتاج معرفة peerId للحصول على PublicKey
+        // بما أن getMessagesForChat لا تعيد Chat info، سنبحث عنها
+        final chat = await database.getChatById(chatId);
+        
+        if (chat != null && chat.peerId != null) {
+          final contact = await database.getContactById(chat.peerId!);
+          if (contact != null && contact.publicKey != null) {
+            final remoteKey = base64Decode(contact.publicKey!);
+            sharedKey = await encryptionService.calculateSharedSecret(remoteKey);
+          }
+        }
+      } catch (e) {
+        LogService.warning('فشل في تحضير مفاتيح فك التشفير للمحادثة $chatId: $e');
+        // سنستمر ونعرض الرسائل كما هي (مشفرة أو نصية حسب التخزين)
+      }
+
+      // 2. تحويل وفك تشفير الرسائل
+      return messages.map((msg) {
+        var domainMsg = MessageMapper.toDomain(msg);
+        
+        // إذا كان لدينا مفتاح مشترك، نحاول فك التشفير
+        if (sharedKey != null) {
+          try {
+            // محاولة فك التشفير
+            // نستخدم encryptedText إذا وجد، أو text كمحتوى مشفر محتمل
+            final contentToDecrypt = domainMsg.encryptedText ?? domainMsg.text;
+            
+            // تحقق بسيط: هل النص يبدو كمشفّر (Base64)؟
+            // لتجنب محاولة فك تشفير رسائل نصية قديمة
+            // (هذا التحقق ليس مثالياً ولكن يقلل Exceptions)
+            if (!_isLikelyEncrypted(contentToDecrypt)) {
+               return domainMsg;
+            }
+
+            final decrypted = encryptionService.decryptMessage(
+              contentToDecrypt, 
+              sharedKey
+            );
+            
+            // تحديث النص بعد فك التشفير
+            return domainMsg.copyWith(text: decrypted);
+          } catch (e) {
+            // فشل فك التشفير (قد تكون رسالة نصية عادية أو مفتاح خطأ)
+            // LogService.v('Decryption failed for msg ${msg.id}: $e'); 
+            return domainMsg;
+          }
+        }
+        
+        return domainMsg;
+      }).toList();
     } catch (e) {
       LogService.error('DATABASE ERROR (getMessages): $e - chatId: $chatId', e);
-      // إرجاع قائمة فارغة بدلاً من رمي خطأ
       return [];
     }
+  }
+
+  /// تحقق بسيط مما إذا كان النص يبدو مشفراً (ليس نصاً عادياً)
+  bool _isLikelyEncrypted(String text) {
+    if (text.isEmpty) return false;
+    // الرسائل المشفرة لدينا تخزن كـ Base64
+    // والنصوص العادية عادة تحتوي مسافات (إلا إذا كانت كلمة واحدة)
+    // المشفر لا يحتوي مسافات عادة
+    return !text.contains(' ');
   }
   
   /// إدراج رسالة جديدة

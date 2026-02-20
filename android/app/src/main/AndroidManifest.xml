@@ -38,16 +38,31 @@
     <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
     <!-- Standard Internet Permission -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Keep CPU awake during DTN duty-cycle windows -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- Allow requesting battery optimization exemption for long-running mesh service -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <!-- WiFi P2P Feature -->
     <uses-feature android:name="android.hardware.wifi.direct" android:required="false" />
     <!-- Bluetooth Feature -->
     <uses-feature android:name="android.hardware.bluetooth" android:required="false" />
-    
+    <!-- Foreground Service Permissions (Android 14+) -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
+
     <application
         android:label="sada"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
+        android:enableOnBackInvokedCallback="true"
         android:usesCleartextTraffic="true">
+        
+        <!-- Background Service Declaration for Android 14+ -->
+        <service
+            android:name="id.flutter.flutter_background_service.BackgroundService"
+            android:foregroundServiceType="dataSync|connectedDevice" />
+            
         <activity
             android:name=".MainActivity"
             android:exported="true"

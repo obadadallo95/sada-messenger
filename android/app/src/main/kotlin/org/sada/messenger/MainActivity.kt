@@ -15,6 +15,10 @@ import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodChannel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 import org.sada.messenger.managers.UdpBroadcastManager
@@ -148,6 +152,7 @@ class MainActivity : FlutterFragmentActivity() {
                 // نحن Client -> نتصل بـ Group Owner
                 info.groupOwnerAddress?.hostAddress?.let { hostAddress ->
                     Log.d(TAG, "Connecting to Group Owner: $hostAddress")
+                    socketManager.setCurrentPeerId(hostAddress)
                     socketManager.connectToHost(hostAddress)
                 } ?: run {
                     Log.e(TAG, "Group owner address is null, cannot connect")
@@ -165,6 +170,8 @@ class MainActivity : FlutterFragmentActivity() {
         
         // تهيئة UDP Broadcast Manager
         udpBroadcastManager = UdpBroadcastManager.getInstance(this)
+        // Unified TCP path: every node starts as a server listener on mesh boot.
+        socketManager.startServer()
 
         // تسجيل BroadcastReceiver
         val intentFilter = IntentFilter().apply {
@@ -180,33 +187,13 @@ class MainActivity : FlutterFragmentActivity() {
             .setMethodCallHandler { call, result ->
                 when (call.method) {
                     "startDiscovery" -> {
-                        Log.d(TAG, "Starting WiFi P2P discovery")
-                        wifiP2pManager.discoverPeers(channel, object : WifiP2pManager.ActionListener {
-                            override fun onSuccess() {
-                                Log.d(TAG, "Discovery started successfully")
-                                result.success(true)
-                            }
-
-                            override fun onFailure(reasonCode: Int) {
-                                Log.e(TAG, "Discovery failed: $reasonCode")
-                                result.error("DISCOVERY_FAILED", "Failed to start discovery: $reasonCode", null)
-                            }
-                        })
+                        Log.w(TAG, "WiFi P2P discovery disabled in unified UDP/TCP transport mode")
+                        result.success(false)
                     }
 
                     "stopDiscovery" -> {
-                        Log.d(TAG, "Stopping WiFi P2P discovery")
-                        wifiP2pManager.stopPeerDiscovery(channel, object : WifiP2pManager.ActionListener {
-                            override fun onSuccess() {
-                                Log.d(TAG, "Discovery stopped successfully")
-                                result.success(true)
-                            }
-
-                            override fun onFailure(reasonCode: Int) {
-                                Log.e(TAG, "Stop discovery failed: $reasonCode")
-                                result.error("STOP_FAILED", "Failed to stop discovery: $reasonCode", null)
-                            }
-                        })
+                        Log.w(TAG, "WiFi P2P stopDiscovery ignored in unified UDP/TCP transport mode")
+                        result.success(true)
                     }
 
                     "getPeers" -> {
@@ -239,6 +226,7 @@ class MainActivity : FlutterFragmentActivity() {
                     "socket_write" -> {
                         val peerId = call.argument<String>("peerId")
                         val message = call.argument<String>("message")
+                        socketManager.setCurrentPeerId(peerId)
                         if (message != null) {
                             val isConnected = socketManager.isSocketConnected()
                             Log.d(TAG, "socket_write called - peerId: $peerId, isConnected: $isConnected")
@@ -277,10 +265,16 @@ class MainActivity : FlutterFragmentActivity() {
                     "connectToPeer" -> {
                         val ip = call.argument<String>("ip")
                         val port = call.argument<Int>("port")
+                        val peerId = call.argument<String>("peerId")
                         if (ip != null && port != null) {
-                            Log.d(TAG, "Connecting to peer: $ip:$port")
-                            socketManager.connectToHost(ip)
-                            result.success(true)
+                            Log.d(TAG, "Connecting to peer: $ip:$port (peerId=$peerId)")
+                            socketManager.setCurrentPeerId(peerId ?: ip)
+                            CoroutineScope(Dispatchers.IO).launch {
+                                val connected = socketManager.connectToHostAndWait(ip, peerId ?: ip)
+                                withContext(Dispatchers.Main) {
+                                    result.success(connected)
+                                }
+                            }
                         } else {
                             result.error("INVALID_ARGUMENT", "IP or port is null", null)
                         }
@@ -505,4 +499,3 @@ class MainActivity : FlutterFragmentActivity() {
         Log.d(TAG, "UDP Broadcast Manager destroyed")
     }
 }
-

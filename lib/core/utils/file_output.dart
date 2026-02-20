@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:logger/logger.dart';
 
 /// مخرج سجلات للملفات (File Output)
@@ -34,7 +35,7 @@ class SadaFileOutput extends LogOutput {
         );
       } catch (e) {
         // تجاهل أخطاء الكتابة لتجنب تحطم التطبيق
-        print('Error writing to log file: $e');
+        debugPrint('Error writing to log file: $e');
       }
     }
   }

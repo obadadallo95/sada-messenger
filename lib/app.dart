@@ -9,6 +9,9 @@ import 'core/security/security_providers.dart';
 import 'core/utils/log_service.dart';
 import 'core/network/mesh_connection_manager.dart';
 import 'core/network/mesh_service.dart';
+import 'core/network/incoming_message_handler.dart';
+import 'core/services/background_service.dart';
+import 'core/services/mesh_permissions_service.dart';
 
 /// نقطة دخول التطبيق الرئيسية
 /// تهيئة جميع الخدمات الأساسية والـ Providers
@@ -20,62 +23,99 @@ class App extends ConsumerStatefulWidget {
 }
 
 class _AppState extends ConsumerState<App> {
+  bool _bootstrapped = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _bootstrapServices();
+    });
+  }
+
+  Future<void> _bootstrapServices() async {
+    if (!mounted || _bootstrapped) return;
+    _bootstrapped = true;
+
+    final router = ref.read(appRouterProvider);
+
+    // تهيئة خدمة الإشعارات
+    final notificationService = NotificationService();
+    final initialized = await notificationService.initialize();
+
+    if (initialized) {
+      await notificationService.requestPermissions();
+      LogService.info('تم تهيئة خدمة الإشعارات');
+    } else {
+      LogService.warning('فشل تهيئة خدمة الإشعارات');
+    }
+
+    notificationService.setRouter(router);
+
+    // تهيئة خدمات التشفير
+    try {
+      final keyManager = ref.read(keyManagerProvider);
+      await keyManager.initialize();
+
+      final encryptionService = ref.read(encryptionServiceProvider);
+      await encryptionService.initialize();
+
+      LogService.info('تم تهيئة خدمات التشفير');
+    } catch (e) {
+      LogService.error('خطأ في تهيئة خدمات التشفير', e);
+    }
+
+    // تهيئة MeshConnectionManager
+    try {
+      ref.read(meshConnectionManagerProvider);
+      LogService.info('تم تهيئة MeshConnectionManager');
+    } catch (e) {
+      LogService.error('خطأ في تهيئة MeshConnectionManager', e);
+    }
+
+    // تهيئة receive pipeline مرة واحدة فقط
+    try {
+      ref.read(incomingMessageHandlerProvider);
+      LogService.info('تم تهيئة IncomingMessageHandler');
+    } catch (e) {
+      LogService.error('خطأ في تهيئة IncomingMessageHandler', e);
+    }
+
+    // تهيئة Transport & Discovery Layer
+    try {
+      final meshPermissionsService = MeshPermissionsService();
+      final meshPermissionsGranted =
+          await meshPermissionsService.ensureMeshPermissions();
+      if (!meshPermissionsGranted) {
+        LogService.warning(
+          'يجب منح صلاحيات WiFi/Bluetooth/Location لعمل شبكة Sada',
+        );
+      }
+
+      final meshService = ref.read(meshServiceProvider);
+      await meshService.initializeTransportLayer();
+      LogService.info('تم تهيئة Transport & Discovery Layer');
+    } catch (e) {
+      LogService.error('خطأ في تهيئة Transport & Discovery Layer', e);
+    }
+
+    // تهيئة وتشغيل Background Service
+    try {
+      await BackgroundService.instance.initialize();
+      LogService.info('تم تهيئة وتشغيل Background Service');
+    } catch (e) {
+      LogService.error('خطأ في تهيئة Background Service', e);
+    }
+
+    LogService.info('تم تهيئة التطبيق');
+  }
+
   @override
   Widget build(BuildContext context) {
     final router = ref.watch(appRouterProvider);
     final theme = ref.watch(themeProvider);
     final themeModeAsync = ref.watch(themeNotifierProvider);
     final localeAsync = ref.watch(localeNotifierProvider);
-
-    // تهيئة الخدمات بعد تهيئة ScreenUtil
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (!mounted) return;
-
-      // تهيئة خدمة الإشعارات
-      final notificationService = NotificationService();
-      final initialized = await notificationService.initialize();
-
-      if (initialized) {
-        await notificationService.requestPermissions();
-        LogService.info('تم تهيئة خدمة الإشعارات');
-      } else {
-        LogService.warning('فشل تهيئة خدمة الإشعارات');
-      }
-
-      notificationService.setRouter(router);
-
-      // تهيئة خدمات التشفير
-      try {
-        final keyManager = ref.read(keyManagerProvider);
-        await keyManager.initialize();
-
-        final encryptionService = ref.read(encryptionServiceProvider);
-        await encryptionService.initialize();
-
-        LogService.info('تم تهيئة خدمات التشفير');
-      } catch (e) {
-        LogService.error('خطأ في تهيئة خدمات التشفير', e);
-      }
-
-      // تهيئة MeshConnectionManager
-      try {
-        ref.read(meshConnectionManagerProvider);
-        LogService.info('تم تهيئة MeshConnectionManager');
-      } catch (e) {
-        LogService.error('خطأ في تهيئة MeshConnectionManager', e);
-      }
-
-      // تهيئة Transport & Discovery Layer
-      try {
-        final meshService = ref.read(meshServiceProvider);
-        await meshService.initializeTransportLayer();
-        LogService.info('تم تهيئة Transport & Discovery Layer');
-      } catch (e) {
-        LogService.error('خطأ في تهيئة Transport & Discovery Layer', e);
-      }
-
-      LogService.info('تم تهيئة التطبيق');
-    });
 
     return themeModeAsync.when(
       data: (themeMode) {

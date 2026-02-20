@@ -1,3 +1,5 @@
+// ignore_for_file: unused_import, unused_element
+
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -18,7 +20,9 @@ import '../../features/chat/domain/models/message_model.dart';
 
 /// Provider لمعالجة الرسائل الواردة وحفظها في قاعدة البيانات
 final incomingMessageHandlerProvider = Provider<IncomingMessageHandler>((ref) {
-  return IncomingMessageHandler(ref);
+  final handler = IncomingMessageHandler(ref);
+  ref.onDispose(handler.dispose);
+  return handler;
 });
 
 /// معالج الرسائل الواردة
@@ -32,7 +36,7 @@ class IncomingMessageHandler {
 
   void _startListening() {
     final meshService = _ref.read(meshServiceProvider);
-    
+
     _subscription?.cancel();
     _subscription = meshService.onMessageReceived.listen(
       (messageJson) async {
@@ -50,25 +54,37 @@ class IncomingMessageHandler {
   /// Validate message structure before processing
   bool _validateMessageStructure(Map<String, dynamic> json) {
     // Check for MeshMessage format
-    final isMeshMessage = json.containsKey('originalSenderId') && 
-                          json.containsKey('finalDestinationId');
-    
+    final isMeshMessage =
+        json.containsKey('originalSenderId') &&
+        json.containsKey('finalDestinationId');
+
     if (isMeshMessage) {
       // MeshMessage requires: messageId, originalSenderId, finalDestinationId, encryptedContent
-      final requiredFields = ['messageId', 'originalSenderId', 'finalDestinationId', 'encryptedContent'];
-      return requiredFields.every((field) => json.containsKey(field) && json[field] != null);
+      final requiredFields = [
+        'messageId',
+        'originalSenderId',
+        'finalDestinationId',
+        'encryptedContent',
+      ];
+      return requiredFields.every(
+        (field) => json.containsKey(field) && json[field] != null,
+      );
     } else {
       // Legacy format requires: senderId/peerId and content/message
-      final hasSender = json.containsKey('senderId') || json.containsKey('peerId');
-      final hasContent = json.containsKey('content') || json.containsKey('message');
+      final hasSender =
+          json.containsKey('senderId') || json.containsKey('peerId');
+      final hasContent =
+          json.containsKey('content') || json.containsKey('message');
       return hasSender && hasContent;
     }
   }
 
   Future<void> _handleIncomingMessage(String messageJson) async {
     try {
-      LogService.info('معالجة رسالة واردة: ${messageJson.substring(0, messageJson.length > 50 ? 50 : messageJson.length)}...');
-      
+      LogService.info(
+        'معالجة رسالة واردة: ${messageJson.substring(0, messageJson.length > 50 ? 50 : messageJson.length)}...',
+      );
+
       // Parse JSON with error handling
       final Map<String, dynamic> messageData;
       try {
@@ -78,53 +94,58 @@ class IncomingMessageHandler {
           return;
         }
         messageData = decoded;
-        
+
         final metricsService = _ref.read(metricsServiceProvider);
         metricsService.recordMessageReceived();
       } catch (e) {
         LogService.warning('⚠️ Failed to parse JSON payload', e);
         return; // Drop malformed message
       }
-      
+
       // Validate message structure
       if (!_validateMessageStructure(messageData)) {
         LogService.warning('⚠️ Message missing required fields');
         return;
       }
-      
+
       // التحقق من نوع الرسالة (MeshMessage أو Legacy)
-      final isMeshMessage = messageData.containsKey('originalSenderId') && 
-                            messageData.containsKey('finalDestinationId');
-      
+      final isMeshMessage =
+          messageData.containsKey('originalSenderId') &&
+          messageData.containsKey('finalDestinationId');
+
       // التحقق من أن الرسالة ليست ACK (سنعالجها هنا الآن لدعم التشفير)
       final isAck = messageData['type'] == MeshMessage.typeAck;
-      
+
       // استخراج البيانات الأساسية (now guaranteed to be non-null by validation)
       String senderId;
       String encryptedContent;
       String? meshMessageId;
       String? originalSenderId;
-      
+
       if (isMeshMessage) {
         // MeshMessage format
         senderId = messageData['originalSenderId'] as String;
         encryptedContent = messageData['encryptedContent'] as String;
         meshMessageId = messageData['messageId'] as String;
         originalSenderId = messageData['originalSenderId'] as String;
-        
+
         // التحقق من أن الرسالة موجهة لي
         final authService = _ref.read(authServiceProvider.notifier);
         final currentUser = authService.currentUser;
         final myDeviceId = currentUser?.userId;
-        
-        if (myDeviceId != null && messageData['finalDestinationId'] != myDeviceId) {
-          LogService.info('⏭️ هذه الرسالة ليست موجهة لي - تم التعامل معها في MeshService');
+
+        if (myDeviceId != null &&
+            messageData['finalDestinationId'] != myDeviceId) {
+          LogService.info(
+            '⏭️ هذه الرسالة ليست موجهة لي - تم التعامل معها في MeshService',
+          );
           return; // تم التعامل معها في MeshService.handleIncomingMeshMessage()
         }
       } else {
         // Legacy format
         senderId = (messageData['senderId'] ?? messageData['peerId']) as String;
-        encryptedContent = (messageData['content'] ?? messageData['message']) as String;
+        encryptedContent =
+            (messageData['content'] ?? messageData['message']) as String;
       }
 
       final database = await _ref.read(appDatabaseProvider.future);
@@ -137,12 +158,12 @@ class IncomingMessageHandler {
         LogService.warning('🚫 تم رفض رسالة من مرسل غير معروف: $senderId');
         return;
       }
-      
+
       if (contact.isBlocked) {
         LogService.warning('🚫 تم رفض رسالة من مرسل محظور: $senderId');
         return;
       }
-      
+
       // فك التشفير
       String decryptedMessage;
       try {
@@ -150,14 +171,19 @@ class IncomingMessageHandler {
         if (contact.publicKey != null) {
           try {
             final remotePublicKeyBytes = base64Decode(contact.publicKey!);
-            final sharedKey = await encryptionService.calculateSharedSecret(remotePublicKeyBytes);
-            decryptedMessage = encryptionService.decryptMessage(encryptedContent, sharedKey);
+            final sharedKey = await encryptionService.calculateSharedSecret(
+              remotePublicKeyBytes,
+            );
+            decryptedMessage = encryptionService.decryptMessage(
+              encryptedContent,
+              sharedKey,
+            );
           } catch (e) {
             LogService.error('خطأ في فك تشفير الرسالة', e);
             decryptedMessage = encryptedContent;
           }
         } else {
-           decryptedMessage = encryptedContent;
+          decryptedMessage = encryptedContent;
         }
       } catch (e) {
         decryptedMessage = encryptedContent;
@@ -169,134 +195,145 @@ class IncomingMessageHandler {
           LogService.info('🔍 Decoding ACK: $decryptedMessage');
           final payload = jsonDecode(decryptedMessage);
           final originalMessageId = payload['originalMessageId'] as String?;
-          
+
           if (originalMessageId != null) {
             await database.updateMessageStatus(originalMessageId, 'delivered');
-            LogService.info('✅ ACK آمن تم استلامه وتحديث الرسالة: $originalMessageId');
+            LogService.info(
+              '✅ ACK آمن تم استلامه وتحديث الرسالة: $originalMessageId',
+            );
           } else {
             // Fallback: Check metadata if payload fails (Legacy support)
-            // Note: Metadata is in raw messageData, handled by MeshService mostly, 
+            // Note: Metadata is in raw messageData, handled by MeshService mostly,
             // but we can check here if needed. For now, rely on payload.
             LogService.warning('⚠️ ACK فارغ أو غير صالح');
           }
         } catch (e) {
           LogService.error('خطأ في معالجة محتوى ACK', e);
         }
-        
+
         final metricsService = _ref.read(metricsServiceProvider);
         metricsService.recordAckReceived();
         return; // انتهى معالجة ACK
       }
 
       // ==================== NORMAL MESSAGE HANDLING ====================
-      
+
       // 6. Normal message processing
       await _processDecryptedMessage(
-        senderId, 
-        decryptedMessage, 
-        encryptedContent, 
-        meshMessageId, 
-        originalSenderId, 
-        isMeshMessage, 
-        database
+        senderId,
+        decryptedMessage,
+        encryptedContent,
+        meshMessageId,
+        originalSenderId,
+        isMeshMessage,
+        database,
       );
-      
     } catch (e) {
-       LogService.error('خطأ', e);
+      LogService.error('خطأ', e);
     }
-
   }
 
   // Helper method to keep _handleIncomingMessage clean
   Future<void> _processDecryptedMessage(
-      String senderId, String decryptedMessage, String encryptedContent, 
-      String? meshMessageId, String? originalSenderId, bool isMeshMessage, 
-      AppDatabase database) async {
-      
-      // 1. Deduplication
-      if (isMeshMessage && meshMessageId != null) {
-        final existing = await database.getMessageById(meshMessageId);
-        if (existing != null) {
-          LogService.info('⚠️ رسالة مكررة تم تجاهلها: $meshMessageId');
-          // Send ACK anyway as confirmation
-          if (originalSenderId != null) {
-             await _sendAckForMessage(originalSenderId, meshMessageId);
-          }
-          final metricsService = _ref.read(metricsServiceProvider);
-          metricsService.recordDuplicateIgnored();
-          return;
+    String senderId,
+    String decryptedMessage,
+    String encryptedContent,
+    String? meshMessageId,
+    String? originalSenderId,
+    bool isMeshMessage,
+    AppDatabase database,
+  ) async {
+    // 1. Deduplication
+    if (isMeshMessage && meshMessageId != null) {
+      final existing = await database.getMessageById(meshMessageId);
+      if (existing != null) {
+        LogService.info('⚠️ رسالة مكررة تم تجاهلها: $meshMessageId');
+        // Send ACK anyway as confirmation
+        if (originalSenderId != null) {
+          await _sendAckForMessage(originalSenderId, meshMessageId);
         }
+        final metricsService = _ref.read(metricsServiceProvider);
+        metricsService.recordDuplicateIgnored();
+        return;
       }
+    }
 
-      // 2. Get or Create Chat
-      var chat = await database.getChatByPeerId(senderId);
-      
-      if (chat == null) {
-          // Create new chat
-          final chatUuid = const Uuid().v4();
-          final contact = await database.getContactById(senderId);
-          final name = contact?.name ?? 'Unknown';
+    // 2. Get or Create Chat
+    var chat = await database.getChatByPeerId(senderId);
 
-          await database.insertChat(ChatsTableCompanion.insert(
-             id: chatUuid,
-             peerId: Value(senderId),
-             lastUpdated: Value(DateTime.now()),
-             isGroup: const Value(false),
-             avatarColor: Value(_generateAvatarColor(name)),
-          ));
-          // Retrieve properly
-          chat = await database.getChatByPeerId(senderId); 
-      }
-      
-      if (chat == null) {
-         LogService.error('فشل العثور على محادثة للمرسل: $senderId');
-         return;
-      }
+    if (chat == null) {
+      // Create new chat
+      final chatUuid = const Uuid().v4();
+      final contact = await database.getContactById(senderId);
+      final name = contact?.name ?? 'Unknown';
 
-      // 3. Insert Message
-      final messageId = meshMessageId ?? const Uuid().v4();
-      final timestamp = DateTime.now();
+      await database.insertChat(
+        ChatsTableCompanion.insert(
+          id: chatUuid,
+          peerId: Value(senderId),
+          lastUpdated: Value(DateTime.now()),
+          isGroup: const Value(false),
+          avatarColor: Value(_generateAvatarColor(name)),
+        ),
+      );
+      // Retrieve properly
+      chat = await database.getChatByPeerId(senderId);
+    }
 
-      await database.insertMessage(MessagesTableCompanion.insert(
+    if (chat == null) {
+      LogService.error('فشل العثور على محادثة للمرسل: $senderId');
+      return;
+    }
+
+    // 3. Insert Message
+    final messageId = meshMessageId ?? const Uuid().v4();
+    final timestamp = DateTime.now();
+
+    await database.insertMessage(
+      MessagesTableCompanion.insert(
         id: messageId,
         chatId: chat.id,
         senderId: senderId,
-        content: decryptedMessage,
+        content: encryptedContent, // Store ENCRYPTED content at rest
         type: const Value('text'),
         status: const Value('received'),
         timestamp: Value(timestamp),
         isFromMe: const Value(false),
-      ));
-      
-      LogService.info('📥 تم استلام وحفظ رسالة جديدة: $messageId');
+      ),
+    );
 
-      // 4. Update UI & Notify
-      _ref.invalidate(chatRepositoryProvider);
-      
-      final notificationService = _ref.read(notificationServiceProvider);
-      // Get sender name
-      final contact = await database.getContactById(senderId);
-      final senderName = contact?.name ?? 'Unknown';
-      
-      await notificationService.showChatNotification(
-          id: senderId.hashCode,
-          title: senderName,
-          body: decryptedMessage,
-          payload: jsonEncode({
-             'type': 'chat_message',
-             'chatId': chat.id,
-             'peerId': senderId,
-          }),
-      );
+    LogService.info('📥 تم استلام وحفظ رسالة جديدة: $messageId');
 
-      // 5. Send ACK
-      if (isMeshMessage && meshMessageId != null && originalSenderId != null) {
-        await _sendAckForMessage(originalSenderId, meshMessageId);
-      }
+    // 4. Update UI & Notify
+    _ref.invalidate(chatRepositoryProvider);
+
+    final notificationService = _ref.read(notificationServiceProvider);
+    // Get sender name
+    final contact = await database.getContactById(senderId);
+    final senderName = contact?.name ?? 'Unknown';
+
+    await notificationService.showChatNotification(
+      id: senderId.hashCode,
+      title: senderName,
+      body: decryptedMessage,
+      payload: jsonEncode({
+        'type': 'chat_message',
+        'chatId': chat.id,
+        'peerId': senderId,
+      }),
+    );
+
+    // 5. Send ACK
+    if (isMeshMessage && meshMessageId != null && originalSenderId != null) {
+      await _sendAckForMessage(originalSenderId, meshMessageId);
+    }
   }
 
   /// إرسال ACK مشفر وآمن
-  Future<void> _sendAckForMessage(String originalSenderId, String originalMessageId) async {
+  Future<void> _sendAckForMessage(
+    String originalSenderId,
+    String originalMessageId,
+  ) async {
     try {
       final authService = _ref.read(authServiceProvider.notifier);
       final currentUser = authService.currentUser;
@@ -321,8 +358,13 @@ class IncomingMessageHandler {
       if (contact?.publicKey != null) {
         try {
           final remoteKey = base64Decode(contact!.publicKey!);
-          final sharedKey = await encryptionService.calculateSharedSecret(remoteKey);
-          encryptedAck = encryptionService.encryptMessage(ackPayload, sharedKey);
+          final sharedKey = await encryptionService.calculateSharedSecret(
+            remoteKey,
+          );
+          encryptedAck = encryptionService.encryptMessage(
+            ackPayload,
+            sharedKey,
+          );
         } catch (e) {
           LogService.warning('فشل تشفير ACK', e);
         }
@@ -330,7 +372,8 @@ class IncomingMessageHandler {
 
       // Metadata for legacy/routing optimizations (optional)
       final ackMetadata = {
-        'originalMessageId': originalMessageId, // For routing priority if needed
+        'originalMessageId':
+            originalMessageId, // For routing priority if needed
       };
 
       await meshService.sendMeshMessage(
@@ -343,7 +386,7 @@ class IncomingMessageHandler {
       );
 
       LogService.info('📨 تم إرسال ACK مشفر للرسالة: $originalMessageId');
-      
+
       final metricsService = _ref.read(metricsServiceProvider);
       metricsService.recordAckSent();
     } catch (e) {
@@ -359,18 +402,18 @@ class IncomingMessageHandler {
   }) async {
     try {
       LogService.info('معالجة إشعار إضافة صديق من: $senderId');
-      
+
       // التحقق من أن جهة الاتصال غير موجودة بالفعل
       final existingContact = await database.getContactById(senderId);
-      
+
       if (existingContact != null) {
         LogService.info('جهة الاتصال موجودة بالفعل: $senderId');
         return;
       }
-      
+
       // الحصول على المفتاح العام للمرسل (من QR Code أو من إشعار سابق)
       // في الوقت الحالي، سنضيفه بدون publicKey (سيتم الحصول عليه لاحقاً)
-      
+
       // إضافة جهة الاتصال إلى قاعدة البيانات
       await database.insertContact(
         ContactsTableCompanion.insert(
@@ -381,12 +424,12 @@ class IncomingMessageHandler {
           isBlocked: const Value(false),
         ),
       );
-      
+
       LogService.info('تم إضافة جهة الاتصال تلقائياً: $senderId');
-      
+
       // التحقق من وجود محادثة
       var chat = await database.getChatByPeerId(senderId);
-      
+
       if (chat == null) {
         // إنشاء محادثة جديدة
         const uuid = Uuid();
@@ -405,15 +448,14 @@ class IncomingMessageHandler {
         );
         LogService.info('تم إنشاء محادثة جديدة تلقائياً: $chatId');
       }
-      
+
       // إعادة بناء المحادثات
       _ref.invalidate(chatRepositoryProvider);
-      
     } catch (e) {
       LogService.error('خطأ في معالجة إشعار إضافة صديق', e);
     }
   }
-  
+
   /// توليد لون للصورة الشخصية
   int _generateAvatarColor(String name) {
     int hash = 0;
@@ -431,11 +473,11 @@ class IncomingMessageHandler {
   }) async {
     try {
       LogService.info('🔄 معالجة رسالة Contact Exchange من: $senderId');
-      
+
       // Parse Profile Data
       // Content could be encrypted or clear text.
       // For now assuming clear text JSON as per implementation plan.
-      
+
       Map<String, dynamic> profileData;
       try {
         profileData = jsonDecode(content);
@@ -443,20 +485,22 @@ class IncomingMessageHandler {
         LogService.error('فشل في قراءة بيانات الملف الشخصي', e);
         return;
       }
-      
+
       final String? name = profileData['name'] as String?;
       final String? publicKey = profileData['publicKey'] as String?;
-      
+
       if (name == null || publicKey == null) {
         LogService.warning('بيانات الملف الشخصي غير مكتملة');
         return;
       }
-      
+
       // التحقق مما إذا كانت جهة الاتصال موجودة بالفعل
       final existingContact = await database.getContactById(senderId);
-      
+
       if (existingContact != null) {
-        LogService.info('جهة الاتصال موجودة بالفعل: $senderId. تحديث البيانات...');
+        LogService.info(
+          'جهة الاتصال موجودة بالفعل: $senderId. تحديث البيانات...',
+        );
         // تحديث البيانات إذا لزم الأمر (مثلاً PublicKey)
         await database.updateContact(
           senderId,
@@ -477,7 +521,7 @@ class IncomingMessageHandler {
             isBlocked: const Value(false),
           ),
         );
-        
+
         // إنشاء محادثة
         const uuid = Uuid();
         final chatId = uuid.v4();
@@ -490,23 +534,19 @@ class IncomingMessageHandler {
             avatarColor: Value(_generateAvatarColor(name)),
           ),
         );
-        
+
         // إشعار المستخدم
         final notificationService = _ref.read(notificationServiceProvider);
         await notificationService.showChatNotification(
           id: senderId.hashCode,
           title: 'New Connection',
           body: 'You are now connected with $name',
-          payload: jsonEncode({
-             'type': 'new_contact',
-             'contactId': senderId,
-          }),
+          payload: jsonEncode({'type': 'new_contact', 'contactId': senderId}),
         );
       }
-      
+
       // إعادة بناء UI
       _ref.invalidate(chatRepositoryProvider);
-      
     } catch (e) {
       LogService.error('خطأ في معالجة Contact Exchange', e);
     }
@@ -516,5 +556,3 @@ class IncomingMessageHandler {
     _subscription?.cancel();
   }
 }
-
-

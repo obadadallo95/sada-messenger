@@ -4,6 +4,10 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sodium_libs/sodium_libs_sumo.dart'
+    as sodium_sumo_libs
+    show SodiumSumo, SodiumSumoInit;
 import 'package:uuid/uuid.dart';
 import '../utils/log_service.dart';
 
@@ -22,33 +26,25 @@ class UserData {
   });
 
   Map<String, dynamic> toJson() => {
-        'userId': userId,
-        'displayName': displayName,
-        'deviceHash': deviceHash,
-        'publicKey': publicKey,
-      };
+    'userId': userId,
+    'displayName': displayName,
+    'deviceHash': deviceHash,
+    'publicKey': publicKey,
+  };
 
   factory UserData.fromJson(Map<String, dynamic> json) => UserData(
-        userId: json['userId'] as String,
-        displayName: json['displayName'] as String,
-        deviceHash: json['deviceHash'] as String,
-        publicKey: json['publicKey'] as String?,
-      );
+    userId: json['userId'] as String,
+    displayName: json['displayName'] as String,
+    deviceHash: json['deviceHash'] as String,
+    publicKey: json['publicKey'] as String?,
+  );
 }
 
 /// حالة المصادقة
-enum AuthStatus {
-  initializing,
-  loggedIn,
-  loggedOut,
-}
+enum AuthStatus { initializing, loggedIn, loggedOut }
 
 /// نوع المصادقة (Master أو Duress)
-enum AuthType {
-  master, // المصادقة العادية - قاعدة البيانات الحقيقية
-  duress, // المصادقة في حالة الإكراه - قاعدة البيانات الوهمية
-  failure, // فشل المصادقة
-}
+enum AuthType { master, duress, failure }
 
 /// Provider لخدمة المصادقة
 final authServiceProvider = StateNotifierProvider<AuthService, AuthStatus>(
@@ -56,57 +52,72 @@ final authServiceProvider = StateNotifierProvider<AuthService, AuthStatus>(
 );
 
 /// خدمة المصادقة
-/// تولد معرف فريد بناءً على توقيع الجهاز
 class AuthService extends StateNotifier<AuthStatus> {
+  static const int pinLength = 6;
+  static const int _maxFailedAttemptsBeforeLockout = 5;
+  static const int _baseLockoutSeconds = 60;
+  static const int _maxLockoutSeconds = 15 * 60;
+
   static const String _storageKey = 'user_data';
+  static const String _storageBackupKey = 'user_data_backup';
   static const String _deviceIdKey = 'device_id_fallback';
   static const String _masterPinHashKey = 'master_pin_hash';
   static const String _duressPinHashKey = 'duress_pin_hash';
+  static const String _failedPinAttemptsKey = 'failed_pin_attempts';
+  static const String _pinLockUntilKey = 'pin_lock_until_epoch_ms';
   static const String _pinSaltKey = 'pin_salt';
   static const String _authTypeKey = 'current_auth_type';
-  
+
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage(
-    aOptions: AndroidOptions(
-      // encryptedSharedPreferences deprecated - removed
-    ),
+    aOptions: AndroidOptions(),
     iOptions: IOSOptions(
       accessibility: KeychainAccessibility.first_unlock_this_device,
     ),
   );
 
   UserData? _currentUser;
-  AuthType? _currentAuthType; // نوع المصادقة الحالي
+  AuthType? _currentAuthType;
+  sodium_sumo_libs.SodiumSumo? _sodiumSumo;
 
   AuthService() : super(AuthStatus.initializing) {
     _checkLoginStatus();
   }
 
-  /// التحقق من حالة تسجيل الدخول
   Future<void> _checkLoginStatus() async {
     try {
       LogService.info('🔍 بدء التحقق من حالة تسجيل الدخول...');
       final userDataJson = await _secureStorage.read(key: _storageKey);
-      
+
       if (userDataJson != null) {
         final userData = UserData.fromJson(jsonDecode(userDataJson));
         _currentUser = userData;
         state = AuthStatus.loggedIn;
-        LogService.info('✅ تم العثور على بيانات المستخدم: ${userData.displayName}');
+        LogService.info(
+          '✅ تم العثور على بيانات المستخدم: ${userData.displayName}',
+        );
       } else {
         state = AuthStatus.loggedOut;
         LogService.info('ℹ️ لا توجد بيانات مستخدم - يجب التسجيل');
       }
     } catch (e) {
       LogService.error('⛔ خطأ في التحقق من حالة تسجيل الدخول', e);
-      // في حالة الخطأ، نعتبر المستخدم غير مسجل دخول
       state = AuthStatus.loggedOut;
       LogService.info('ℹ️ تم تعيين الحالة إلى loggedOut بسبب الخطأ');
     }
   }
 
-  /// توليد Hash للجهاز
-  /// يستخدم Android ID أو iOS IdentifierForVendor
-  /// إذا لم يكن متاحاً، يستخدم UUID محفوظ بشكل آمن
+  Future<void> _ensureSodium() async {
+    _sodiumSumo ??= await sodium_sumo_libs.SodiumSumoInit.init();
+  }
+
+  bool _isValidPin(String pin) => RegExp(r'^\d{6}$').hasMatch(pin);
+
+  String _sha256Hex(String input) {
+    final bytes = utf8.encode(input);
+    final digest = sha256.convert(bytes);
+    return digest.toString();
+  }
+
   Future<String> generateDeviceHash() async {
     try {
       String deviceId;
@@ -114,27 +125,25 @@ class AuthService extends StateNotifier<AuthStatus> {
       if (defaultTargetPlatform == TargetPlatform.android) {
         final deviceInfo = DeviceInfoPlugin();
         final androidInfo = await deviceInfo.androidInfo;
-        deviceId = androidInfo.id; // Android ID
-        
-        // إذا كان Android ID غير متاح (null أو "9774d56d682e549c")
+        deviceId = androidInfo.id;
+
         if (deviceId.isEmpty || deviceId == '9774d56d682e549c') {
-          // محاولة قراءة UUID محفوظ مسبقاً
           final savedDeviceId = await _secureStorage.read(key: _deviceIdKey);
           if (savedDeviceId != null) {
             deviceId = savedDeviceId;
           } else {
-            // توليد UUID جديد وحفظه
             deviceId = const Uuid().v4();
             await _secureStorage.write(key: _deviceIdKey, value: deviceId);
-            LogService.info('تم توليد Device ID جديد: ${deviceId.substring(0, 8)}...');
+            LogService.info(
+              'تم توليد Device ID جديد: ${deviceId.substring(0, 8)}...',
+            );
           }
         }
       } else if (defaultTargetPlatform == TargetPlatform.iOS) {
         final deviceInfo = DeviceInfoPlugin();
         final iosInfo = await deviceInfo.iosInfo;
         deviceId = iosInfo.identifierForVendor ?? '';
-        
-        // إذا كان identifierForVendor غير متاح
+
         if (deviceId.isEmpty) {
           final savedDeviceId = await _secureStorage.read(key: _deviceIdKey);
           if (savedDeviceId != null) {
@@ -142,11 +151,12 @@ class AuthService extends StateNotifier<AuthStatus> {
           } else {
             deviceId = const Uuid().v4();
             await _secureStorage.write(key: _deviceIdKey, value: deviceId);
-            LogService.info('تم توليد Device ID جديد: ${deviceId.substring(0, 8)}...');
+            LogService.info(
+              'تم توليد Device ID جديد: ${deviceId.substring(0, 8)}...',
+            );
           }
         }
       } else {
-        // منصات أخرى - استخدام UUID
         final savedDeviceId = await _secureStorage.read(key: _deviceIdKey);
         if (savedDeviceId != null) {
           deviceId = savedDeviceId;
@@ -156,24 +166,15 @@ class AuthService extends StateNotifier<AuthStatus> {
         }
       }
 
-      // Hash باستخدام SHA-256
-      final bytes = utf8.encode(deviceId);
-      final digest = sha256.convert(bytes);
-      final deviceHash = digest.toString();
-
-      LogService.info('تم توليد Device Hash: ${deviceHash.substring(0, 16)}...');
+      final deviceHash = _sha256Hex(deviceId);
+      LogService.info('تم توليد Device Hash: ${deviceHash.substring(0, 8)}...');
       return deviceHash;
     } catch (e) {
       LogService.error('خطأ في توليد Device Hash', e);
-      // Fallback: استخدام UUID عشوائي
-      final fallbackId = const Uuid().v4();
-      final bytes = utf8.encode(fallbackId);
-      final digest = sha256.convert(bytes);
-      return digest.toString();
+      return _sha256Hex(const Uuid().v4());
     }
   }
 
-  /// تسجيل مستخدم جديد
   Future<bool> register(String displayName) async {
     try {
       if (displayName.trim().isEmpty) {
@@ -181,28 +182,22 @@ class AuthService extends StateNotifier<AuthStatus> {
         return false;
       }
 
-      // توليد Device Hash
       final deviceHash = await generateDeviceHash();
-      
-      // توليد User ID من displayName + deviceHash
-      final userIdInput = '$displayName:$deviceHash';
-      final userIdBytes = utf8.encode(userIdInput);
-      final userIdDigest = sha256.convert(userIdBytes);
-      final userId = userIdDigest.toString();
+      final userId = _sha256Hex('$displayName:$deviceHash');
 
-      // إنشاء بيانات المستخدم
       final userData = UserData(
         userId: userId,
         displayName: displayName.trim(),
         deviceHash: deviceHash,
-        publicKey: null, // سيتم إضافته لاحقاً عند تنفيذ التشفير
+        publicKey: null,
       );
 
-      // حفظ البيانات بشكل آمن
       await _secureStorage.write(
         key: _storageKey,
         value: jsonEncode(userData.toJson()),
       );
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_storageBackupKey, jsonEncode(userData.toJson()));
 
       _currentUser = userData;
       state = AuthStatus.loggedIn;
@@ -215,12 +210,13 @@ class AuthService extends StateNotifier<AuthStatus> {
     }
   }
 
-  /// تسجيل الخروج
   Future<void> logout() async {
     try {
       await _secureStorage.delete(key: _storageKey);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_storageBackupKey);
       _currentUser = null;
-      resetAuthType(); // إعادة تعيين AuthType عند تسجيل الخروج
+      resetAuthType();
       state = AuthStatus.loggedOut;
       LogService.info('تم تسجيل الخروج');
     } catch (e) {
@@ -228,55 +224,127 @@ class AuthService extends StateNotifier<AuthStatus> {
     }
   }
 
-  /// الحصول على بيانات المستخدم الحالي
   UserData? get currentUser => _currentUser;
-
-  /// التحقق من حالة تسجيل الدخول
   bool get isLoggedIn => state == AuthStatus.loggedIn;
-  
-  /// الحصول على نوع المصادقة الحالي
   AuthType? get currentAuthType => _currentAuthType;
-  
-  /// التحقق من أن المستخدم مصادق عليه (AuthType محدد)
-  /// هذا يعني أن المستخدم أدخل PIN بنجاح (Master أو Duress)
-  bool get isAuthenticated => _currentAuthType != null && 
-                              (_currentAuthType == AuthType.master || 
-                               _currentAuthType == AuthType.duress);
-  
-  /// توليد Salt عشوائي لـ PIN
+  bool get isAuthenticated =>
+      _currentAuthType != null &&
+      (_currentAuthType == AuthType.master ||
+          _currentAuthType == AuthType.duress);
+
   Future<String> _generatePinSalt() async {
     final existingSalt = await _secureStorage.read(key: _pinSaltKey);
     if (existingSalt != null) {
       return existingSalt;
     }
-    
-    // توليد Salt عشوائي (32 bytes)
+
     final saltBytes = utf8.encode(const Uuid().v4() + const Uuid().v4());
     final salt = base64Encode(saltBytes);
     await _secureStorage.write(key: _pinSaltKey, value: salt);
     return salt;
   }
-  
-  /// Hash PIN باستخدام SHA-256 مع Salt
-  Future<String> _hashPin(String pin, String salt) async {
-    final combined = '$pin:$salt';
-    final bytes = utf8.encode(combined);
-    final digest = sha256.convert(bytes);
-    return digest.toString();
+
+  String _hashPinLegacy(String pin, String salt) {
+    return _sha256Hex('$pin:$salt');
   }
-  
-  /// تعيين Master PIN
+
+  Future<String> _hashPinStrong(String pin) async {
+    await _ensureSodium();
+    final pwhash = _sodiumSumo!.crypto.pwhash;
+    return pwhash.str(
+      password: pin,
+      opsLimit: pwhash.opsLimitInteractive,
+      memLimit: pwhash.memLimitInteractive,
+    );
+  }
+
+  Future<bool> _verifyPinHash(String pin, String storedHash) async {
+    await _ensureSodium();
+    final pwhash = _sodiumSumo!.crypto.pwhash;
+
+    if (storedHash.startsWith(r'$argon2')) {
+      return pwhash.strVerify(passwordHash: storedHash, password: pin);
+    }
+
+    final salt = await _generatePinSalt();
+    return _hashPinLegacy(pin, salt) == storedHash;
+  }
+
+  Future<void> _migrateLegacyPinIfNeeded(
+    String pin,
+    String storedHash,
+    String storageKey,
+  ) async {
+    if (storedHash.startsWith(r'$argon2')) return;
+    final upgradedHash = await _hashPinStrong(pin);
+    await _secureStorage.write(key: storageKey, value: upgradedHash);
+    LogService.info('تمت ترقية تجزئة PIN إلى Argon2id');
+  }
+
+  Future<int> getRemainingLockoutSeconds() async {
+    final lockUntilRaw = await _secureStorage.read(key: _pinLockUntilKey);
+    if (lockUntilRaw == null) return 0;
+
+    final lockUntilMs = int.tryParse(lockUntilRaw) ?? 0;
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final remainingMs = lockUntilMs - nowMs;
+
+    if (remainingMs <= 0) {
+      await _secureStorage.delete(key: _pinLockUntilKey);
+      return 0;
+    }
+
+    return (remainingMs / 1000).ceil();
+  }
+
+  Future<void> _clearPinFailures() async {
+    await _secureStorage.delete(key: _failedPinAttemptsKey);
+    await _secureStorage.delete(key: _pinLockUntilKey);
+  }
+
+  Future<void> _registerPinFailure() async {
+    final attemptsRaw = await _secureStorage.read(key: _failedPinAttemptsKey);
+    final attempts = (int.tryParse(attemptsRaw ?? '0') ?? 0) + 1;
+    await _secureStorage.write(
+      key: _failedPinAttemptsKey,
+      value: attempts.toString(),
+    );
+
+    if (attempts < _maxFailedAttemptsBeforeLockout) {
+      return;
+    }
+
+    final stage =
+        ((attempts - _maxFailedAttemptsBeforeLockout) ~/
+            _maxFailedAttemptsBeforeLockout) +
+        1;
+    final lockoutSeconds = (_baseLockoutSeconds * (1 << (stage - 1))).clamp(
+      _baseLockoutSeconds,
+      _maxLockoutSeconds,
+    );
+    final lockUntil = DateTime.now()
+        .add(Duration(seconds: lockoutSeconds))
+        .millisecondsSinceEpoch;
+
+    await _secureStorage.write(
+      key: _pinLockUntilKey,
+      value: lockUntil.toString(),
+    );
+    LogService.warning(
+      'PIN locked for ${lockoutSeconds}s after $attempts failures',
+    );
+  }
+
   Future<bool> setMasterPin(String pin) async {
     try {
-      if (pin.length < 4) {
-        LogService.warning('PIN يجب أن يكون 4 أرقام على الأقل');
+      if (!_isValidPin(pin)) {
+        LogService.warning('PIN يجب أن يكون 6 أرقام بالضبط');
         return false;
       }
-      
-      final salt = await _generatePinSalt();
-      final hash = await _hashPin(pin, salt);
-      
+
+      final hash = await _hashPinStrong(pin);
       await _secureStorage.write(key: _masterPinHashKey, value: hash);
+      await _clearPinFailures();
       LogService.info('تم تعيين Master PIN بنجاح');
       return true;
     } catch (e) {
@@ -284,19 +352,17 @@ class AuthService extends StateNotifier<AuthStatus> {
       return false;
     }
   }
-  
-  /// تعيين Duress PIN
+
   Future<bool> setDuressPin(String pin) async {
     try {
-      if (pin.length < 4) {
-        LogService.warning('PIN يجب أن يكون 4 أرقام على الأقل');
+      if (!_isValidPin(pin)) {
+        LogService.warning('PIN يجب أن يكون 6 أرقام بالضبط');
         return false;
       }
-      
-      final salt = await _generatePinSalt();
-      final hash = await _hashPin(pin, salt);
-      
+
+      final hash = await _hashPinStrong(pin);
       await _secureStorage.write(key: _duressPinHashKey, value: hash);
+      await _clearPinFailures();
       LogService.info('تم تعيين Duress PIN بنجاح');
       return true;
     } catch (e) {
@@ -304,33 +370,53 @@ class AuthService extends StateNotifier<AuthStatus> {
       return false;
     }
   }
-  
-  /// التحقق من PIN
-  /// Returns: AuthType.master إذا تطابق Master PIN
-  ///          AuthType.duress إذا تطابق Duress PIN
-  ///          AuthType.failure إذا فشل
+
   Future<AuthType> verifyPin(String inputPin) async {
     try {
-      final salt = await _generatePinSalt();
-      final inputHash = await _hashPin(inputPin, salt);
-      
+      if (!_isValidPin(inputPin)) {
+        await _registerPinFailure();
+        LogService.warning('PIN format invalid');
+        return AuthType.failure;
+      }
+
+      final remainingLockout = await getRemainingLockoutSeconds();
+      if (remainingLockout > 0) {
+        LogService.warning('PIN locked. Remaining: ${remainingLockout}s');
+        return AuthType.failure;
+      }
+
       final masterPinHash = await _secureStorage.read(key: _masterPinHashKey);
       final duressPinHash = await _secureStorage.read(key: _duressPinHashKey);
-      
-      if (masterPinHash != null && inputHash == masterPinHash) {
+
+      if (masterPinHash != null &&
+          await _verifyPinHash(inputPin, masterPinHash)) {
+        await _migrateLegacyPinIfNeeded(
+          inputPin,
+          masterPinHash,
+          _masterPinHashKey,
+        );
+        await _clearPinFailures();
         _currentAuthType = AuthType.master;
         await _secureStorage.write(key: _authTypeKey, value: 'master');
         LogService.info('تم التحقق من Master PIN بنجاح');
         return AuthType.master;
       }
-      
-      if (duressPinHash != null && inputHash == duressPinHash) {
+
+      if (duressPinHash != null &&
+          await _verifyPinHash(inputPin, duressPinHash)) {
+        await _migrateLegacyPinIfNeeded(
+          inputPin,
+          duressPinHash,
+          _duressPinHashKey,
+        );
+        await _clearPinFailures();
         _currentAuthType = AuthType.duress;
         await _secureStorage.write(key: _authTypeKey, value: 'duress');
         LogService.info('تم التحقق من Duress PIN - تم تفعيل Duress Mode');
         return AuthType.duress;
       }
-      
+
+      await _registerPinFailure();
       LogService.warning('PIN غير صحيح');
       return AuthType.failure;
     } catch (e) {
@@ -338,24 +424,21 @@ class AuthService extends StateNotifier<AuthStatus> {
       return AuthType.failure;
     }
   }
-  
-  /// التحقق من وجود PINs محفوظة
+
   Future<bool> hasMasterPin() async {
     final masterPinHash = await _secureStorage.read(key: _masterPinHashKey);
     return masterPinHash != null;
   }
-  
+
   Future<bool> hasDuressPin() async {
     final duressPinHash = await _secureStorage.read(key: _duressPinHashKey);
     return duressPinHash != null;
   }
-  
-  /// إعادة تعيين نوع المصادقة (عند تسجيل الخروج)
-  /// يجب استدعاؤها عند تسجيل الخروج أو إغلاق التطبيق
+
   void resetAuthType() async {
     _currentAuthType = null;
     await _secureStorage.delete(key: _authTypeKey);
+    await _clearPinFailures();
     LogService.info('تم إعادة تعيين AuthType');
   }
 }
-

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,8 +11,6 @@ import '../../../../core/services/biometric_service.dart';
 import '../../../../core/database/database_provider.dart';
 import 'package:sada/l10n/generated/app_localizations.dart';
 
-/// شاشة قفل التطبيق
-/// تطلب المصادقة البيومترية أو PIN للدخول
 class LockScreen extends ConsumerStatefulWidget {
   const LockScreen({super.key});
 
@@ -22,16 +21,56 @@ class LockScreen extends ConsumerStatefulWidget {
 class _LockScreenState extends ConsumerState<LockScreen> {
   bool _isAuthenticating = false;
   String _enteredPin = '';
-  final int _maxPinLength = 6;
+  final int _maxPinLength = AuthService.pinLength;
   bool _showPinPad = false;
+  int _lockoutSecondsRemaining = 0;
+  Timer? _lockoutTimer;
 
   @override
   void initState() {
     super.initState();
-    // محاولة المصادقة البيومترية تلقائياً عند فتح الشاشة
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _tryBiometricAuth();
+      _syncLockoutState();
     });
+  }
+
+  @override
+  void dispose() {
+    _lockoutTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _syncLockoutState() async {
+    final authService = ref.read(authServiceProvider.notifier);
+    final remaining = await authService.getRemainingLockoutSeconds();
+    if (!mounted) return;
+
+    setState(() {
+      _lockoutSecondsRemaining = remaining;
+    });
+
+    _lockoutTimer?.cancel();
+    if (remaining > 0) {
+      _lockoutTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        if (!mounted) {
+          timer.cancel();
+          return;
+        }
+
+        if (_lockoutSecondsRemaining <= 1) {
+          timer.cancel();
+          setState(() {
+            _lockoutSecondsRemaining = 0;
+          });
+          return;
+        }
+
+        setState(() {
+          _lockoutSecondsRemaining--;
+        });
+      });
+    }
   }
 
   Future<void> _tryBiometricAuth() async {
@@ -39,7 +78,6 @@ class _LockScreenState extends ConsumerState<LockScreen> {
 
     final biometricState = ref.read(biometricServiceProvider);
     if (!biometricState.isAvailable) {
-      // إذا لم تكن البصمة متاحة، عرض PIN Pad
       setState(() {
         _showPinPad = true;
       });
@@ -64,10 +102,8 @@ class _LockScreenState extends ConsumerState<LockScreen> {
     });
 
     if (success) {
-      // نجحت المصادقة البيومترية - استخدام Master PIN افتراضياً
       await _handleSuccessfulAuth(AuthType.master);
     } else {
-      // فشلت المصادقة - عرض PIN Pad
       setState(() {
         _showPinPad = true;
       });
@@ -75,12 +111,13 @@ class _LockScreenState extends ConsumerState<LockScreen> {
   }
 
   void _onPinDigitPressed(String digit) {
+    if (_lockoutSecondsRemaining > 0 || _isAuthenticating) return;
+
     if (_enteredPin.length < _maxPinLength) {
       setState(() {
         _enteredPin += digit;
       });
 
-      // إذا تم إدخال PIN كامل، التحقق منه
       if (_enteredPin.length == _maxPinLength) {
         _verifyPin();
       }
@@ -88,6 +125,8 @@ class _LockScreenState extends ConsumerState<LockScreen> {
   }
 
   void _onPinBackspace() {
+    if (_lockoutSecondsRemaining > 0 || _isAuthenticating) return;
+
     if (_enteredPin.isNotEmpty) {
       setState(() {
         _enteredPin = _enteredPin.substring(0, _enteredPin.length - 1);
@@ -96,7 +135,8 @@ class _LockScreenState extends ConsumerState<LockScreen> {
   }
 
   Future<void> _verifyPin() async {
-    if (_isAuthenticating) return;
+    if (_isAuthenticating || _lockoutSecondsRemaining > 0) return;
+    if (_enteredPin.length != _maxPinLength) return;
 
     setState(() {
       _isAuthenticating = true;
@@ -112,35 +152,28 @@ class _LockScreenState extends ConsumerState<LockScreen> {
     });
 
     if (authType == AuthType.failure) {
-      // PIN غير صحيح - Shake animation
       setState(() {
         _enteredPin = '';
       });
       HapticFeedback.heavyImpact();
+      await _syncLockoutState();
     } else {
-      // PIN صحيح - معالجة المصادقة الناجحة
       await _handleSuccessfulAuth(authType);
     }
   }
 
   Future<void> _handleSuccessfulAuth(AuthType authType) async {
     try {
-      // حفظ نوع المصادقة في Provider
       ref.read(currentAuthTypeProvider.notifier).state = authType;
-
-      // تهيئة قاعدة البيانات بناءً على نوع المصادقة
       final dbInitializer = ref.read(databaseInitializerProvider);
       await dbInitializer.initializeDatabase(authType);
 
       if (!mounted) return;
 
-      // الانتقال إلى Home مع fade transition
-      // ⚠️ مهم: لا تظهر أي رسالة مختلفة في Duress Mode
       Navigator.of(context).pushReplacement(
         PageRouteBuilder(
           pageBuilder: (context, animation, secondaryAnimation) {
-            // سيتم توجيهه تلقائياً إلى Home من Router
-            return Container(); // Placeholder
+            return Container();
           },
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             return FadeTransition(opacity: animation, child: child);
@@ -149,7 +182,6 @@ class _LockScreenState extends ConsumerState<LockScreen> {
         ),
       );
 
-      // الانتقال إلى Home
       context.go(AppRoutes.home);
     } catch (e) {
       if (!mounted) return;
@@ -187,46 +219,51 @@ class _LockScreenState extends ConsumerState<LockScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Lock Icon
+                  if (_showPinPad && _lockoutSecondsRemaining > 0)
+                    Padding(
+                      padding: EdgeInsets.only(bottom: 16.h),
+                      child: Text(
+                        'محاولات كثيرة. حاول بعد ${_lockoutSecondsRemaining}s',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.error,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
                   Container(
                     width: 120.w,
                     height: 120.h,
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
+                      color: theme.colorScheme.onPrimary.withValues(alpha: 0.2),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
                       Icons.lock_outline,
                       size: 64.sp,
-                      color: Colors.white,
+                      color: theme.colorScheme.onPrimary,
                     ),
                   ),
                   SizedBox(height: 32.h),
-
-                  // Title
                   Text(
                     l10n.sadaIsLocked,
                     style: theme.textTheme.headlineMedium?.copyWith(
                       fontSize: 28.sp,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: theme.colorScheme.onPrimary,
                     ),
                     textAlign: TextAlign.center,
                   ),
                   SizedBox(height: 16.h),
-
-                  // Subtitle
                   Text(
                     l10n.unlockToContinue,
                     style: theme.textTheme.bodyLarge?.copyWith(
                       fontSize: 16.sp,
-                      color: Colors.white.withValues(alpha: 0.9),
+                      color: theme.colorScheme.onPrimary.withValues(alpha: 0.9),
                     ),
                     textAlign: TextAlign.center,
                   ),
                   SizedBox(height: 48.h),
-
-                  // PIN Dots
                   if (_showPinPad)
                     _buildPinDots()
                         .animate(target: _enteredPin.isEmpty ? 0 : 1)
@@ -237,10 +274,7 @@ class _LockScreenState extends ConsumerState<LockScreen> {
                         )
                   else
                     SizedBox(height: 24.h),
-
                   SizedBox(height: 24.h),
-
-                  // Biometric Button (if available and PIN Pad not shown)
                   if (!_showPinPad && biometricState.isAvailable)
                     SizedBox(
                       width: double.infinity,
@@ -254,7 +288,7 @@ class _LockScreenState extends ConsumerState<LockScreen> {
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
                                   valueColor: AlwaysStoppedAnimation<Color>(
-                                    Colors.white,
+                                    theme.colorScheme.onPrimary,
                                   ),
                                 ),
                               )
@@ -267,7 +301,7 @@ class _LockScreenState extends ConsumerState<LockScreen> {
                           ),
                         ),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
+                          backgroundColor: theme.colorScheme.onPrimary,
                           foregroundColor: theme.colorScheme.primary,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12.r),
@@ -275,11 +309,7 @@ class _LockScreenState extends ConsumerState<LockScreen> {
                         ),
                       ),
                     ),
-
-                  // PIN Pad
                   if (_showPinPad) ...[SizedBox(height: 32.h), _buildPinPad()],
-
-                  // Switch to PIN (if biometric available)
                   if (!_showPinPad && biometricState.isAvailable)
                     TextButton(
                       onPressed: () {
@@ -290,7 +320,9 @@ class _LockScreenState extends ConsumerState<LockScreen> {
                       child: Text(
                         l10n.enterPin,
                         style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.9),
+                          color: theme.colorScheme.onPrimary.withValues(
+                            alpha: 0.9,
+                          ),
                           fontSize: 14.sp,
                         ),
                       ),
@@ -304,8 +336,8 @@ class _LockScreenState extends ConsumerState<LockScreen> {
     );
   }
 
-  /// بناء PIN Dots
   Widget _buildPinDots() {
+    final theme = Theme.of(context);
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: List.generate(
@@ -317,19 +349,17 @@ class _LockScreenState extends ConsumerState<LockScreen> {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: index < _enteredPin.length
-                ? Colors.white
-                : Colors.white.withValues(alpha: 0.3),
+                ? theme.colorScheme.onPrimary
+                : theme.colorScheme.onPrimary.withValues(alpha: 0.3),
           ),
         ),
       ),
     );
   }
 
-  /// بناء PIN Pad
   Widget _buildPinPad() {
     return Column(
       children: [
-        // Row 1-3
         for (int row = 0; row < 3; row++)
           Padding(
             padding: EdgeInsets.symmetric(vertical: 8.h),
@@ -341,7 +371,6 @@ class _LockScreenState extends ConsumerState<LockScreen> {
               ],
             ),
           ),
-        // Row 4 (0 and Backspace)
         Padding(
           padding: EdgeInsets.symmetric(vertical: 8.h),
           child: Row(
@@ -356,33 +385,41 @@ class _LockScreenState extends ConsumerState<LockScreen> {
     );
   }
 
-  /// بناء زر PIN
   Widget _buildPinButton(String digit, {bool isBackspace = false}) {
+    final theme = Theme.of(context);
+    final isDisabled = _lockoutSecondsRemaining > 0 || _isAuthenticating;
+
     return Container(
       width: 70.w,
       height: 70.h,
       margin: EdgeInsets.symmetric(horizontal: 8.w),
       child: Material(
-        color: Colors.white.withValues(alpha: 0.2),
+        color: theme.colorScheme.onPrimary.withValues(alpha: 0.2),
         shape: const CircleBorder(),
         child: InkWell(
           key: isBackspace ? const Key('pin_backspace') : Key('pin_$digit'),
-          onTap: () {
-            HapticFeedback.selectionClick();
-            if (isBackspace) {
-              _onPinBackspace();
-            } else {
-              _onPinDigitPressed(digit);
-            }
-          },
+          onTap: isDisabled
+              ? null
+              : () {
+                  HapticFeedback.selectionClick();
+                  if (isBackspace) {
+                    _onPinBackspace();
+                  } else {
+                    _onPinDigitPressed(digit);
+                  }
+                },
           customBorder: const CircleBorder(),
           child: Center(
             child: isBackspace
-                ? Icon(Icons.backspace, color: Colors.white, size: 24.sp)
+                ? Icon(
+                    Icons.backspace,
+                    color: theme.colorScheme.onPrimary,
+                    size: 24.sp,
+                  )
                 : Text(
                     digit,
                     style: TextStyle(
-                      color: Colors.white,
+                      color: theme.colorScheme.onPrimary,
                       fontSize: 24.sp,
                       fontWeight: FontWeight.bold,
                     ),

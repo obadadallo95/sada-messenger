@@ -1,7 +1,7 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import '../../chat/domain/models/chat_model.dart';
@@ -31,7 +31,8 @@ class GroupsRepository {
       // الحصول على معرف المستخدم الحالي (من AuthService)
       // في الوقت الحالي، سنستخدم معرف مؤقت
       final groupId = 'group_${_uuid.v4()}';
-      final ownerId = 'user_${_uuid.v4()}'; // سيتم الحصول عليه من AuthService لاحقاً
+      final ownerId =
+          'user_${_uuid.v4()}'; // سيتم الحصول عليه من AuthService لاحقاً
 
       final now = DateTime.now();
 
@@ -50,6 +51,8 @@ class GroupsRepository {
 
       // حفظ المجموعة في SharedPreferences
       await _saveGroup(group);
+      // المنشئ يجب أن ينضم تلقائياً لمجموعته.
+      await joinGroup(groupId);
 
       LogService.info('تم إنشاء المجموعة: $name');
       return group;
@@ -71,7 +74,7 @@ class GroupsRepository {
     try {
       final prefs = await SharedPreferences.getInstance();
       final joinedGroups = prefs.getStringList(_joinedGroupsKey) ?? [];
-      
+
       if (!joinedGroups.contains(groupId)) {
         joinedGroups.add(groupId);
         await prefs.setStringList(_joinedGroupsKey, joinedGroups);
@@ -88,12 +91,14 @@ class GroupsRepository {
     try {
       final prefs = await SharedPreferences.getInstance();
       final joinedGroupIds = prefs.getStringList(_joinedGroupsKey) ?? [];
-      
+
       // تحميل جميع المجموعات المحفوظة
       final allGroups = await _loadAllGroups();
-      
+
       // تصفية المجموعات التي انضم إليها المستخدم
-      return allGroups.where((group) => joinedGroupIds.contains(group.id)).toList();
+      return allGroups
+          .where((group) => joinedGroupIds.contains(group.id))
+          .toList();
     } catch (e) {
       LogService.error('خطأ في تحميل مجموعاتي', e);
       return [];
@@ -105,16 +110,21 @@ class GroupsRepository {
     try {
       final prefs = await SharedPreferences.getInstance();
       final groupsJson = prefs.getStringList(_groupsKey) ?? [];
-      
-      // تحويل المجموعة إلى JSON
-      final groupJson = group.toJson();
-      final groupJsonString = groupJson.toString(); // سيتم استخدام jsonEncode لاحقاً
-      
-      // إضافة المجموعة إذا لم تكن موجودة
-      if (!groupsJson.contains(groupJsonString)) {
-        groupsJson.add(groupJsonString);
-        await prefs.setStringList(_groupsKey, groupsJson);
-      }
+
+      final groupJsonString = jsonEncode(group.toJson());
+
+      // إزالة نسخة قديمة لنفس id ثم إضافة النسخة الجديدة
+      groupsJson.removeWhere((item) {
+        try {
+          final decoded = jsonDecode(item);
+          return decoded is Map<String, dynamic> && decoded['id'] == group.id;
+        } catch (_) {
+          return false;
+        }
+      });
+
+      groupsJson.add(groupJsonString);
+      await prefs.setStringList(_groupsKey, groupsJson);
     } catch (e) {
       LogService.error('خطأ في حفظ المجموعة', e);
     }
@@ -123,11 +133,22 @@ class GroupsRepository {
   /// تحميل جميع المجموعات المحفوظة
   Future<List<ChatModel>> _loadAllGroups() async {
     try {
-      // تحميل المجموعات من SharedPreferences
-      // تحويل JSON strings إلى ChatModel objects
-      // سيتم تنفيذها لاحقاً عند إكمال منطق الحفظ والتحميل
-      // في الوقت الحالي، نعيد قائمة فارغة
-      return [];
+      final prefs = await SharedPreferences.getInstance();
+      final groupsJson = prefs.getStringList(_groupsKey) ?? [];
+      final groups = <ChatModel>[];
+
+      for (final item in groupsJson) {
+        try {
+          final decoded = jsonDecode(item);
+          if (decoded is Map<String, dynamic>) {
+            groups.add(ChatModel.fromJson(decoded));
+          }
+        } catch (e) {
+          LogService.warning('تخطي بيانات مجموعة غير صالحة: $e');
+        }
+      }
+
+      return groups;
     } catch (e) {
       LogService.error('خطأ في تحميل المجموعات', e);
       return [];
@@ -146,9 +167,8 @@ class GroupsRepository {
       Colors.indigo,
       Colors.red,
     ];
-    
+
     final index = name.hashCode % colors.length;
     return colors[index.abs()];
   }
 }
-

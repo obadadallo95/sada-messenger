@@ -2,33 +2,32 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:sada/core/theme/app_colors.dart';
 import 'package:sada/features/duress/presentation/pages/safe_notes_screen.dart';
 
 void main() {
   setUpAll(() {
     TestWidgetsFlutterBinding.ensureInitialized();
-    
+
     // Mock Clipboard
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(SystemChannels.platform, (methodCall) async {
-      if (methodCall.method == 'Clipboard.setData') {
-        return null;
-      }
-      return null;
-    });
+          if (methodCall.method == 'Clipboard.setData') {
+            return null;
+          }
+          return null;
+        });
   });
 
   Widget createWidgetUnderTest() {
     return ScreenUtilInit(
       designSize: const Size(375, 812),
-      builder: (context, child) => const MaterialApp(
-        home: SafeNotesScreen(),
-      ),
+      builder: (context, child) => const MaterialApp(home: SafeNotesScreen()),
     );
   }
 
-  testWidgets('SafeNotesScreen renders list of notes', (WidgetTester tester) async {
+  testWidgets('SafeNotesScreen renders list of notes', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(createWidgetUnderTest());
     await tester.pumpAndSettle();
 
@@ -45,7 +44,9 @@ void main() {
     expect(find.textContaining('Grocery List'), findsOneWidget);
   });
 
-  testWidgets('Copy button shows validation snackbar', (WidgetTester tester) async {
+  testWidgets('Copy button shows validation snackbar', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(createWidgetUnderTest());
     await tester.pumpAndSettle();
 

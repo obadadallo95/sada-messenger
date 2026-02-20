@@ -2,24 +2,21 @@ import 'package:drift/drift.dart';
 import 'chats_table.dart';
 
 /// نوع الرسالة
-enum MessageType {
-  text,
-  image,
-  voice,
-  file,
-}
+enum MessageType { text, image, voice, file }
 
 /// حالة الرسالة
 enum MessageStatus {
-  sending,   // قيد الإرسال
-  sent,      // تم الإرسال
+  sending, // قيد الإرسال
+  sent, // تم الإرسال
   delivered, // تم التسليم
-  read,      // تم القراءة
-  failed,    // فشل الإرسال
+  read, // تم القراءة
+  failed, // فشل الإرسال
 }
 
 /// جدول الرسائل (Messages)
 /// يخزن جميع الرسائل في المحادثات
+@TableIndex(name: 'messages_chat_id_idx', columns: {#chatId})
+@TableIndex(name: 'messages_timestamp_idx', columns: {#timestamp})
 class MessagesTable extends Table {
   /// معرف الرسالة (Primary Key)
   TextColumn get id => text()();
@@ -54,4 +51,3 @@ class MessagesTable extends Table {
   @override
   Set<Column> get primaryKey => {id};
 }
-

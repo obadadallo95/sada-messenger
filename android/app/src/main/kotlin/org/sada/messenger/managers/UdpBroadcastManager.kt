@@ -22,7 +22,6 @@ class UdpBroadcastManager private constructor(private val context: Context) {
     companion object {
         private const val TAG = "SadaUDP"
         private const val DISCOVERY_PORT = 45454
-        private const val BROADCAST_ADDRESS = "255.255.255.255"
         
         @Volatile
         private var INSTANCE: UdpBroadcastManager? = null
@@ -43,23 +42,22 @@ class UdpBroadcastManager private constructor(private val context: Context) {
     private val udpScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var isRunning = false
     
+    // Cache local IP to avoid frequent lookups
+    private var cachedLocalIp: String? = null
+    
     private val localIpAddress: String?
-        get() = findLocalIpAddress()
+        get() {
+            if (cachedLocalIp == null) {
+                cachedLocalIp = findLocalIpAddress()
+            }
+            return cachedLocalIp
+        }
 
-    /**
-     * تعيين EventSink لإرسال UDP events إلى Flutter
-     */
     fun setEventSink(sink: EventChannel.EventSink?) {
         eventSink = sink
         Log.d(TAG, "UDP Event sink set")
     }
 
-    /**
-     * بدء خدمة UDP Broadcast
-     * - إنشاء Socket للاستماع
-     * - بدء Coroutine للاستماع المستمر
-     * - تفعيل Multicast Lock (للبث على WiFi)
-     */
     fun startListening(): Boolean {
         if (isRunning) {
             Log.w(TAG, "UDP Service already running")
@@ -67,23 +65,22 @@ class UdpBroadcastManager private constructor(private val context: Context) {
         }
 
         return try {
-            // إنشاء Socket للاستماع
             listenSocket = DatagramSocket(DISCOVERY_PORT).apply {
                 broadcast = true
                 reuseAddress = true
-                soTimeout = 1000 // Timeout 1 second to prevent blocking indefinitely
+                soTimeout = 1000 
             }
             
-            // تفعيل Multicast Lock (مطلوب للبث على WiFi)
             val wifiManager = context.getSystemService(Context.WIFI_SERVICE) as? WifiManager
             multicastLock = wifiManager?.createMulticastLock("SadaUDP")
             multicastLock?.setReferenceCounted(true)
             multicastLock?.acquire()
             
             Log.d(TAG, "UDP Socket bound to port $DISCOVERY_PORT")
+            // Refresh local IP on start
+            cachedLocalIp = findLocalIpAddress()
             Log.d(TAG, "Local IP: $localIpAddress")
             
-            // بدء Coroutine للاستماع
             _startListeningLoop()
             
             isRunning = true
@@ -96,19 +93,13 @@ class UdpBroadcastManager private constructor(private val context: Context) {
         }
     }
 
-    /**
-     * إيقاف خدمة UDP Broadcast
-     */
     fun stop() {
         if (!isRunning) return
 
         isRunning = false
-        
-        // إلغاء Coroutine
         listenJob?.cancel()
         listenJob = null
         
-        // إغلاق Sockets
         try {
             listenSocket?.close()
             broadcastSocket?.close()
@@ -119,53 +110,72 @@ class UdpBroadcastManager private constructor(private val context: Context) {
         listenSocket = null
         broadcastSocket = null
         
-        // إطلاق Multicast Lock
-        multicastLock?.release()
+        try {
+            if (multicastLock?.isHeld == true) {
+                multicastLock?.release()
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error releasing multicast lock", e)
+        }
         multicastLock = null
         
         Log.d(TAG, "UDP Broadcast Service stopped")
     }
 
-    /**
-     * إرسال UDP Broadcast
-     * [message]: الرسالة المراد بثها
-     */
     fun sendBroadcast(message: String): Boolean {
         if (!isRunning) {
             Log.w(TAG, "Cannot send broadcast - service not running")
             return false
         }
 
-        return try {
-            // إنشاء Socket للإرسال إذا لم يكن موجوداً
-            if (broadcastSocket == null || broadcastSocket!!.isClosed) {
-                broadcastSocket = DatagramSocket().apply {
-                    broadcast = true
+        // Fire and forget on IO thread to avoid NetworkOnMainThreadException
+        udpScope.launch(Dispatchers.IO) {
+            try {
+                if (broadcastSocket == null || broadcastSocket!!.isClosed) {
+                    broadcastSocket = DatagramSocket().apply {
+                        broadcast = true
+                        reuseAddress = true // reusable
+                    }
+                }
+
+                val data = message.toByteArray(Charsets.UTF_8)
+                
+                // Try to send to specific broadcast address first
+                val broadcastAddr = getBroadcastAddress()
+                val targetAddress = broadcastAddr ?: InetAddress.getByName("255.255.255.255")
+                
+                val packet = DatagramPacket(
+                    data,
+                    data.size,
+                    targetAddress,
+                    DISCOVERY_PORT
+                )
+
+                broadcastSocket?.send(packet)
+                
+                Log.d(TAG, "📡 UDP Broadcast sent to $targetAddress")
+            } catch (e: Exception) {
+                Log.e(TAG, "Error sending UDP broadcast", e)
+                // Fallback attempt
+                try {
+                    val fallbackData = message.toByteArray(Charsets.UTF_8)
+                    val fallbackPacket = DatagramPacket(
+                        fallbackData,
+                        fallbackData.size,
+                        InetAddress.getByName("255.255.255.255"),
+                        DISCOVERY_PORT
+                    )
+                    broadcastSocket?.send(fallbackPacket)
+                    Log.d(TAG, "📡 Fallback UDP Broadcast sent to 255.255.255.255")
+                } catch (e2: Exception) {
+                    Log.e(TAG, "Error sending fallback UDP broadcast", e2)
                 }
             }
-
-            val data = message.toByteArray(Charsets.UTF_8)
-            val broadcastAddress = InetAddress.getByName(BROADCAST_ADDRESS)
-            val packet = DatagramPacket(
-                data,
-                data.size,
-                broadcastAddress,
-                DISCOVERY_PORT
-            )
-
-            broadcastSocket?.send(packet)
-            
-            Log.d(TAG, "📡 UDP Broadcast sent: ${message.take(50)}...")
-            true
-        } catch (e: Exception) {
-            Log.e(TAG, "Error sending UDP broadcast", e)
-            false
         }
+        
+        return true // Returned immediately to Main Thread indicating "Request Queued"
     }
 
-    /**
-     * بدء حلقة الاستماع (Background Coroutine)
-     */
     private fun _startListeningLoop() {
         listenJob = udpScope.launch {
             val buffer = ByteArray(1024)
@@ -175,106 +185,124 @@ class UdpBroadcastManager private constructor(private val context: Context) {
                     val packet = DatagramPacket(buffer, buffer.size)
                     listenSocket?.receive(packet)
                     
-                    // استخراج البيانات
                     val receivedData = String(packet.data, 0, packet.length, Charsets.UTF_8)
                     val senderIp = packet.address.hostAddress
                     
-                    // Filtering: تجاهل البث من نفس الجهاز
+                    // Allow discovery from self for debugging if needed, but usually filter
                     if (senderIp == localIpAddress) {
-                        Log.d(TAG, "Ignoring self-broadcast from $senderIp")
+                        // Log.v(TAG, "Ignoring self-broadcast from $senderIp")
                         continue
                     }
                     
-                    // التحقق من أن البيانات ليست فارغة
-                    if (receivedData.isEmpty()) {
-                        continue
-                    }
+                    if (receivedData.isEmpty()) continue
                     
                     Log.d(TAG, "📨 UDP packet received from $senderIp: ${receivedData.take(50)}...")
-                    
-                    // إرسال Event إلى Flutter
                     _sendEventToFlutter(receivedData, senderIp ?: "unknown")
                     
                 } catch (e: SocketTimeoutException) {
-                    // Timeout طبيعي - نستمر في الحلقة
-                    // لا حاجة لتسجيل خطأ هنا
                     continue
                 } catch (e: SocketException) {
                     if (isActive && isRunning) {
-                        Log.d(TAG, "Socket exception (likely closed): ${e.message}")
+                        Log.d(TAG, "Socket exception: ${e.message}")
                         break
                     }
                 } catch (e: Exception) {
                     if (isActive && isRunning) {
                         Log.e(TAG, "Error in UDP listen loop", e)
-                        delay(1000) // انتظار قبل إعادة المحاولة
+                        delay(1000)
                     }
                 }
             }
-            
-            Log.d(TAG, "UDP listen loop ended")
         }
     }
 
-    /**
-     * إرسال Event إلى Flutter عبر EventChannel
-     */
     private fun _sendEventToFlutter(payload: String, ip: String) {
         try {
-            val event = JSONObject().apply {
-                put("payload", payload)
-                put("ip", ip)
+            // Run on Main Thread to communicate with Flutter
+            kotlinx.coroutines.MainScope().launch {
+                 val event = JSONObject().apply {
+                    put("payload", payload)
+                    put("ip", ip)
+                }
+                eventSink?.success(event.toString())
             }
-            
-            eventSink?.success(event.toString())
         } catch (e: Exception) {
             Log.e(TAG, "Error sending event to Flutter", e)
         }
     }
 
-    /**
-     * الحصول على عنوان IP المحلي
-     */
     private fun findLocalIpAddress(): String? {
         try {
             val interfaces = NetworkInterface.getNetworkInterfaces()
             while (interfaces.hasMoreElements()) {
                 val networkInterface = interfaces.nextElement()
-                
-                // تجاهل Loopback و Virtual interfaces
-                if (networkInterface.isLoopback || !networkInterface.isUp) {
-                    continue
-                }
+                if (networkInterface.isLoopback || !networkInterface.isUp) continue
                 
                 val addresses = networkInterface.inetAddresses
                 while (addresses.hasMoreElements()) {
                     val address = addresses.nextElement()
-                    
-                    // استخدام IPv4 فقط
                     if (address is Inet4Address && !address.isLoopbackAddress) {
+                        // Prefer 192.168.x.x or 10.x.x.x addresses (typical WiFi/Hotspot)
                         val ip = address.hostAddress
-                        Log.d(TAG, "Found local IP: $ip")
-                        return ip
+                        if (ip?.startsWith("192.168") == true || ip?.startsWith("10.") == true || ip?.startsWith("172.") == true) {
+                             return ip
+                        }
+                    }
+                }
+            }
+             // Fallback to any non-loopback IPv4
+            val interfaces2 = NetworkInterface.getNetworkInterfaces()
+             while (interfaces2.hasMoreElements()) {
+                val networkInterface = interfaces2.nextElement()
+                if (networkInterface.isLoopback || !networkInterface.isUp) continue
+                val addresses = networkInterface.inetAddresses
+                while (addresses.hasMoreElements()) {
+                     val address = addresses.nextElement()
+                     if (address is Inet4Address && !address.isLoopbackAddress) {
+                         return address.hostAddress
+                     }
+                }
+             }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting local IP address", e)
+        }
+        return null
+    }
+    
+    // Helper to find the broadcast address for the connected interface
+    private fun getBroadcastAddress(): InetAddress? {
+        try {
+            val interfaces = NetworkInterface.getNetworkInterfaces()
+            while (interfaces.hasMoreElements()) {
+                val networkInterface = interfaces.nextElement()
+                if (networkInterface.isLoopback || !networkInterface.isUp) continue
+                
+                for (interfaceAddress in networkInterface.interfaceAddresses) {
+                    val address = interfaceAddress.address
+                    if (address is Inet4Address && !address.isLoopbackAddress) {
+                         // Check if this interface has a broadcast address
+                         val broadcast = interfaceAddress.broadcast
+                         if (broadcast != null) {
+                             // Prefer typical WiFi ranges
+                             val ip = address.hostAddress
+                             if (ip?.startsWith("192.168") == true || ip?.startsWith("10.") == true || ip?.startsWith("172.") == true) {
+                                 Log.d(TAG, "Found broadcast address: $broadcast for IP: $ip")
+                                 return broadcast
+                             }
+                         }
                     }
                 }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error getting local IP address", e)
+            Log.e(TAG, "Error finding broadcast address", e)
         }
-        
         return null
     }
 
-    /**
-     * الحصول على عنوان IP المحلي (Public method)
-     */
     fun getDeviceIp(): String {
         return localIpAddress ?: "unknown"
     }
 
-    /**
-     * التحقق من اتصال WiFi
-     */
     fun isWifiConnected(): Boolean {
         return try {
             val wifiManager = context.getSystemService(Context.WIFI_SERVICE) as? WifiManager
@@ -286,9 +314,6 @@ class UdpBroadcastManager private constructor(private val context: Context) {
         }
     }
 
-    /**
-     * تنظيف الموارد
-     */
     fun destroy() {
         Log.d(TAG, "Destroying UdpBroadcastManager")
         stop()

@@ -36,10 +36,7 @@ class SettingsScreen extends ConsumerWidget {
     return Scaffold(
       body: SafeArea(
         child: ListView(
-          padding: EdgeInsets.symmetric(
-            horizontal: 16.w,
-            vertical: 16.h,
-          ),
+          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
           children: [
             // عنوان الشاشة
             Padding(
@@ -49,10 +46,12 @@ class SettingsScreen extends ConsumerWidget {
                 style: AppTypography.headlineMedium(context),
               ),
             ),
-            
+
             // Avatar Section
             _buildAvatarSection(context, ref),
             SizedBox(height: AppDimensions.spacingXl),
+            _buildDuressQuickSetupCard(context, ref, l10n),
+            SizedBox(height: AppDimensions.spacingLg),
 
             // قسم المظهر - GlassCard
             themeModeAsync.when(
@@ -69,7 +68,9 @@ class SettingsScreen extends ConsumerWidget {
                             padding: EdgeInsets.all(AppDimensions.paddingSm),
                             decoration: BoxDecoration(
                               color: AppColors.primary.withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
+                              borderRadius: BorderRadius.circular(
+                                AppDimensions.radiusSm,
+                              ),
                             ),
                             child: Icon(
                               Icons.palette_outlined,
@@ -135,7 +136,9 @@ class SettingsScreen extends ConsumerWidget {
                           padding: EdgeInsets.all(AppDimensions.paddingSm),
                           decoration: BoxDecoration(
                             color: AppColors.error.withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
+                            borderRadius: BorderRadius.circular(
+                              AppDimensions.radiusSm,
+                            ),
                           ),
                           child: Icon(
                             Icons.security,
@@ -178,7 +181,9 @@ class SettingsScreen extends ConsumerWidget {
                           padding: EdgeInsets.all(AppDimensions.paddingSm),
                           decoration: BoxDecoration(
                             color: AppColors.info.withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
+                            borderRadius: BorderRadius.circular(
+                              AppDimensions.radiusSm,
+                            ),
                           ),
                           child: Icon(
                             Icons.wifi,
@@ -203,6 +208,15 @@ class SettingsScreen extends ConsumerWidget {
                   _buildBatteryOptimizationTile(context, l10n),
                   Divider(height: AppDimensions.spacingLg),
                   _buildBatteryGuideTile(context, l10n),
+                  Divider(height: AppDimensions.spacingLg),
+                  SettingsTile(
+                    icon: Icons.bug_report_outlined,
+                    iconColor: Colors.deepPurple,
+                    iconBackgroundColor: Colors.deepPurple.withValues(alpha: 0.1),
+                    title: 'Mesh Debug',
+                    subtitle: 'View connection status & logs',
+                    onTap: () => context.push(AppRoutes.meshDebug),
+                  ),
                 ],
               ),
             ),
@@ -221,7 +235,9 @@ class SettingsScreen extends ConsumerWidget {
                           padding: EdgeInsets.all(AppDimensions.paddingSm),
                           decoration: BoxDecoration(
                             color: AppColors.secondary.withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
+                            borderRadius: BorderRadius.circular(
+                              AppDimensions.radiusSm,
+                            ),
                           ),
                           child: Icon(
                             Icons.info_outline,
@@ -321,18 +337,18 @@ class SettingsScreen extends ConsumerWidget {
                             height: 20.h,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.white,
+                              ),
                             ),
                           )
-                        : Icon(
-                            Icons.edit,
-                            color: Colors.white,
-                            size: 20.sp,
-                          ),
+                        : Icon(Icons.edit, color: Colors.white, size: 20.sp),
                     onPressed: profileState.isLoading
                         ? null
                         : () async {
-                            final profileService = ref.read(profileServiceProvider.notifier);
+                            final profileService = ref.read(
+                              profileServiceProvider.notifier,
+                            );
                             final success = await profileService.setAvatar();
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
@@ -436,14 +452,8 @@ class SettingsScreen extends ConsumerWidget {
         title: l10n.language,
         trailing: SegmentedButton<String>(
           segments: [
-            ButtonSegment(
-              value: 'ar',
-              label: Text(l10n.arabic),
-            ),
-            ButtonSegment(
-              value: 'en',
-              label: Text(l10n.english),
-            ),
+            ButtonSegment(value: 'ar', label: Text(l10n.arabic)),
+            ButtonSegment(value: 'en', label: Text(l10n.english)),
           ],
           selected: {locale.languageCode},
           onSelectionChanged: (Set<String> newSelection) {
@@ -492,7 +502,7 @@ class SettingsScreen extends ConsumerWidget {
         onSelected: (PowerMode mode) async {
           // تحديث الوضع
           await powerModeNotifier.setPowerMode(mode);
-          
+
           // عرض رسالة نجاح
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -604,16 +614,13 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   /// بناء عنصر دليل تحسين البطارية
-  Widget _buildBatteryGuideTile(
-    BuildContext context,
-    AppLocalizations l10n,
-  ) {
+  Widget _buildBatteryGuideTile(BuildContext context, AppLocalizations l10n) {
     return SettingsTile(
       icon: Icons.tips_and_updates_outlined,
       iconColor: Colors.orange,
       iconBackgroundColor: Colors.orange.withValues(alpha: 0.1),
-      title: Localizations.localeOf(context).languageCode == 'ar' 
-          ? 'دليل تحسين الأداء' 
+      title: Localizations.localeOf(context).languageCode == 'ar'
+          ? 'دليل تحسين الأداء'
           : 'Performance Guide',
       subtitle: Localizations.localeOf(context).languageCode == 'ar'
           ? 'كيف تحافظ على اتصال الشبكة مستقراً'
@@ -625,7 +632,7 @@ class SettingsScreen extends ConsumerWidget {
   /// عرض حوار دليل البطارية
   void _showBatteryGuideDialog(BuildContext context) {
     final isArabic = Localizations.localeOf(context).languageCode == 'ar';
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -650,7 +657,7 @@ class SettingsScreen extends ConsumerWidget {
                 context,
                 icon: Icons.history,
                 title: isArabic ? 'لا تغلق التطبيق' : 'Don\'t Kill the App',
-                description: isArabic 
+                description: isArabic
                     ? 'لتعمل الشبكة، يجب أن يبقى التطبيق في الخلفية. لا تقم بإزالته من قائمة "التطبيقات الحديثة" (Recent Apps).'
                     : 'For the mesh to work, the app must stay in the background. Do not swipe it away from Recent Apps.',
               ),
@@ -658,7 +665,9 @@ class SettingsScreen extends ConsumerWidget {
               _buildGuideItem(
                 context,
                 icon: Icons.battery_alert,
-                title: isArabic ? 'تعطيل تحسين البطارية' : 'Disable Battery Optimization',
+                title: isArabic
+                    ? 'تعطيل تحسين البطارية'
+                    : 'Disable Battery Optimization',
                 description: isArabic
                     ? 'تأكد من استثناء التطبيق من "تحسين البطارية" في إعدادات النظام لضمان عدم قتل النظام للخدمة.'
                     : 'Ensure the app is excluded from "Battery Optimization" in system settings so the OS doesn\'t kill the service.',
@@ -702,10 +711,7 @@ class SettingsScreen extends ConsumerWidget {
             children: [
               Text(
                 title,
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14.sp,
-                ),
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.sp),
               ),
               SizedBox(height: 4.h),
               Text(
@@ -721,6 +727,8 @@ class SettingsScreen extends ConsumerWidget {
         ),
       ],
     );
+  }
+
   Widget _buildAppLockTile(
     BuildContext context,
     WidgetRef ref,
@@ -789,6 +797,65 @@ class SettingsScreen extends ConsumerWidget {
       iconBackgroundColor: Colors.red.withValues(alpha: 0.1),
       title: l10n.setDuressPin,
       onTap: () => _showSetDuressPinDialog(context, ref, l10n),
+    );
+  }
+
+  /// بطاقة بارزة لإعداد Duress PIN بسرعة.
+  Widget _buildDuressQuickSetupCard(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+  ) {
+    final theme = Theme.of(context);
+    return GlassCard(
+      child: Container(
+        decoration: BoxDecoration(
+          color: theme.colorScheme.errorContainer.withValues(alpha: 0.2),
+          borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+          border: Border.all(
+            color: theme.colorScheme.error.withValues(alpha: 0.35),
+          ),
+        ),
+        padding: EdgeInsets.all(AppDimensions.paddingMd),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(
+              Icons.shield_outlined,
+              color: theme.colorScheme.error,
+              size: AppDimensions.iconSizeLg,
+            ),
+            SizedBox(width: AppDimensions.spacingMd),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.setDuressPin,
+                    style: AppTypography.titleSmall(
+                      context,
+                    ).copyWith(fontWeight: FontWeight.w700),
+                  ),
+                  SizedBox(height: 6.h),
+                  Text(
+                    l10n.duressPinWarning,
+                    style: AppTypography.bodySmall(
+                      context,
+                    ).copyWith(color: theme.colorScheme.onSurfaceVariant),
+                  ),
+                  SizedBox(height: 10.h),
+                  ElevatedButton.icon(
+                    onPressed: () =>
+                        _showSetDuressPinDialog(context, ref, l10n),
+                    icon: const Icon(Icons.lock_open),
+                    label: Text(l10n.setDuressPin),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -862,7 +929,7 @@ class SettingsScreen extends ConsumerWidget {
       final success = isMaster
           ? await authService.setMasterPin(pinController.text)
           : await authService.setDuressPin(pinController.text);
-      
+
       pinController.dispose();
       confirmPinController.dispose();
 
@@ -871,11 +938,14 @@ class SettingsScreen extends ConsumerWidget {
           SnackBar(
             content: Text(
               success
-                  ? (isMaster ? l10n.pinChangedSuccessfully : l10n.pinSetSuccessfully)
+                  ? (isMaster
+                        ? l10n.pinChangedSuccessfully
+                        : l10n.pinSetSuccessfully)
                   : 'فشل تعيين PIN',
             ),
-            backgroundColor:
-                success ? Colors.green : Theme.of(context).colorScheme.error,
+            backgroundColor: success
+                ? Colors.green
+                : Theme.of(context).colorScheme.error,
           ),
         );
       }
@@ -939,7 +1009,7 @@ class SettingsScreen extends ConsumerWidget {
 
     // عرض مؤشر التحميل
     if (!context.mounted) return;
-    
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -955,9 +1025,9 @@ class SettingsScreen extends ConsumerWidget {
                 SizedBox(height: 16.h),
                 Text(
                   l10n.preparingApk,
-                  style: AppTypography.bodyMedium(context).copyWith(
-                    color: AppColors.textPrimary,
-                  ),
+                  style: AppTypography.bodyMedium(
+                    context,
+                  ).copyWith(color: AppColors.textPrimary),
                 ),
               ],
             ),
@@ -970,7 +1040,7 @@ class SettingsScreen extends ConsumerWidget {
       final success = await appShareService.shareApk();
 
       if (!context.mounted) return;
-      
+
       // إغلاق dialog التحميل إذا كان مفتوحاً
       if (Navigator.of(context).canPop()) {
         Navigator.of(context).pop();
@@ -978,23 +1048,19 @@ class SettingsScreen extends ConsumerWidget {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            success
-                ? l10n.apkShareSuccess
-                : l10n.apkShareError,
-          ),
+          content: Text(success ? l10n.apkShareSuccess : l10n.apkShareError),
           backgroundColor: success ? Colors.green : theme.colorScheme.error,
           duration: Duration(seconds: 3),
         ),
       );
     } catch (e) {
       if (!context.mounted) return;
-      
+
       // إغلاق dialog التحميل إذا كان مفتوحاً
       if (Navigator.of(context).canPop()) {
         Navigator.of(context).pop();
       }
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(l10n.apkShareError),
@@ -1004,6 +1070,4 @@ class SettingsScreen extends ConsumerWidget {
       );
     }
   }
-}
-
 }

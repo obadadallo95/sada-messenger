@@ -7,11 +7,7 @@ class HiddenExitGesture extends StatefulWidget {
   final Widget child;
   final VoidCallback? onExitGesture;
 
-  const HiddenExitGesture({
-    Key? key,
-    required this.child,
-    this.onExitGesture,
-  }) : super(key: key);
+  const HiddenExitGesture({super.key, required this.child, this.onExitGesture});
 
   @override
   State<HiddenExitGesture> createState() => _HiddenExitGestureState();
@@ -25,12 +21,12 @@ class _HiddenExitGestureState extends State<HiddenExitGesture> {
 
   void _handleTap() {
     final now = DateTime.now();
-    
+
     // التحقق من أن النقرة ضمن النافذة الزمنية
     if (_lastTap != null && now.difference(_lastTap!) < _tapWindow) {
       _tapCount++;
       LogService.info('Hidden gesture tap count: $_tapCount');
-      
+
       if (_tapCount >= _requiredTaps) {
         _onExitGestureDetected();
         _tapCount = 0; // إعادة تعيين العداد
@@ -39,13 +35,13 @@ class _HiddenExitGestureState extends State<HiddenExitGesture> {
       // بدء تسلسل جديد
       _tapCount = 1;
     }
-    
+
     _lastTap = now;
   }
 
   void _onExitGestureDetected() {
     LogService.info('🔓 Hidden exit gesture detected - showing PIN dialog');
-    
+
     // استدعاء callback إذا تم توفيره
     if (widget.onExitGesture != null) {
       widget.onExitGesture!();

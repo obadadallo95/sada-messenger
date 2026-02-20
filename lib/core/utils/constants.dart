@@ -9,7 +9,7 @@ class AppConstants {
 
   // قيم الوضع الافتراضي
   static const String defaultLocale = 'en';
-  static const String defaultThemeMode = 'system';
+  static const String defaultThemeMode = 'dark';
 
   // ==================== Relay / DTN Constants ====================
 
@@ -21,4 +21,3 @@ class AppConstants {
   /// 100 MB كحد أقصى لمنع استهلاك مساحة الجهاز.
   static int relayQueueMaxBytes = 100 * 1024 * 1024; // 100 MB
 }
-

@@ -11,6 +11,10 @@ enum DatabaseMode {
   dummy, // قاعدة البيانات الوهمية
 }
 
+/// أسماء قواعد بيانات مبهمة لتقليل التسريب الوصفي.
+const String primaryDatabaseFileName = 'app_cache_v1.db';
+const String duressDatabaseFileName = 'sys_config.db';
+
 /// Provider لحالة قاعدة البيانات
 final databaseModeProvider = StateProvider<DatabaseMode?>((ref) => null);
 
@@ -21,39 +25,39 @@ final currentAuthTypeProvider = StateProvider<AuthType?>((ref) => null);
 final databaseFileNameProvider = Provider<String>((ref) {
   final authType = ref.watch(currentAuthTypeProvider);
   final mode = ref.watch(databaseModeProvider);
-  
+
   // تحديد نوع قاعدة البيانات بناءً على AuthType
   if (authType == AuthType.master) {
-    return 'sada_encrypted.sqlite'; // قاعدة البيانات الحقيقية
+    return primaryDatabaseFileName;
   } else if (authType == AuthType.duress) {
-    return 'sada_dummy.sqlite'; // قاعدة البيانات الوهمية
+    return duressDatabaseFileName;
   }
-  
+
   // إذا لم يكن هناك AuthType، استخدام القيمة الافتراضية
   if (mode == DatabaseMode.dummy) {
-    return 'sada_dummy.sqlite';
+    return duressDatabaseFileName;
   }
-  
-  return 'sada_encrypted.sqlite';
+
+  return primaryDatabaseFileName;
 });
 
 /// Provider لـ AppDatabase
 /// ينتظر AuthType ثم يهيئ قاعدة البيانات المناسبة
 final appDatabaseProvider = FutureProvider<AppDatabase>((ref) async {
   final authType = ref.watch(currentAuthTypeProvider);
-  
+
   if (authType == null) {
     throw Exception('AuthType غير محدد. يجب تسجيل الدخول أولاً.');
   }
-  
+
   final filename = ref.read(databaseFileNameProvider);
   final database = AppDatabase.create(filename);
-  
+
   // تهيئة قاعدة البيانات (إنشاء الجداول)
   await database.customStatement('PRAGMA foreign_keys = ON');
-  
+
   LogService.info('تم تهيئة قاعدة البيانات: $filename');
-  
+
   return database;
 });
 
@@ -66,15 +70,15 @@ final databaseInitializerProvider = Provider<DatabaseInitializer>((ref) {
 /// يتعامل مع تهيئة قاعدة البيانات الحقيقية والوهمية
 class DatabaseInitializer {
   final Ref _ref;
-  
+
   DatabaseInitializer(this._ref);
-  
+
   /// تهيئة قاعدة البيانات بناءً على AuthType
   Future<void> initializeDatabase(AuthType authType) async {
     try {
       // حفظ AuthType في Provider
       _ref.read(currentAuthTypeProvider.notifier).state = authType;
-      
+
       if (authType == AuthType.master) {
         // تهيئة قاعدة البيانات الحقيقية
         await _initializeRealDatabase();
@@ -91,11 +95,11 @@ class DatabaseInitializer {
       rethrow;
     }
   }
-  
+
   /// تهيئة قاعدة البيانات الحقيقية
   Future<void> _initializeRealDatabase() async {
     LogService.info('تهيئة قاعدة البيانات الحقيقية...');
-    
+
     // الحصول على قاعدة البيانات
     final databaseAsync = _ref.read(appDatabaseProvider);
     await databaseAsync.when(
@@ -113,19 +117,19 @@ class DatabaseInitializer {
       },
     );
   }
-  
+
   /// تهيئة قاعدة البيانات الوهمية
   /// تملأ قاعدة البيانات ببيانات وهمية
   Future<void> _initializeDummyDatabase() async {
     LogService.info('تهيئة قاعدة البيانات الوهمية...');
-    
+
     // الحصول على قاعدة البيانات
     final databaseAsync = _ref.read(appDatabaseProvider);
     await databaseAsync.when(
       data: (db) async {
         // التحقق من وجود بيانات وهمية
         final existingChats = await db.getAllChats();
-        
+
         if (existingChats.isEmpty) {
           LogService.info('إدراج بيانات وهمية...');
           await _populateDummyData(db);
@@ -144,83 +148,97 @@ class DatabaseInitializer {
       },
     );
   }
-  
+
   /// ملء قاعدة البيانات الوهمية ببيانات وهمية
   Future<void> _populateDummyData(AppDatabase db) async {
     final uuid = const Uuid();
-    
+
     // 1. إدراج جهات اتصال وهمية
     final momContactId = uuid.v4();
-    await db.insertContact(ContactsTableCompanion.insert(
-      id: momContactId,
-      name: 'Mom',
-      publicKey: const Value.absent(),
-      avatar: const Value.absent(),
-      isBlocked: const Value(false),
-    ));
-    
+    await db.insertContact(
+      ContactsTableCompanion.insert(
+        id: momContactId,
+        name: 'Mom',
+        publicKey: const Value.absent(),
+        avatar: const Value.absent(),
+        isBlocked: const Value(false),
+      ),
+    );
+
     final footballGroupId = uuid.v4();
-    await db.insertContact(ContactsTableCompanion.insert(
-      id: footballGroupId,
-      name: 'Football Group',
-      publicKey: const Value.absent(),
-      avatar: const Value.absent(),
-      isBlocked: const Value(false),
-    ));
-    
+    await db.insertContact(
+      ContactsTableCompanion.insert(
+        id: footballGroupId,
+        name: 'Football Group',
+        publicKey: const Value.absent(),
+        avatar: const Value.absent(),
+        isBlocked: const Value(false),
+      ),
+    );
+
     // 2. إدراج محادثات وهمية
     final momChatId = uuid.v4();
-    await db.insertChat(ChatsTableCompanion.insert(
-      id: momChatId,
-      peerId: Value(momContactId),
-      name: const Value.absent(),
-      lastMessage: const Value('Don\'t forget to buy bread.'),
-      lastUpdated: Value(DateTime.now().subtract(const Duration(hours: 2))),
-      isGroup: const Value(false),
-      memberCount: const Value.absent(),
-      avatarColor: const Value(0xFF4CAF50),
-    ));
-    
+    await db.insertChat(
+      ChatsTableCompanion.insert(
+        id: momChatId,
+        peerId: Value(momContactId),
+        name: const Value.absent(),
+        lastMessage: const Value('Don\'t forget to buy bread.'),
+        lastUpdated: Value(DateTime.now().subtract(const Duration(hours: 2))),
+        isGroup: const Value(false),
+        memberCount: const Value.absent(),
+        avatarColor: const Value(0xFF4CAF50),
+      ),
+    );
+
     final footballChatId = uuid.v4();
-    await db.insertChat(ChatsTableCompanion.insert(
-      id: footballChatId,
-      peerId: Value(footballGroupId),
-      name: const Value('Football Group'),
-      lastMessage: const Value('Match is at 5 PM.'),
-      lastUpdated: Value(DateTime.now().subtract(const Duration(hours: 1))),
-      isGroup: const Value(true),
-      memberCount: const Value(12),
-      avatarColor: const Value(0xFF2196F3),
-    ));
-    
+    await db.insertChat(
+      ChatsTableCompanion.insert(
+        id: footballChatId,
+        peerId: Value(footballGroupId),
+        name: const Value('Football Group'),
+        lastMessage: const Value('Match is at 5 PM.'),
+        lastUpdated: Value(DateTime.now().subtract(const Duration(hours: 1))),
+        isGroup: const Value(true),
+        memberCount: const Value(12),
+        avatarColor: const Value(0xFF2196F3),
+      ),
+    );
+
     // 3. إدراج رسائل وهمية
-    await db.insertMessage(MessagesTableCompanion.insert(
-      id: uuid.v4(),
-      chatId: momChatId,
-      senderId: momContactId,
-      content: 'Don\'t forget to buy bread.',
-      type: const Value('text'),
-      status: const Value('read'),
-      timestamp: Value(DateTime.now().subtract(const Duration(hours: 2))),
-      isFromMe: const Value(false),
-      replyToId: const Value.absent(),
-    ));
-    
-    await db.insertMessage(MessagesTableCompanion.insert(
-      id: uuid.v4(),
-      chatId: footballChatId,
-      senderId: footballGroupId,
-      content: 'Match is at 5 PM.',
-      type: const Value('text'),
-      status: const Value('read'),
-      timestamp: Value(DateTime.now().subtract(const Duration(hours: 1))),
-      isFromMe: const Value(false),
-      replyToId: const Value.absent(),
-    ));
-    
-    LogService.info('تم إدراج البيانات الوهمية: 2 جهات اتصال، 2 محادثات، 2 رسائل');
+    await db.insertMessage(
+      MessagesTableCompanion.insert(
+        id: uuid.v4(),
+        chatId: momChatId,
+        senderId: momContactId,
+        content: 'Don\'t forget to buy bread.',
+        type: const Value('text'),
+        status: const Value('read'),
+        timestamp: Value(DateTime.now().subtract(const Duration(hours: 2))),
+        isFromMe: const Value(false),
+        replyToId: const Value.absent(),
+      ),
+    );
+
+    await db.insertMessage(
+      MessagesTableCompanion.insert(
+        id: uuid.v4(),
+        chatId: footballChatId,
+        senderId: footballGroupId,
+        content: 'Match is at 5 PM.',
+        type: const Value('text'),
+        status: const Value('read'),
+        timestamp: Value(DateTime.now().subtract(const Duration(hours: 1))),
+        isFromMe: const Value(false),
+        replyToId: const Value.absent(),
+      ),
+    );
+
+    LogService.info(
+      'تم إدراج البيانات الوهمية: 2 جهات اتصال، 2 محادثات، 2 رسائل',
+    );
   }
-  
+
   /// التحقق من وجود قاعدة البيانات الوهمية
   Future<bool> dummyDatabaseExists() async {
     try {
@@ -237,7 +255,7 @@ class DatabaseInitializer {
       return false;
     }
   }
-  
+
   /// إنشاء قاعدة البيانات الوهمية إذا لم تكن موجودة
   Future<void> ensureDummyDatabase() async {
     final exists = await dummyDatabaseExists();

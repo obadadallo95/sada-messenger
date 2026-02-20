@@ -7,7 +7,6 @@ import 'package:sada/core/security/encryption_service.dart';
 import 'package:sada/core/services/auth_service.dart';
 import 'package:sada/core/utils/log_service.dart';
 import 'package:sada/core/utils/bloom_filter.dart';
-import 'package:sada/core/utils/constants.dart';
 import 'test_helpers.dart';
 
 /// ============================================
@@ -31,10 +30,10 @@ void main() {
         LogService.info('⚠️ تحذير: فشل تهيئة sodium_libs مسبقاً: $e');
         // نتابع - قد يعمل في KeyManager.initialize()
       }
-      
+
       // انتظار قليل للتأكد من اكتمال التهيئة
       await Future.delayed(const Duration(milliseconds: 500));
-      
+
       // إنشاء KeyManager و EncryptionService للاختبار
       keyManager = KeyManager();
       await keyManager.initialize();
@@ -42,66 +41,98 @@ void main() {
       await encryptionService.initialize();
     });
 
-    test('1. Generate KeyPair', () async {
-      // توليد زوج مفاتيح
-      final keyPair = await keyManager.generateKeyPair();
-      
-      // التحقق من أن المفاتيح تم توليدها
-      expect(keyPair.publicKey, isNotNull);
-      expect(keyPair.privateKey, isNotNull);
-      expect(keyPair.publicKey.length, greaterThan(0));
-      expect(keyPair.privateKey.length, greaterThan(0));
-      
-      LogService.info('✅ KeyPair generated successfully');
-      LogService.info('   Public Key length: ${keyPair.publicKey.length} bytes');
-      LogService.info('   Private Key length: ${keyPair.privateKey.length} bytes');
-    }, skip: 'sodium_libs يحتاج تهيئة خاصة - SodiumPlatform._instance غير متاح في بيئة الاختبار');
+    test(
+      '1. Generate KeyPair',
+      () async {
+        // توليد زوج مفاتيح
+        final keyPair = await keyManager.generateKeyPair();
 
-    test('2. Encrypt "Hello Sada" - Output is NOT plaintext', () async {
-      // توليد KeyPair
-      final keyPair = await keyManager.generateKeyPair();
-      
-      // حساب Shared Secret (نحتاج public key آخر للاختبار)
-      // للاختبار، سنستخدم نفس المفتاح العام مرتين (غير واقعي لكن للاختبار)
-      final remotePublicKey = keyPair.publicKey;
-      final sharedKey = await encryptionService.calculateSharedSecret(remotePublicKey);
-      
-      // تشفير النص
-      const plainText = 'Hello Sada';
-      final encrypted = encryptionService.encryptMessage(plainText, sharedKey);
-      
-      // التحقق من أن النص المشفر مختلف عن النص الأصلي
-      expect(encrypted, isNot(equals(plainText)));
-      expect(encrypted.length, greaterThan(plainText.length));
-      
-      LogService.info('✅ Message encrypted successfully');
-      LogService.info('   Plaintext: $plainText');
-      LogService.info('   Encrypted: ${encrypted.substring(0, 50)}...');
-      LogService.info('   Encrypted length: ${encrypted.length} characters');
-    }, skip: 'sodium_libs يحتاج تهيئة خاصة - SodiumPlatform._instance غير متاح في بيئة الاختبار');
+        // التحقق من أن المفاتيح تم توليدها
+        expect(keyPair.publicKey, isNotNull);
+        expect(keyPair.privateKey, isNotNull);
+        expect(keyPair.publicKey.length, greaterThan(0));
+        expect(keyPair.privateKey.length, greaterThan(0));
 
-    test('3. Decrypt back - Result IS "Hello Sada"', () async {
-      // توليد KeyPair
-      final keyPair = await keyManager.generateKeyPair();
-      
-      // حساب Shared Secret
-      final remotePublicKey = keyPair.publicKey;
-      final sharedKey = await encryptionService.calculateSharedSecret(remotePublicKey);
-      
-      // تشفير النص
-      const plainText = 'Hello Sada';
-      final encrypted = encryptionService.encryptMessage(plainText, sharedKey);
-      
-      // فك التشفير
-      final decrypted = encryptionService.decryptMessage(encrypted, sharedKey);
-      
-      // التحقق من أن النص المفكوك هو نفس النص الأصلي
-      expect(decrypted, equals(plainText));
-      
-      LogService.info('✅ Message decrypted successfully');
-      LogService.info('   Decrypted: $decrypted');
-      LogService.info('   Match: ${decrypted == plainText}');
-    }, skip: 'sodium_libs يحتاج تهيئة خاصة - SodiumPlatform._instance غير متاح في بيئة الاختبار');
+        LogService.info('✅ KeyPair generated successfully');
+        LogService.info(
+          '   Public Key length: ${keyPair.publicKey.length} bytes',
+        );
+        LogService.info(
+          '   Private Key length: ${keyPair.privateKey.length} bytes',
+        );
+      },
+      skip:
+          'sodium_libs يحتاج تهيئة خاصة - SodiumPlatform._instance غير متاح في بيئة الاختبار',
+    );
+
+    test(
+      '2. Encrypt "Hello Sada" - Output is NOT plaintext',
+      () async {
+        // توليد KeyPair
+        final keyPair = await keyManager.generateKeyPair();
+
+        // حساب Shared Secret (نحتاج public key آخر للاختبار)
+        // للاختبار، سنستخدم نفس المفتاح العام مرتين (غير واقعي لكن للاختبار)
+        final remotePublicKey = keyPair.publicKey;
+        final sharedKey = await encryptionService.calculateSharedSecret(
+          remotePublicKey,
+        );
+
+        // تشفير النص
+        const plainText = 'Hello Sada';
+        final encrypted = encryptionService.encryptMessage(
+          plainText,
+          sharedKey,
+        );
+
+        // التحقق من أن النص المشفر مختلف عن النص الأصلي
+        expect(encrypted, isNot(equals(plainText)));
+        expect(encrypted.length, greaterThan(plainText.length));
+
+        LogService.info('✅ Message encrypted successfully');
+        LogService.info('   Plaintext: $plainText');
+        LogService.info('   Encrypted: ${encrypted.substring(0, 50)}...');
+        LogService.info('   Encrypted length: ${encrypted.length} characters');
+      },
+      skip:
+          'sodium_libs يحتاج تهيئة خاصة - SodiumPlatform._instance غير متاح في بيئة الاختبار',
+    );
+
+    test(
+      '3. Decrypt back - Result IS "Hello Sada"',
+      () async {
+        // توليد KeyPair
+        final keyPair = await keyManager.generateKeyPair();
+
+        // حساب Shared Secret
+        final remotePublicKey = keyPair.publicKey;
+        final sharedKey = await encryptionService.calculateSharedSecret(
+          remotePublicKey,
+        );
+
+        // تشفير النص
+        const plainText = 'Hello Sada';
+        final encrypted = encryptionService.encryptMessage(
+          plainText,
+          sharedKey,
+        );
+
+        // فك التشفير
+        final decrypted = encryptionService.decryptMessage(
+          encrypted,
+          sharedKey,
+        );
+
+        // التحقق من أن النص المفكوك هو نفس النص الأصلي
+        expect(decrypted, equals(plainText));
+
+        LogService.info('✅ Message decrypted successfully');
+        LogService.info('   Decrypted: $decrypted');
+        LogService.info('   Match: ${decrypted == plainText}');
+      },
+      skip:
+          'sodium_libs يحتاج تهيئة خاصة - SodiumPlatform._instance غير متاح في بيئة الاختبار',
+    );
   });
 
   /// ============================================
@@ -123,7 +154,7 @@ void main() {
       // التحقق من أن قاعدة البيانات فارغة
       final contacts = await database.getAllContacts();
       expect(contacts, isEmpty);
-      
+
       LogService.info('✅ Database initialized (empty)');
       LogService.info('   Contacts count: ${contacts.length}');
     });
@@ -132,14 +163,11 @@ void main() {
       // إنشاء جهة اتصال
       const userId = 'user_obada_123';
       const userName = 'Obada';
-      
-      final contact = ContactsTableCompanion.insert(
-        id: userId,
-        name: userName,
-      );
-      
+
+      final contact = ContactsTableCompanion.insert(id: userId, name: userName);
+
       await database.insertContact(contact);
-      
+
       // إنشاء محادثة
       const chatId = 'chat_obada_123';
       final chat = ChatsTableCompanion.insert(
@@ -148,13 +176,13 @@ void main() {
         name: Value(userName),
         isGroup: const Value(false),
       );
-      
+
       await database.insertChat(chat);
-      
+
       // إدراج رسالة
       const messageId = 'msg_test_123';
       const messageContent = 'Test Msg';
-      
+
       final message = MessagesTableCompanion.insert(
         id: messageId,
         chatId: chatId,
@@ -164,9 +192,9 @@ void main() {
         status: const Value('sent'),
         isFromMe: const Value(false),
       );
-      
+
       await database.insertMessage(message);
-      
+
       LogService.info('✅ User and message created');
       LogService.info('   User: $userName (ID: $userId)');
       LogService.info('   Message: $messageContent');
@@ -179,13 +207,10 @@ void main() {
       const chatId = 'chat_obada_123';
       const messageId = 'msg_test_123';
       const messageContent = 'Test Msg';
-      
-      final contact = ContactsTableCompanion.insert(
-        id: userId,
-        name: userName,
-      );
+
+      final contact = ContactsTableCompanion.insert(id: userId, name: userName);
       await database.insertContact(contact);
-      
+
       final chat = ChatsTableCompanion.insert(
         id: chatId,
         peerId: Value(userId),
@@ -193,7 +218,7 @@ void main() {
         isGroup: const Value(false),
       );
       await database.insertChat(chat);
-      
+
       final message = MessagesTableCompanion.insert(
         id: messageId,
         chatId: chatId,
@@ -204,15 +229,15 @@ void main() {
         isFromMe: const Value(false),
       );
       await database.insertMessage(message);
-      
+
       // الاستعلام عن الرسالة
       final messages = await database.getMessagesForChat(chatId);
-      
+
       // التحقق من وجود الرسالة
       expect(messages, isNotEmpty);
       expect(messages.length, equals(1));
       expect(messages.first.content, equals(messageContent));
-      
+
       LogService.info('✅ Message query successful');
       LogService.info('   Messages count: ${messages.length}');
       LogService.info('   Message content: ${messages.first.content}');
@@ -229,49 +254,50 @@ void main() {
     setUp(() async {
       // تنظيف التخزين الوهمي قبل كل اختبار
       mockStorage.clear();
-      
+
       // إعداد MethodChannel mock لـ FlutterSecureStorage
-      const MethodChannel channel = MethodChannel('plugins.it_nomads.com/flutter_secure_storage');
-      
-      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
-        channel,
-        (MethodCall methodCall) async {
-          switch (methodCall.method) {
-            case 'read':
-              final key = methodCall.arguments['key'] as String;
-              final value = mockStorage[key];
-              return value; // null إذا لم يوجد
-              
-            case 'write':
-              final key = methodCall.arguments['key'] as String;
-              final value = methodCall.arguments['value'] as String;
-              mockStorage[key] = value;
-              return null;
-              
-            case 'delete':
-              final key = methodCall.arguments['key'] as String;
-              mockStorage.remove(key);
-              return null;
-              
-            case 'readAll':
-              return mockStorage;
-              
-            case 'deleteAll':
-              mockStorage.clear();
-              return null;
-              
-            default:
-              throw PlatformException(
-                code: 'Unimplemented',
-                details: 'Method ${methodCall.method} is not implemented in mock',
-              );
-          }
-        },
+      const MethodChannel channel = MethodChannel(
+        'plugins.it_nomads.com/flutter_secure_storage',
       );
-      
+
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
+            switch (methodCall.method) {
+              case 'read':
+                final key = methodCall.arguments['key'] as String;
+                final value = mockStorage[key];
+                return value; // null إذا لم يوجد
+
+              case 'write':
+                final key = methodCall.arguments['key'] as String;
+                final value = methodCall.arguments['value'] as String;
+                mockStorage[key] = value;
+                return null;
+
+              case 'delete':
+                final key = methodCall.arguments['key'] as String;
+                mockStorage.remove(key);
+                return null;
+
+              case 'readAll':
+                return mockStorage;
+
+              case 'deleteAll':
+                mockStorage.clear();
+                return null;
+
+              default:
+                throw PlatformException(
+                  code: 'Unimplemented',
+                  details:
+                      'Method ${methodCall.method} is not implemented in mock',
+                );
+            }
+          });
+
       // إنشاء AuthService (سيستخدم Mock FlutterSecureStorage)
       authService = AuthService();
-      
+
       // انتظار اكتمال التهيئة
       await Future.delayed(const Duration(milliseconds: 100));
     });
@@ -279,56 +305,65 @@ void main() {
     tearDown(() async {
       // تنظيف التخزين الوهمي بعد كل اختبار
       mockStorage.clear();
-      
+
       // إزالة MethodChannel handler
-      const MethodChannel channel = MethodChannel('plugins.it_nomads.com/flutter_secure_storage');
-      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel, null);
+      const MethodChannel channel = MethodChannel(
+        'plugins.it_nomads.com/flutter_secure_storage',
+      );
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, null);
     });
 
-    test('1. Set Master PIN and verify CORRECT PIN returns AuthType.master', () async {
-      const masterPin = '123456';
-      
-      // تعيين Master PIN
-      final setResult = await authService.setMasterPin(masterPin);
-      expect(setResult, isTrue);
-      
-      // التحقق من PIN الصحيح
-      final authResult = await authService.verifyPin(masterPin);
-      expect(authResult, equals(AuthType.master));
-      
-      LogService.info('✅ Master PIN verification successful');
-      LogService.info('   PIN: $masterPin');
-      LogService.info('   Auth Type: ${authResult.name}');
-    });
+    test(
+      '1. Set Master PIN and verify CORRECT PIN returns AuthType.master',
+      () async {
+        const masterPin = '123456';
 
-    test('2. Set Duress PIN and verify DURESS PIN returns AuthType.duress', () async {
-      const masterPin = '123456';
-      const duressPin = '999999';
-      
-      // تعيين كلا PINs
-      await authService.setMasterPin(masterPin);
-      await authService.setDuressPin(duressPin);
-      
-      // التحقق من Duress PIN
-      final authResult = await authService.verifyPin(duressPin);
-      expect(authResult, equals(AuthType.duress));
-      
-      LogService.info('✅ Duress PIN verification successful');
-      LogService.info('   Duress PIN: $duressPin');
-      LogService.info('   Auth Type: ${authResult.name}');
-    });
+        // تعيين Master PIN
+        final setResult = await authService.setMasterPin(masterPin);
+        expect(setResult, isTrue);
+
+        // التحقق من PIN الصحيح
+        final authResult = await authService.verifyPin(masterPin);
+        expect(authResult, equals(AuthType.master));
+
+        LogService.info('✅ Master PIN verification successful');
+        LogService.info('   PIN: $masterPin');
+        LogService.info('   Auth Type: ${authResult.name}');
+      },
+    );
+
+    test(
+      '2. Set Duress PIN and verify DURESS PIN returns AuthType.duress',
+      () async {
+        const masterPin = '123456';
+        const duressPin = '999999';
+
+        // تعيين كلا PINs
+        await authService.setMasterPin(masterPin);
+        await authService.setDuressPin(duressPin);
+
+        // التحقق من Duress PIN
+        final authResult = await authService.verifyPin(duressPin);
+        expect(authResult, equals(AuthType.duress));
+
+        LogService.info('✅ Duress PIN verification successful');
+        LogService.info('   Duress PIN: $duressPin');
+        LogService.info('   Auth Type: ${authResult.name}');
+      },
+    );
 
     test('3. Verify WRONG PIN returns AuthType.failure', () async {
       const masterPin = '123456';
       const wrongPin = '000000';
-      
+
       // تعيين Master PIN فقط
       await authService.setMasterPin(masterPin);
-      
+
       // محاولة التحقق من PIN خاطئ
       final authResult = await authService.verifyPin(wrongPin);
       expect(authResult, equals(AuthType.failure));
-      
+
       LogService.info('✅ Wrong PIN correctly rejected');
       LogService.info('   Wrong PIN: $wrongPin');
       LogService.info('   Auth Type: ${authResult.name}');
@@ -337,19 +372,19 @@ void main() {
     test('4. Verify Master PIN still works after setting Duress PIN', () async {
       const masterPin = '123456';
       const duressPin = '999999';
-      
+
       // تعيين كلا PINs
       await authService.setMasterPin(masterPin);
       await authService.setDuressPin(duressPin);
-      
+
       // التحقق من أن Master PIN لا يزال يعمل
       final masterAuthResult = await authService.verifyPin(masterPin);
       expect(masterAuthResult, equals(AuthType.master));
-      
+
       // التحقق من أن Duress PIN يعمل أيضاً
       final duressAuthResult = await authService.verifyPin(duressPin);
       expect(duressAuthResult, equals(AuthType.duress));
-      
+
       LogService.info('✅ Both PINs work correctly');
       LogService.info('   Master PIN: $masterPin → ${masterAuthResult.name}');
       LogService.info('   Duress PIN: $duressPin → ${duressAuthResult.name}');
@@ -362,26 +397,26 @@ void main() {
   group('Scenario D: The Sync Optimizer (Bloom Filter)', () {
     test('1. Empty Bloom Filter has no false positives for new items', () {
       final bf = BloomFilter();
-      
+
       expect(bf.contains('msg1'), isFalse);
       expect(bf.contains('msg2'), isFalse);
       expect(bf.contains('msg3'), isFalse);
-      
+
       LogService.info('✅ Empty Bloom Filter works correctly');
     });
 
     test('2. Bloom Filter correctly identifies known messages', () {
       final bf = BloomFilter();
-      
+
       bf.add('msg1');
       bf.add('msg2');
       bf.add('msg3');
-      
+
       expect(bf.contains('msg1'), isTrue);
       expect(bf.contains('msg2'), isTrue);
       expect(bf.contains('msg3'), isTrue);
       expect(bf.contains('msg4'), isFalse);
-      
+
       LogService.info('✅ Bloom Filter identifies known messages');
       LogService.info('   Known: msg1, msg2, msg3');
       LogService.info('   Unknown: msg4');
@@ -394,21 +429,23 @@ void main() {
       for (final msg in deviceAMessages) {
         bfA.add(msg);
       }
-      
+
       // محاكاة: Device B لديه 80 رسالة مشتركة + 20 جديدة
       final deviceBMessages = [
         ...deviceAMessages.sublist(0, 80), // 80 مشتركة
         ...List.generate(20, (i) => 'msg_new_$i'), // 20 جديدة
       ];
-      
+
       // B يفحص ما يجب إرساله إلى A
-      final toSend = deviceBMessages.where((msg) => !bfA.contains(msg)).toList();
-      
+      final toSend = deviceBMessages
+          .where((msg) => !bfA.contains(msg))
+          .toList();
+
       // يجب أن يرسل فقط الـ 20 الجديدة
       expect(toSend.length, lessThanOrEqualTo(22)); // ~20 + ~1% false positives
-      
+
       final reductionPercent = ((100 - toSend.length) / 100 * 100).round();
-      
+
       LogService.info('✅ Bloom Filter reduces bandwidth');
       LogService.info('   Total messages: 100');
       LogService.info('   Messages to send: ${toSend.length}');
@@ -419,19 +456,19 @@ void main() {
       final bf1 = BloomFilter();
       bf1.add('msg1');
       bf1.add('msg2');
-      
+
       // تحويل إلى Base64 (للإرسال عبر الشبكة)
       final base64 = bf1.toBase64();
       expect(base64, isNotEmpty);
-      
+
       // إعادة بناء من Base64
       final bf2 = BloomFilter.fromBase64(base64);
-      
+
       // التحقق من أن البيانات محفوظة
       expect(bf2.contains('msg1'), isTrue);
       expect(bf2.contains('msg2'), isTrue);
       expect(bf2.contains('msg3'), isFalse);
-      
+
       LogService.info('✅ Bloom Filter serialization works');
       LogService.info('   Base64 size: ${base64.length} bytes');
     });
@@ -440,5 +477,3 @@ void main() {
   // TODO: Add Scenario E (Multi-hop Relay) and Scenario F (Congestion Control)
   // once build_runner issues are resolved and TestDatabase has RelayQueue methods
 }
-
-

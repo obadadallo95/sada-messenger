@@ -19,6 +19,8 @@ import '../../../chat/data/repositories/chat_repository.dart';
 import '../../../chat/domain/models/chat_model.dart';
 import '../../../chat/presentation/widgets/glass_chat_tile.dart';
 import '../../../profile/profile_service.dart';
+import '../../../network/presentation/providers/network_state_provider.dart';
+import '../../../network/presentation/providers/relay_queue_provider.dart';
 
 /// شاشة الرئيسية - قائمة المحادثات
 /// محدثة لدعم Android 15/16 و Flutter 3.27+ / 4.x
@@ -60,17 +62,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   /// التحقق من عرض Showcase Tour
   Future<void> _checkAndStartShowcase() async {
     if (!mounted) return;
-    
+
     final prefs = await SharedPreferences.getInstance();
     final hasSeenTour = prefs.getBool('hasSeenHomeTour') ?? false;
 
     if (!hasSeenTour && mounted) {
       try {
         // استخدام API الجديد ShowcaseView.get()
-        ShowcaseView.get().startShowCase([
-          _profileKey,
-          _fabKey,
-        ]);
+        ShowcaseView.get().startShowCase([_profileKey, _fabKey]);
         // حفظ أن المستخدم شاهد الـ tour
         await prefs.setBool('hasSeenHomeTour', true);
       } catch (e) {
@@ -93,7 +92,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     // يمكن استخدام هذا للتحقق من حالة التطبيق
     super.didChangeAppLifecycleState(state);
   }
-  
+
   void _toggleSpeedDial() {
     setState(() {
       _isSpeedDialOpen = !_isSpeedDialOpen;
@@ -104,11 +103,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       }
     });
   }
-  
+
   Widget _buildSpeedDial(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-    
+    final onSecondary = theme.colorScheme.onSecondary;
+    final onTertiary = theme.colorScheme.onTertiary;
+    final onTertiaryContainer = theme.colorScheme.onTertiaryContainer;
+
     return Stack(
       alignment: Alignment.bottomRight,
       children: [
@@ -141,12 +143,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.qr_code_scanner, color: Colors.white),
+                            Icon(Icons.qr_code_scanner, color: onTertiary),
                             SizedBox(width: 8.w),
                             Text(
                               l10n.scanQrCode,
                               style: TextStyle(
-                                color: Colors.white,
+                                color: onTertiary,
                                 fontSize: 14.sp,
                                 fontWeight: FontWeight.w500,
                               ),
@@ -162,7 +164,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 ScaleTransition(
                   scale: _speedDialAnimation,
                   child: Material(
-                    color: Colors.teal[600],
+                    color: theme.colorScheme.tertiaryContainer,
                     borderRadius: BorderRadius.circular(28.r),
                     child: InkWell(
                       onTap: () {
@@ -178,12 +180,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.notes, color: Colors.white),
+                            Icon(Icons.notes, color: onTertiaryContainer),
                             SizedBox(width: 8.w),
                             Text(
                               l10n.localeName == 'ar' ? 'ملاحظاتي' : 'My Notes',
                               style: TextStyle(
-                                color: Colors.white,
+                                color: onTertiaryContainer,
                                 fontSize: 14.sp,
                                 fontWeight: FontWeight.w500,
                               ),
@@ -215,12 +217,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.group_add, color: Colors.white),
+                            Icon(Icons.group_add, color: onSecondary),
                             SizedBox(width: 8.w),
                             Text(
                               l10n.createCommunity,
                               style: TextStyle(
-                                color: Colors.white,
+                                color: onSecondary,
                                 fontSize: 14.sp,
                                 fontWeight: FontWeight.w500,
                               ),
@@ -234,7 +236,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               ],
             ),
           ),
-        
+
         // Main FAB - Glowing Orb
         GlowingOrbFAB(
           onPressed: _toggleSpeedDial,
@@ -252,7 +254,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   /// معالجة Double Back to Exit مع دعم Predictive Back Gesture
   void _handleBackPress(BuildContext context) {
     final now = DateTime.now();
-    final shouldExit = _lastBackPress != null &&
+    final shouldExit =
+        _lastBackPress != null &&
         now.difference(_lastBackPress!) < const Duration(seconds: 2);
 
     if (shouldExit) {
@@ -267,10 +270,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           SnackBar(
             content: Text(
               l10n.exitMessage,
-              style: TextStyle(
-                fontSize: 14.sp,
-                fontWeight: FontWeight.w500,
-              ),
+              style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w500),
             ),
             behavior: SnackBarBehavior.floating,
             margin: EdgeInsets.only(
@@ -293,6 +293,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final chatsAsync = ref.watch(chatRepositoryProvider);
+    final networkState = ref.watch(networkStateProvider);
+    final relayCountAsync = ref.watch(relayQueueCountProvider);
     final theme = Theme.of(context);
 
     // استخدام ShowCaseWidget مع ignore للتحذيرات (API الجديد غير متوفر بعد)
@@ -305,208 +307,350 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             _checkAndStartShowcase();
           }
         });
-        
+
         return Builder(
           builder: (builderContext) => PopScope(
-          canPop: false,
-          onPopInvokedWithResult: (didPop, result) {
-            // إذا تم الإغلاق بالفعل، لا نفعل شيء
-            if (didPop) return;
+            canPop: false,
+            onPopInvokedWithResult: (didPop, result) {
+              // إذا تم الإغلاق بالفعل، لا نفعل شيء
+              if (didPop) return;
 
-            // معالجة Double Back to Exit
-            _handleBackPress(builderContext);
-          },
-          child: MeshGradientBackground(
-            child: Scaffold(
-              backgroundColor: Colors.transparent,
-              body: CustomScrollView(
-                slivers: [
-                  // SliverAppBar - Transparent with blur
-                  SliverAppBar(
-                    expandedHeight: 120.h,
-                    floating: true,
-                    pinned: true,
-                    elevation: 0,
-                    backgroundColor: Colors.transparent,
-                    flexibleSpace: ClipRRect(
-                      child: BackdropFilter(
-                        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.surface.withValues(alpha: 0.3),
-                            border: Border(
-                              bottom: BorderSide(
-                                color: Colors.white.withValues(alpha: 0.1),
-                                width: 1,
+              // معالجة Double Back to Exit
+              _handleBackPress(builderContext);
+            },
+            child: MeshGradientBackground(
+              child: Scaffold(
+                backgroundColor: Colors.transparent,
+                body: CustomScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  slivers: [
+                    // SliverAppBar - Transparent with blur
+                    SliverAppBar(
+                      expandedHeight: 120.h,
+                      floating: true,
+                      pinned: true,
+                      elevation: 0,
+                      backgroundColor: Colors.transparent,
+                      flexibleSpace: ClipRRect(
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.surface.withValues(
+                                alpha: 0.3,
+                              ),
+                              border: Border(
+                                bottom: BorderSide(
+                                  color: theme.colorScheme.onSurface.withValues(
+                                    alpha: 0.1,
+                                  ),
+                                  width: 1,
+                                ),
                               ),
                             ),
-                          ),
-                          child: FlexibleSpaceBar(
-                            title: LayoutBuilder(
-                              builder: (context, constraints) {
-                                final isSmallScreen = constraints.maxWidth < 300;
-                                
-                                return Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Flexible(
-                                      child: Text(
-                                        l10n.home,
-                                        style: theme.textTheme.headlineMedium?.copyWith(
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.white,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                    if (!isSmallScreen) ...[
-                                      SizedBox(width: 12.w),
-                                      // Mesh Status Bar
+                            child: FlexibleSpaceBar(
+                              title: LayoutBuilder(
+                                builder: (context, constraints) {
+                                  final isSmallScreen =
+                                      constraints.maxWidth < 300;
+
+                                  return Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
                                       Flexible(
-                                        child: MeshStatusBar(
-                                          // Note: Mesh status and peer count should be obtained from a provider
-                                          // when mesh connection state management is implemented
-                                          status: MeshStatus.connected,
-                                          peerCount: 0,
+                                        child: Text(
+                                          l10n.home,
+                                          style: theme.textTheme.headlineMedium
+                                              ?.copyWith(
+                                                fontWeight: FontWeight.bold,
+                                                color:
+                                                    theme.colorScheme.onSurface,
+                                              ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                         ),
                                       ),
+                                      if (!isSmallScreen) ...[
+                                        SizedBox(width: 12.w),
+                                        // Mesh Status Bar
+                                        Flexible(
+                                          child: MeshStatusBar(
+                                            status: networkState.peerCount > 0
+                                                ? MeshStatus.connected
+                                                : (networkState.isScanning
+                                                      ? MeshStatus.connecting
+                                                      : MeshStatus.offline),
+                                            peerCount: networkState.peerCount,
+                                          ),
+                                        ),
+                                      ],
                                     ],
-                                  ],
-                                );
-                              },
-                            ),
-                            centerTitle: false,
-                            titlePadding: EdgeInsets.only(
-                              left: 16.w,
-                              bottom: 16.h,
+                                  );
+                                },
+                              ),
+                              centerTitle: false,
+                              titlePadding: EdgeInsets.only(
+                                left: 16.w,
+                                bottom: 16.h,
+                              ),
                             ),
                           ),
                         ),
                       ),
+                      leading: Padding(
+                        padding: EdgeInsets.all(8.w),
+                        child: Showcase(
+                          key: _profileKey,
+                          title: l10n.yourIdentity,
+                          description: l10n.yourIdentityDescription,
+                          targetShapeBorder: const CircleBorder(),
+                          tooltipBackgroundColor: theme.colorScheme.primary,
+                          textColor: theme.colorScheme.onPrimary,
+                          titleTextStyle: TextStyle(
+                            color: theme.colorScheme.onPrimary,
+                            fontSize: 18.sp,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          descTextStyle: TextStyle(
+                            color: theme.colorScheme.onPrimary.withValues(
+                              alpha: 0.9,
+                            ),
+                            fontSize: 14.sp,
+                          ),
+                          child: Consumer(
+                            builder: (context, ref, child) {
+                              final profileState = ref.watch(
+                                profileServiceProvider,
+                              );
+                              final authService = ref.read(
+                                authServiceProvider.notifier,
+                              );
+                              final currentUser = authService.currentUser;
+
+                              return UserAvatar(
+                                base64Image: profileState.avatarBase64,
+                                userName: currentUser?.displayName ?? 'User',
+                                radius: 20.r,
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                      actions: [
+                        // Network Status Indicator
+                        Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 4.w),
+                          child: _NetworkStatusIndicator(state: networkState),
+                        ),
+                        // زر الإشعارات
+                        IconButton(
+                          icon: const Icon(Icons.notifications_outlined),
+                          tooltip: l10n.notifications,
+                          onPressed: () {
+                            context.push(AppRoutes.notifications);
+                          },
+                        ),
+                      ],
                     ),
-                  leading: Padding(
-                    padding: EdgeInsets.all(8.w),
-                    child: Showcase(
-                      key: _profileKey,
-                      title: l10n.yourIdentity,
-                      description: l10n.yourIdentityDescription,
-                      targetShapeBorder: const CircleBorder(),
-                      tooltipBackgroundColor: theme.colorScheme.primary,
-                      textColor: Colors.white,
-                      titleTextStyle: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18.sp,
-                        fontWeight: FontWeight.bold,
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 4.h),
+                        child: _buildRelayParticipationBanner(
+                          context,
+                          relayCountAsync: relayCountAsync,
+                        ),
                       ),
-                      descTextStyle: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.9),
-                        fontSize: 14.sp,
-                      ),
-                      child: Consumer(
-                        builder: (context, ref, child) {
-                          final profileState = ref.watch(profileServiceProvider);
-                          final authService = ref.read(authServiceProvider.notifier);
-                          final currentUser = authService.currentUser;
-                          
-                          return UserAvatar(
-                            base64Image: profileState.avatarBase64,
-                            userName: currentUser?.displayName ?? 'User',
-                            radius: 20.r,
+                    ),
+                    // قائمة المحادثات
+                    chatsAsync.when(
+                      data: (chats) {
+                        if (chats.isEmpty) {
+                          return SliverFillRemaining(
+                            child: EmptyState(
+                              icon: Icons.chat_bubble_outline,
+                              title: l10n.noChats,
+                              subtitle: 'ابدأ محادثة آمنة ومشفرة مع أصدقائك',
+                              actionLabel: l10n.addFriend,
+                              onAction: () => context.push(AppRoutes.addFriend),
+                            ),
                           );
-                        },
+                        }
+
+                        return SliverList(
+                          delegate: SliverChildBuilderDelegate((
+                            context,
+                            index,
+                          ) {
+                            final chat = chats[index];
+                            return GlassChatTile(
+                              chat: chat,
+                              onTap: () => _navigateToChat(context, chat),
+                              index: index,
+                            );
+                          }, childCount: chats.length),
+                        );
+                      },
+                      loading: () => SliverFillRemaining(
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            color: theme.colorScheme.primary,
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                  actions: [
-                    // زر الإشعارات
-                    IconButton(
-                      icon: const Icon(Icons.notifications_outlined),
-                      tooltip: l10n.notifications,
-                      onPressed: () {
-                        context.push(AppRoutes.notifications);
+                      error: (error, stack) {
+                        // Log the error for debugging
+                        LogService.error(
+                          'CHAT REPOSITORY ERROR: $error',
+                          error,
+                        );
+
+                        // Show Empty State instead of Error for better UX
+                        return SliverFillRemaining(
+                          child: EmptyState(
+                            icon: Icons.chat_bubble_outline,
+                            title: l10n.noChats,
+                            subtitle: 'ابدأ محادثة آمنة ومشفرة مع أصدقائك',
+                            actionLabel: l10n.addFriend,
+                            onAction: () => context.push(AppRoutes.addFriend),
+                          ),
+                        );
                       },
                     ),
                   ],
                 ),
-                // قائمة المحادثات
-                chatsAsync.when(
-                  data: (chats) {
-                    if (chats.isEmpty) {
-                      return SliverFillRemaining(
-                        child: EmptyState(
-                          icon: Icons.chat_bubble_outline,
-                          title: l10n.noChats,
-                          subtitle: 'ابدأ محادثة آمنة ومشفرة مع أصدقائك',
-                          actionLabel: l10n.addFriend,
-                          onAction: () => context.push(AppRoutes.addFriend),
-                        ),
-                      );
-                    }
-
-                    return SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) {
-                          final chat = chats[index];
-                          return GlassChatTile(
-                            chat: chat,
-                            onTap: () => _navigateToChat(context, chat),
-                            index: index,
-                          );
-                        },
-                        childCount: chats.length,
-                      ),
-                    );
-                  },
-                  loading: () => SliverFillRemaining(
-                    child: Center(
-                      child: CircularProgressIndicator(
-                        color: theme.colorScheme.primary,
-                      ),
-                    ),
+                // Floating Action Button with Speed Dial
+                floatingActionButton: Showcase(
+                  key: _fabKey,
+                  title: l10n.startConnecting,
+                  description: l10n.startConnectingDescription,
+                  targetShapeBorder: const CircleBorder(),
+                  tooltipBackgroundColor: theme.colorScheme.primary,
+                  textColor: theme.colorScheme.onPrimary,
+                  titleTextStyle: TextStyle(
+                    color: theme.colorScheme.onPrimary,
+                    fontSize: 18.sp,
+                    fontWeight: FontWeight.bold,
                   ),
-                  error: (error, stack) {
-                    // Log the error for debugging
-                    LogService.error('CHAT REPOSITORY ERROR: $error', error);
-                    
-                    // Show Empty State instead of Error for better UX
-                    return SliverFillRemaining(
-                      child: EmptyState(
-                        icon: Icons.chat_bubble_outline,
-                        title: l10n.noChats,
-                        subtitle: 'ابدأ محادثة آمنة ومشفرة مع أصدقائك',
-                        actionLabel: l10n.addFriend,
-                        onAction: () => context.push(AppRoutes.addFriend),
-                      ),
-                    );
-                  },
+                  descTextStyle: TextStyle(
+                    color: theme.colorScheme.onPrimary.withValues(alpha: 0.9),
+                    fontSize: 14.sp,
+                  ),
+                  child: _buildSpeedDial(context),
                 ),
-                ],
-              ),
-              // Floating Action Button with Speed Dial
-              floatingActionButton: Showcase(
-                key: _fabKey,
-                title: l10n.startConnecting,
-                description: l10n.startConnectingDescription,
-                targetShapeBorder: const CircleBorder(),
-                tooltipBackgroundColor: theme.colorScheme.primary,
-                textColor: Colors.white,
-                titleTextStyle: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.bold,
-                ),
-                descTextStyle: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.9),
-                  fontSize: 14.sp,
-                ),
-                child: _buildSpeedDial(context),
               ),
             ),
           ),
-        ),
-      );
+        );
       },
+    );
+  }
+
+  Widget _buildRelayParticipationBanner(
+    BuildContext context, {
+    required AsyncValue<int> relayCountAsync,
+  }) {
+    final theme = Theme.of(context);
+    final relayCount = relayCountAsync.valueOrNull ?? 0;
+    final text = relayCountAsync.isLoading
+        ? 'جارٍ مزامنة دورك في الشبكة...'
+        : relayCount > 0
+        ? '📦 أنت تحمل $relayCount حزمة مشفرة للشبكة حالياً'
+        : '📦 لا تحمل حالياً أي حزم مرحّلة للشبكة';
+
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.secondaryContainer.withValues(alpha: 0.25),
+        borderRadius: BorderRadius.circular(14.r),
+        border: Border.all(
+          color: theme.colorScheme.secondary.withValues(alpha: 0.35),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.local_shipping_outlined,
+            size: 18.sp,
+            color: theme.colorScheme.secondary,
+          ),
+          SizedBox(width: 8.w),
+          Expanded(
+            child: Text(
+              text,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurface,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NetworkStatusIndicator extends StatelessWidget {
+  final NetworkState state;
+
+  const _NetworkStatusIndicator({super.key, required this.state});
+
+  @override
+  Widget build(BuildContext context) {
+    // Determine status color and glow
+    final isConnected = state.peerCount > 0; // Removed state.isConnected as it doesn't exist
+    final isScanning = state.isScanning;
+    
+    final Color statusColor;
+    final List<BoxShadow> shadows;
+    final String tooltip;
+
+    if (isConnected) {
+      statusColor = const Color(0xFF00FF9D); // Neon Green
+      shadows = [
+        BoxShadow(
+          color: const Color(0xFF00FF9D).withValues(alpha: 0.6),
+          blurRadius: 8,
+          spreadRadius: 2,
+        ),
+      ];
+      tooltip = 'Mesh Active: ${state.peerCount} Peers Connected';
+    } else if (isScanning) {
+      statusColor = const Color(0xFF00E5FF); // Cyan for scanning
+      shadows = [
+        BoxShadow(
+          color: const Color(0xFF00E5FF).withValues(alpha: 0.4),
+          blurRadius: 6,
+          spreadRadius: 1,
+        ),
+      ];
+      tooltip = 'Scanning for peers...';
+    } else {
+      statusColor = const Color(0xFFFF3D00); // Neon Red
+      shadows = [
+        BoxShadow(
+          color: const Color(0xFFFF3D00).withValues(alpha: 0.3),
+          blurRadius: 4,
+          spreadRadius: 0,
+        ),
+      ];
+      tooltip = 'Mesh Offline';
+    }
+
+    return Tooltip(
+      message: tooltip,
+      child: Container(
+        width: 12.w,
+        height: 12.w,
+        decoration: BoxDecoration(
+          color: statusColor,
+          shape: BoxShape.circle,
+          boxShadow: shadows,
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.2),
+            width: 1.5,
+          ),
+        ),
+      ),
     );
   }
 }

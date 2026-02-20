@@ -1,63 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:flutter_background_service/flutter_background_service.dart';
+import '../providers/network_state_provider.dart';
 
-class NetworkStatusChip extends StatefulWidget {
+class NetworkStatusChip extends ConsumerWidget {
   const NetworkStatusChip({super.key});
 
   @override
-  State<NetworkStatusChip> createState() => _NetworkStatusChipState();
-}
-
-class _NetworkStatusChipState extends State<NetworkStatusChip> {
-  int _peerCount = 0;
-  String _status = 'Initializing...';
-  bool _isScanning = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _listenToService();
-  }
-
-  void _listenToService() {
-    FlutterBackgroundService().on('updatePeerCount').listen((event) {
-      if (mounted && event != null) {
-        setState(() {
-          _peerCount = event['count'] ?? 0;
-        });
-      }
-    });
-
-    FlutterBackgroundService().on('updateStatus').listen((event) {
-      if (mounted && event != null) {
-        setState(() {
-          _status = event['status'] ?? '';
-          _isScanning = (_status.contains('Scanning'));
-          if (event['peerCount'] != null) {
-            _peerCount = event['peerCount'];
-          }
-        });
-      }
-    });
-  }
-
-  Color _getStatusColor() {
-    if (_peerCount > 0) return Colors.green;
-    if (_isScanning) return Colors.orange;
-    return Colors.grey;
-  }
-
-  String _getStatusText() {
-    if (_peerCount > 0) return '$_peerCount متصل';
-    if (_isScanning) return 'جاري البحث...';
-    return 'غير متصل';
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final color = _getStatusColor();
+    final state = ref.watch(networkStateProvider);
+
+    final color = _getStatusColor(theme, state.peerCount, state.isScanning);
+    final text = _getStatusText(state);
 
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
@@ -86,7 +41,7 @@ class _NetworkStatusChipState extends State<NetworkStatusChip> {
           ),
           SizedBox(width: 6.w),
           Text(
-            _getStatusText(),
+            text,
             style: theme.textTheme.bodySmall?.copyWith(
               color: color,
               fontWeight: FontWeight.bold,
@@ -96,5 +51,18 @@ class _NetworkStatusChipState extends State<NetworkStatusChip> {
         ],
       ),
     );
+  }
+
+  Color _getStatusColor(ThemeData theme, int peerCount, bool isScanning) {
+    if (peerCount > 0) return theme.colorScheme.tertiary;
+    if (isScanning) return theme.colorScheme.secondary;
+    return theme.colorScheme.outline;
+  }
+
+  String _getStatusText(NetworkState state) {
+    if (state.peerCount > 0) return '${state.peerCount} متصل';
+    if (state.isScanning) return 'جاري البحث...';
+    if (state.status.toLowerCase().contains('sleep')) return 'وضع انتظار';
+    return 'غير متصل';
   }
 }

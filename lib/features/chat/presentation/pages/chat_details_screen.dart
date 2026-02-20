@@ -10,16 +10,13 @@ import '../../data/repositories/messages_provider.dart';
 import '../../application/chat_controller.dart';
 import '../../domain/models/message_model.dart';
 import '../widgets/message_bubble.dart';
-import '../../../network/presentation/widgets/network_status_chip.dart';
+import '../../../network/presentation/providers/network_state_provider.dart';
 
 /// شاشة تفاصيل المحادثة
 class ChatDetailsScreen extends ConsumerStatefulWidget {
   final ChatModel chat;
 
-  const ChatDetailsScreen({
-    super.key,
-    required this.chat,
-  });
+  const ChatDetailsScreen({super.key, required this.chat});
 
   @override
   ConsumerState<ChatDetailsScreen> createState() => _ChatDetailsScreenState();
@@ -28,6 +25,11 @@ class ChatDetailsScreen extends ConsumerStatefulWidget {
 class _ChatDetailsScreenState extends ConsumerState<ChatDetailsScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+
+  String _shortId(String value) {
+    if (value.length <= 8) return value;
+    return value.substring(0, 8);
+  }
 
   @override
   void dispose() {
@@ -43,7 +45,7 @@ class _ChatDetailsScreenState extends ConsumerState<ChatDetailsScreen> {
     try {
       // إرسال الرسالة عبر ChatController
       final controller = ref.read(chatControllerProvider.notifier);
-      
+
       // الحصول على peerId من قاعدة البيانات إذا كانت المحادثة فردية
       String? peerId;
       if (!widget.chat.isGroup) {
@@ -56,15 +58,11 @@ class _ChatDetailsScreenState extends ConsumerState<ChatDetailsScreen> {
           peerId = null;
         }
       }
-      
-      await controller.sendMessage(
-        widget.chat.id,
-        text,
-        peerId: peerId,
-      );
-      
+
+      await controller.sendMessage(widget.chat.id, text, peerId: peerId);
+
       _messageController.clear();
-      
+
       // Scroll to bottom
       _scrollController.animateTo(
         0,
@@ -76,13 +74,14 @@ class _ChatDetailsScreenState extends ConsumerState<ChatDetailsScreen> {
       if (mounted) {
         final errorMessage = e.toString();
         final String userMessage;
-        
-        if (errorMessage.contains('Socket') || errorMessage.contains('غير متصل')) {
+
+        if (errorMessage.contains('Socket') ||
+            errorMessage.contains('غير متصل')) {
           userMessage = 'Socket غير متصل - تأكد من اتصال WiFi P2P بين الأجهزة';
         } else {
           userMessage = 'فشل إرسال الرسالة: ${e.toString()}';
         }
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(userMessage),
@@ -99,6 +98,11 @@ class _ChatDetailsScreenState extends ConsumerState<ChatDetailsScreen> {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
     final messagesAsync = ref.watch(chatMessagesProvider(widget.chat.id));
+    final networkState = ref.watch(networkStateProvider);
+    final chatId = _shortId(widget.chat.id);
+    final subtitle = networkState.peerCount > 0
+        ? 'ID: $chatId'
+        : 'Offline Mesh Mode • ID: $chatId';
 
     return MeshGradientBackground(
       child: Scaffold(
@@ -128,8 +132,14 @@ class _ChatDetailsScreenState extends ConsumerState<ChatDetailsScreen> {
               Hero(
                 tag: 'chat_avatar_${widget.chat.id}',
                 child: CircleAvatar(
-                  backgroundColor: Color(widget.chat.avatarColor), // Use real color
-                  child: Text(widget.chat.name.isNotEmpty ? widget.chat.name[0].toUpperCase() : '?'),
+                  backgroundColor: Color(
+                    widget.chat.avatarColor,
+                  ), // Use real color
+                  child: Text(
+                    widget.chat.name.isNotEmpty
+                        ? widget.chat.name[0].toUpperCase()
+                        : '?',
+                  ),
                 ),
               ),
               SizedBox(width: 12.w),
@@ -146,26 +156,15 @@ class _ChatDetailsScreenState extends ConsumerState<ChatDetailsScreen> {
                     ),
                     Row(
                       children: [
-                        Container(
-                          width: 6.w,
-                          height: 6.w,
-                          decoration: BoxDecoration(
-                            color: Colors.green, // TODO: Real online status if needed
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                               BoxShadow(
-                                color: Colors.green.withValues(alpha: 0.5),
-                                blurRadius: 4,
-                              ),
-                            ],
-                          ),
-                        ),
-                        SizedBox(width: 4.w),
-                        Text(
-                          l10n.online, // "Connected" or similar
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: Colors.white.withValues(alpha: 0.7),
-                            fontSize: 10.sp,
+                        Flexible(
+                          child: Text(
+                            subtitle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: Colors.white.withValues(alpha: 0.7),
+                              fontSize: 10.sp,
+                            ),
                           ),
                         ),
                       ],
@@ -173,178 +172,162 @@ class _ChatDetailsScreenState extends ConsumerState<ChatDetailsScreen> {
                   ],
                 ),
               ),
-              const NetworkStatusChip(),
             ],
           ),
         ),
         body: Column(
-        children: [
-          // قائمة الرسائل
-          Expanded(
-            child: Container(
-              decoration: const BoxDecoration(
-                color: Colors.transparent,
-              ),
-              child: messagesAsync.when(
-                data: (messages) {
-                  if (messages.isEmpty) {
-                    return Center(
-                      child: Text(
-                        l10n.noMessages,
-                        style: theme.textTheme.bodyLarge?.copyWith(
-                          fontSize: 16.sp,
-                          color: theme.colorScheme.onSurfaceVariant,
+          children: [
+            // قائمة الرسائل
+            Expanded(
+              child: Container(
+                decoration: const BoxDecoration(color: Colors.transparent),
+                child: messagesAsync.when(
+                  data: (messages) {
+                    if (messages.isEmpty) {
+                      return Center(
+                        child: Text(
+                          l10n.noMessages,
+                          style: theme.textTheme.bodyLarge?.copyWith(
+                            fontSize: 16.sp,
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
                         ),
-                      ),
+                      );
+                    }
+
+                    return ListView.builder(
+                      controller: _scrollController,
+                      reverse: true,
+                      padding: EdgeInsets.symmetric(vertical: 16.h),
+                      itemCount: messages.length,
+                      itemBuilder: (context, index) {
+                        final message = messages[index];
+                        return MessageBubble(message: message);
+                      },
                     );
-                  }
-
-                  return ListView.builder(
-                    controller: _scrollController,
-                    reverse: true,
-                    padding: EdgeInsets.symmetric(vertical: 16.h),
-                    itemCount: messages.length,
-                    itemBuilder: (context, index) {
-                      final message = messages[index];
-                      return MessageBubble(message: message);
-                    },
-                  );
-                },
-                loading: () => Center(
-                  child: CircularProgressIndicator(
-                    color: theme.colorScheme.primary,
-                  ),
-                ),
-                error: (error, stack) => Center(
-                  child: Text(
-                    l10n.errorLoadingMessages,
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      fontSize: 16.sp,
-                      color: theme.colorScheme.error,
+                  },
+                  loading: () => Center(
+                    child: CircularProgressIndicator(
+                      color: theme.colorScheme.primary,
                     ),
                   ),
-                ),
-              ),
-            ),
-          ),
-          // Delay Hint / Offline Warning
-          if (messagesAsync.valueOrNull?.isNotEmpty == true && 
-              messagesAsync.valueOrNull!.first.isMe && 
-              messagesAsync.valueOrNull!.first.status == MessageStatus.sending)
-             Padding(
-               padding: EdgeInsets.only(bottom: 8.h),
-               child: Text(
-                 'قد يستغرق التسليم وقتاً لعدم توفر اتصال مباشر بالشبكة',
-                 style: theme.textTheme.bodySmall?.copyWith(
-                   color: Colors.white.withValues(alpha: 0.5),
-                   fontSize: 10.sp,
-                 ),
-                 textAlign: TextAlign.center,
-               ),
-             ),
-
-          // منطقة الإدخال - Floating Glass Pill
-          Padding(
-            padding: EdgeInsets.symmetric(
-              horizontal: 16.w,
-              vertical: 12.h,
-            ),
-            child: SafeArea(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(32.r),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surface.withValues(alpha: 0.4),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.1),
-                        width: 1,
+                  error: (error, stack) => Center(
+                    child: Text(
+                      l10n.errorLoadingMessages,
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        fontSize: 16.sp,
+                        color: theme.colorScheme.error,
                       ),
-                      borderRadius: BorderRadius.circular(32.r),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.2),
-                          blurRadius: 20,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 8.w,
-                      vertical: 4.h,
-                    ),
-                    child: Row(
-                      children: [
-                        // زر Emoji (مؤقت)
-                        IconButton(
-                          icon: Icon(
-                            Icons.emoji_emotions_outlined,
-                            size: 24.sp,
-                            color: Colors.white,
-                          ),
-                          onPressed: () {
-                            // فتح لوحة Emoji
-                            // سيتم تنفيذها لاحقاً عند إضافة مكتبة Emoji
-                          },
-                        ),
-                        // حقل النص
-                        Expanded(
-                          child: TextField(
-                            controller: _messageController,
-                            style: theme.textTheme.bodyLarge?.copyWith(
-                              color: Colors.white,
-                            ),
-                            decoration: InputDecoration(
-                              hintText: l10n.typeMessage,
-                              hintStyle: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.5),
-                              ),
-                              border: InputBorder.none,
-                              contentPadding: EdgeInsets.symmetric(
-                                horizontal: 12.w,
-                                vertical: 12.h,
-                              ),
-                            ),
-                            maxLines: null,
-                            textInputAction: TextInputAction.send,
-                            onSubmitted: (_) => _sendMessage(),
-                          ),
-                        ),
-                        SizedBox(width: 4.w),
-                        // زر الإرسال
-                        Container(
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.primary,
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: theme.colorScheme.primary.withValues(alpha: 0.5),
-                                blurRadius: 8,
-                                spreadRadius: 1,
-                              ),
-                            ],
-                          ),
-                          child: IconButton(
-                            icon: Icon(
-                              Icons.send,
-                              color: Colors.black,
-                              size: 20.sp,
-                            ),
-                            onPressed: _sendMessage,
-                          ),
-                        ),
-                      ],
                     ),
                   ),
                 ),
               ),
             ),
-          ),
-        ],
-      ),
+            // Delay Hint / Offline Warning
+            if (messagesAsync.valueOrNull?.isNotEmpty == true &&
+                messagesAsync.valueOrNull!.first.isMe &&
+                messagesAsync.valueOrNull!.first.status ==
+                    MessageStatus.sending)
+              Padding(
+                padding: EdgeInsets.only(bottom: 8.h),
+                child: Text(
+                  'قد يستغرق التسليم وقتاً لعدم توفر اتصال مباشر بالشبكة',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: Colors.white.withValues(alpha: 0.5),
+                    fontSize: 10.sp,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+
+            // منطقة الإدخال - Floating Glass Pill
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+              child: SafeArea(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(32.r),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surface.withValues(alpha: 0.4),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.1),
+                          width: 1,
+                        ),
+                        borderRadius: BorderRadius.circular(32.r),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.2),
+                            blurRadius: 20,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 8.w,
+                        vertical: 4.h,
+                      ),
+                      child: Row(
+                        children: [
+                          // حقل النص
+                          Expanded(
+                            child: TextField(
+                              controller: _messageController,
+                              style: theme.textTheme.bodyLarge?.copyWith(
+                                color: Colors.white,
+                              ),
+                              decoration: InputDecoration(
+                                hintText: l10n.typeMessage,
+                                hintStyle: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.5),
+                                ),
+                                border: InputBorder.none,
+                                contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 12.w,
+                                  vertical: 12.h,
+                                ),
+                              ),
+                              maxLines: null,
+                              textInputAction: TextInputAction.send,
+                              onSubmitted: (_) => _sendMessage(),
+                            ),
+                          ),
+                          SizedBox(width: 4.w),
+                          // زر الإرسال
+                          Container(
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.primary,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: theme.colorScheme.primary.withValues(
+                                    alpha: 0.5,
+                                  ),
+                                  blurRadius: 8,
+                                  spreadRadius: 1,
+                                ),
+                              ],
+                            ),
+                            child: IconButton(
+                              icon: Icon(
+                                Icons.send,
+                                color: Colors.black,
+                                size: 20.sp,
+                              ),
+                              onPressed: _sendMessage,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
-

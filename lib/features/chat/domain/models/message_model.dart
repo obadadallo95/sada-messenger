@@ -60,6 +60,28 @@ class MessageModel {
     };
   }
 
+  MessageModel copyWith({
+    String? id,
+    String? text,
+    String? encryptedText,
+    bool? isMe,
+    DateTime? timestamp,
+    MessageStatus? status,
+    String? senderName,
+    int? senderColor,
+  }) {
+    return MessageModel(
+      id: id ?? this.id,
+      text: text ?? this.text,
+      encryptedText: encryptedText ?? this.encryptedText,
+      isMe: isMe ?? this.isMe,
+      timestamp: timestamp ?? this.timestamp,
+      status: status ?? this.status,
+      senderName: senderName ?? this.senderName,
+      senderColor: senderColor ?? this.senderColor,
+    );
+  }
+
   /// إنشاء نسخة مع نص مشفر
   MessageModel copyWithEncrypted(String encrypted) {
     return MessageModel(

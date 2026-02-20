@@ -3,6 +3,8 @@ import 'package:drift/drift.dart';
 /// Table for Relay Packets (Store-Carry-Forward).
 /// Stores encrypted packets destined for other users.
 /// Implements "Blind Relaying" via hashed IDs.
+@TableIndex(name: 'relay_queue_to_hash_idx', columns: {#toHash})
+@TableIndex(name: 'relay_queue_created_at_idx', columns: {#createdAt})
 class RelayQueueTable extends Table {
   /// Unique packet identifier (UUID).
   TextColumn get packetId => text()();
@@ -29,7 +31,7 @@ class RelayQueueTable extends Table {
 
   /// Number of times the packet has been forwarded/retried.
   IntColumn get retryCount => integer().withDefault(const Constant(0))();
-  
+
   /// Priority level: 0=Low, 1=Standard (default), 2=High (ACKs, Admin)
   IntColumn get priority => integer().withDefault(const Constant(1))();
 
