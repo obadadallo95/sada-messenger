@@ -54,6 +54,11 @@ class MeshService {
   String? _lastSocketRemoteIp;
   String? _activeSocketPeerId;
 
+  // Stats for Diagnostic UI
+  int? _lastHopCount;
+  String? _lastMessageId;
+  List<String>? _lastMessageTrace;
+
   /// خرائط Bloom Filters للأجهزة المتصلة لتجنب إرسال رسائل مكررة
   final Map<String, BloomFilter> _peerBloomFilters = {};
 
@@ -109,6 +114,9 @@ class MeshService {
       'processedMessagesCount': _processedMessages.length,
       'udpServiceInitialized': _udpBroadcastService != null,
       'discoveryStrategyInitialized': _discoveryStrategy != null,
+      'lastMessageId': _lastMessageId ?? '',
+      'lastHopCount': _lastHopCount ?? -1,
+      'lastMessageTrace': _lastMessageTrace ?? [],
     };
   }
 
@@ -598,6 +606,11 @@ class MeshService {
 
       // Parse to MeshMessage
       final meshMessage = MeshMessage.fromJson(jsonData);
+
+      // Update diagnostic stats for any valid mesh message (including duplicates)
+      _lastHopCount = meshMessage.hopCount;
+      _lastMessageId = meshMessage.messageId;
+      _lastMessageTrace = meshMessage.trace;
 
       final myDeviceId = await _getMyDeviceId();
 

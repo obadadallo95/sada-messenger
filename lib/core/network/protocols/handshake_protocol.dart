@@ -89,19 +89,17 @@ class HandshakeProtocol {
       final contact = await database.getContactById(peerId);
       
       if (contact == null) {
-        LogService.warning('🚫 Handshake من مرسل غير معروف: $peerId');
-        // رفض Handshake (نرسل Filter فارغ أو لا نرسل)
-        final ack = await _createHandshakeAck(peerId, STATUS_REJECTED);
-        return HandshakeResult(ackMessage: ack, peerBloomFilter: null);
-      }
-
-      // تحديث publicKey إذا كان متاحاً
-      if (publicKey != null && contact.publicKey != publicKey) {
-        LogService.info('تحديث publicKey للجهة: $peerId');
-        await database.updateContact(
-          peerId,
-          ContactsTableCompanion(publicKey: Value(publicKey)),
-        );
+        // [Relay Requirement]: Allow unknown peers to connect for relay purposes.
+        LogService.info('⚠️ قبول Handshake من جهة غير معروفة (لغرض Relay): $peerId');
+      } else {
+        // تحديث publicKey إذا كان متاحاً لجهة اتصال معروفة
+        if (publicKey != null && contact.publicKey != publicKey) {
+          LogService.info('تحديث publicKey للجهة: $peerId');
+          await database.updateContact(
+            peerId,
+            ContactsTableCompanion(publicKey: Value(publicKey)),
+          );
+        }
       }
 
       // Parse Bloom Filter

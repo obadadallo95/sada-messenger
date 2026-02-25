@@ -20,11 +20,17 @@ class MockAppDatabase extends Mock implements AppDatabase {}
 
 class MockContactsTableData extends Mock implements ContactsTableData {}
 
+class FakeContactsTableCompanion extends Fake implements ContactsTableCompanion {}
+
 void main() {
   late ProviderContainer container;
   late MockAuthService mockAuthService;
   late MockKeyManager mockKeyManager;
   late MockAppDatabase mockDatabase;
+
+  setUpAll(() {
+    registerFallbackValue(FakeContactsTableCompanion());
+  });
 
   setUp(() {
     mockAuthService = MockAuthService();
@@ -125,11 +131,14 @@ void main() {
       expect(ack['status'], equals('ACCEPTED'));
     });
 
-    test('processIncomingHandshake should reject unknown contact', () async {
+    test('processIncomingHandshake should accept unknown contact for relay', () async {
       // Arrange
       when(
         () => mockDatabase.getContactById('unknown123'),
       ).thenAnswer((_) async => null);
+      when(
+        () => mockDatabase.getAllKnownMessageIds(),
+      ).thenAnswer((_) async => []);
       when(() => mockAuthService.currentUser).thenReturn(
         UserData(userId: 'user123', displayName: 'user', deviceHash: 'hash123'),
       );
@@ -148,10 +157,9 @@ void main() {
 
       // Assert
       expect(result, isNotNull);
-      expect(result!.peerBloomFilter, isNull);
 
-      final ack = jsonDecode(result.ackMessage) as Map<String, dynamic>;
-      expect(ack['status'], equals('REJECTED'));
+      final ack = jsonDecode(result!.ackMessage) as Map<String, dynamic>;
+      expect(ack['status'], equals('ACCEPTED'));
     });
 
     test(
