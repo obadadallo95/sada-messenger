@@ -1,7 +1,7 @@
 # 🔒 Sada — Security Model
 
 > **Version:** 2.0 (Civilian Context)  
-> **Last Updated:** 2025-02-25
+> **Last Updated:** 2026-02-25
 
 ## نموذج التهديد (Threat Model)
 
