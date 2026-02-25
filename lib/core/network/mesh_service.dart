@@ -39,6 +39,9 @@ class MeshService {
   /// يمنع معالجة نفس الرسالة مرتين
   final Set<String> _processedMessages = {};
 
+  /// Traffic Policing (Rate Limiting)
+  final _trafficPolice = _TrafficPolice();
+
   /// Set لتتبع الأجهزة المتصلة التي أكملت Handshake
   final Set<String> _connectedPeers = {};
   final _connectedPeersController = StreamController<List<String>>.broadcast();
@@ -580,6 +583,16 @@ class MeshService {
   /// هذا هو "الدماغ" الذي يقرر: هل أنا الهدف؟ أم أنا Relay؟
   Future<void> handleIncomingMeshMessage(String rawMessage) async {
     try {
+      // 🛡️ Traffic Policing: Rate Limiting
+      // We check against the active socket peer (the neighbor we are talking to).
+      final neighborId = _activeSocketPeerId ?? 'unknown';
+      if (!_trafficPolice.allow(neighborId)) {
+        LogService.warning(
+          '⛔ Rate limit exceeded for neighbor: $neighborId. Dropping message.',
+        );
+        return;
+      }
+
       // Parse JSON
       final jsonData = _toJsonMap(rawMessage);
 
@@ -1348,3 +1361,54 @@ final meshServiceProvider = Provider<MeshService>((ref) {
   ref.onDispose(service.dispose);
   return service;
 });
+
+// -----------------------------------------------------------------------------
+// Traffic Policing Logic
+// -----------------------------------------------------------------------------
+
+class _TrafficPolice {
+  static const int kMaxMessagesPerMinute = 300; // ~5 msgs/sec avg
+  static const int kMaxBurst = 50; // Allow bursts of 50 msgs
+
+  final Map<String, _TokenBucket> _buckets = {};
+
+  bool allow(String peerId) {
+    _buckets.putIfAbsent(
+      peerId,
+      () => _TokenBucket(kMaxMessagesPerMinute, kMaxBurst),
+    );
+    return _buckets[peerId]!.tryConsume();
+  }
+}
+
+class _TokenBucket {
+  final int ratePerMinute;
+  final int capacity;
+  double _tokens;
+  DateTime _lastRefill;
+
+  _TokenBucket(this.ratePerMinute, this.capacity)
+    : _tokens = capacity.toDouble(),
+      _lastRefill = DateTime.now();
+
+  bool tryConsume() {
+    _refill();
+    if (_tokens >= 1.0) {
+      _tokens -= 1.0;
+      return true;
+    }
+    return false;
+  }
+
+  void _refill() {
+    final now = DateTime.now();
+    final elapsedMs = now.difference(_lastRefill).inMilliseconds;
+    if (elapsedMs <= 0) return;
+
+    final tokensToAdd = elapsedMs * (ratePerMinute / 60000.0);
+    if (tokensToAdd > 0) {
+      _tokens = (_tokens + tokensToAdd).clamp(0.0, capacity.toDouble());
+      _lastRefill = now;
+    }
+  }
+}

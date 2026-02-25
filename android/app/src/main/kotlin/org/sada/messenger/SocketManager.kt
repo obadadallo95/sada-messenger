@@ -22,7 +22,8 @@ class SocketManager private constructor() {
         private const val RETRY_DELAY_MS = 500L
         private const val FRAME_HEADER_SIZE_BYTES = 4
         private const val MAX_MESSAGE_SIZE_BYTES = 1024 * 1024 // 1 MB
-        
+        private const val MAX_BUFFER_SIZE_BYTES = 2 * 1024 * 1024 // 2 MB safety limit for buffer
+
         @Volatile
         private var INSTANCE: SocketManager? = null
         
@@ -236,6 +237,12 @@ class SocketManager private constructor() {
      * Frame format: 4-byte big-endian length + UTF-8 payload.
      */
     private fun processIncomingFrames(receiveBuffer: ByteArrayOutputStream): Boolean {
+        // 1. Check for buffer overflow first to prevent OOM attacks
+        if (receiveBuffer.size() > MAX_BUFFER_SIZE_BYTES) {
+            Log.e(TAG, "${peerTag()} Buffer overflow: ${receiveBuffer.size()} bytes. Max allowed: $MAX_BUFFER_SIZE_BYTES")
+            return false
+        }
+
         val data = receiveBuffer.toByteArray()
         var offset = 0
 
@@ -262,17 +269,22 @@ class SocketManager private constructor() {
             val messageBytes = data.copyOfRange(payloadStart, payloadEnd)
 
             Log.d(TAG, "${peerTag()} 📥 [READ] Received frame: $messageSize bytes payload.")
+
+            // Dispatch to UI thread if needed, or keep on IO if Sink handles it.
+            // EventChannel.EventSink is generally thread-safe, but best practice is main thread.
+            // For high-throughput binary streams, switching threads for every chunk adds overhead.
+            // We'll keep it here for now as Flutter handles platform messages asynchronously.
             messageEventSink?.success(messageBytes)
 
             offset += frameSize
         }
 
         if (offset > 0) {
-            // Keep only unparsed tail bytes.
-            val remaining = data.copyOfRange(offset, data.size)
+            // Efficiently reset buffer and write only remaining bytes
             receiveBuffer.reset()
-            if (remaining.isNotEmpty()) {
-                receiveBuffer.write(remaining)
+            val remainingLength = data.size - offset
+            if (remainingLength > 0) {
+                receiveBuffer.write(data, offset, remainingLength)
             }
         }
 
