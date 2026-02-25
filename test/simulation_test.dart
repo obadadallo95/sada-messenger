@@ -323,37 +323,18 @@ void main() {
         final setResult = await authService.setMasterPin(masterPin);
         expect(setResult, isTrue);
 
-        // التحقق من PIN الصحيح
         final authResult = await authService.verifyPin(masterPin);
-        expect(authResult, equals(AuthType.master));
+        expect(authResult, isTrue);
 
         LogService.info('✅ Master PIN verification successful');
         LogService.info('   PIN: $masterPin');
-        LogService.info('   Auth Type: ${authResult.name}');
+        LogService.info('   Auth Success: $authResult');
       },
     );
 
-    test(
-      '2. Set Duress PIN and verify DURESS PIN returns AuthType.duress',
-      () async {
-        const masterPin = '123456';
-        const duressPin = '999999';
 
-        // تعيين كلا PINs
-        await authService.setMasterPin(masterPin);
-        await authService.setDuressPin(duressPin);
 
-        // التحقق من Duress PIN
-        final authResult = await authService.verifyPin(duressPin);
-        expect(authResult, equals(AuthType.duress));
-
-        LogService.info('✅ Duress PIN verification successful');
-        LogService.info('   Duress PIN: $duressPin');
-        LogService.info('   Auth Type: ${authResult.name}');
-      },
-    );
-
-    test('3. Verify WRONG PIN returns AuthType.failure', () async {
+    test('2. Verify WRONG PIN returns false', () async {
       const masterPin = '123456';
       const wrongPin = '000000';
 
@@ -362,33 +343,13 @@ void main() {
 
       // محاولة التحقق من PIN خاطئ
       final authResult = await authService.verifyPin(wrongPin);
-      expect(authResult, equals(AuthType.failure));
+      expect(authResult, isFalse);
 
       LogService.info('✅ Wrong PIN correctly rejected');
       LogService.info('   Wrong PIN: $wrongPin');
-      LogService.info('   Auth Type: ${authResult.name}');
+      LogService.info('   Auth Success: $authResult');
     });
 
-    test('4. Verify Master PIN still works after setting Duress PIN', () async {
-      const masterPin = '123456';
-      const duressPin = '999999';
-
-      // تعيين كلا PINs
-      await authService.setMasterPin(masterPin);
-      await authService.setDuressPin(duressPin);
-
-      // التحقق من أن Master PIN لا يزال يعمل
-      final masterAuthResult = await authService.verifyPin(masterPin);
-      expect(masterAuthResult, equals(AuthType.master));
-
-      // التحقق من أن Duress PIN يعمل أيضاً
-      final duressAuthResult = await authService.verifyPin(duressPin);
-      expect(duressAuthResult, equals(AuthType.duress));
-
-      LogService.info('✅ Both PINs work correctly');
-      LogService.info('   Master PIN: $masterPin → ${masterAuthResult.name}');
-      LogService.info('   Duress PIN: $duressPin → ${duressAuthResult.name}');
-    });
   });
 
   /// ============================================

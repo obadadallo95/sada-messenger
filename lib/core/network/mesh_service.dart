@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:drift/drift.dart' hide Column;
 import 'package:uuid/uuid.dart';
+import 'package:crypto/crypto.dart';
 import '../utils/log_service.dart';
 import '../utils/bloom_filter.dart';
 import '../database/database_provider.dart';
@@ -31,7 +32,6 @@ class MeshService {
   );
   static const int _maxSocketPayloadBytes = 1024 * 1024; // 1 MB safety ceiling
 
-  Stream<String>? _messageStream;
   Stream<Map<String, dynamic>>? _socketStatusStream;
   StreamSubscription<Map<String, dynamic>>? _socketStatusSubscription;
 
@@ -204,9 +204,13 @@ class MeshService {
         return false;
       }
 
+      final framedBytes = Uint8List(payloadBytes.length + 1);
+      framedBytes[0] = 0x00; // Text header
+      framedBytes.setRange(1, framedBytes.length, payloadBytes);
+
       final result = await _methodChannel.invokeMethod<bool>('socket_write', {
         'peerId': peerId,
-        'message': message,
+        'data': framedBytes,
       });
 
       if (result == true) {
@@ -225,23 +229,98 @@ class MeshService {
     }
   }
 
-  /// Stream للرسائل المستلمة
-  Stream<String> get onMessageReceived {
-    _messageStream ??= _messageChannel.receiveBroadcastStream().map((
-      dynamic event,
-    ) {
+  Future<bool> socketWriteBytes({
+    required String peerId,
+    required Uint8List bytes,
+    required String context,
+    bool allowBeforeReady = false,
+  }) async {
+    try {
+      if (!allowBeforeReady && !_isPeerReady(peerId)) {
+        LogService.warning(
+          '${_tag(peerId)} [$context] blocked: peer is not Peer_Ready',
+        );
+        _lastTransportError = 'write_blocked_peer_not_ready:$peerId:$context';
+        return false;
+      }
+
+      if (bytes.isEmpty) return false;
+      if (bytes.length > _maxSocketPayloadBytes) return false;
+
+      final framedBytes = Uint8List(bytes.length + 1);
+      framedBytes[0] = 0x01; // Binary header
+      framedBytes.setRange(1, framedBytes.length, bytes);
+
+      final result = await _methodChannel.invokeMethod<bool>('socket_write', {
+        'peerId': peerId,
+        'data': framedBytes,
+      });
+
+      if (result == true) {
+        LogService.info('${_tag(peerId)} 📤 [FLUTTER] Binary chunk sent to native');
+      }
+      return result ?? false;
+    } catch (e) {
+      LogService.error('${_tag(peerId)} خطأ في socketWriteBytes [$context]', e);
+      _lastTransportError = 'socket_write_bytes_exception:$peerId:$context:${e.toString()}';
+      return false;
+    }
+  }
+
+  Stream<Uint8List>? _rawMessageStream;
+
+  Stream<Uint8List> get _onRawMessageReceived {
+    _rawMessageStream ??= _messageChannel.receiveBroadcastStream().map((event) {
       try {
-        if (event == null) return '';
-        final message = event as String;
-        LogService.info('📥 [FLUTTER] Received message from Native: ${message.length} chars');
-        return message;
+        if (event == null) return Uint8List(0);
+
+        // Native sends ByteArray → Dart gets Uint8List
+        if (event is Uint8List) return event;
+
+        // Fallback: List<int> (some codecs return this)
+        if (event is List) return Uint8List.fromList(event.cast<int>());
+
+        // Legacy fallback: if a String somehow arrives (e.g. old native code path),
+        // wrap it as [0x00] + utf8 bytes so onMessageReceived can decode it.
+        if (event is String) {
+          LogService.warning('⚠️ [RAW_STREAM] received String event (legacy) – wrapping as text frame');
+          final textBytes = utf8.encode(event);
+          final framed = Uint8List(textBytes.length + 1);
+          framed[0] = 0x00;
+          framed.setRange(1, framed.length, textBytes);
+          return framed;
+        }
+
+        LogService.warning('⚠️ [RAW_STREAM] unexpected event type: ${event.runtimeType}');
+        return Uint8List(0);
       } catch (e) {
-        LogService.error('خطأ في معالجة الرسالة المستلمة', e);
-        return '';
+        LogService.error('⚠️ [RAW_STREAM] error mapping event', e);
+        return Uint8List(0);
       }
     }).asBroadcastStream();
+    return _rawMessageStream!;
+  }
 
-    return _messageStream!;
+  /// Stream للرسائل المستلمة
+  Stream<String> get onMessageReceived {
+    return _onRawMessageReceived.where((bytes) => bytes.isNotEmpty && bytes[0] == 0x00).map((bytes) {
+      try {
+        final message = utf8.decode(bytes.sublist(1));
+        LogService.info('📥 [FLUTTER] Received text from Native: ${message.length} chars');
+        return message;
+      } catch (e) {
+        LogService.error('خطأ في فك ترميز الرسالة المستلمة', e);
+        return '';
+      }
+    });
+  }
+
+  /// Stream للرسائل الثنائية (DTN chunks)
+  Stream<Uint8List> get onBinaryMessageReceived {
+    return _onRawMessageReceived.where((bytes) => bytes.isNotEmpty && bytes[0] == 0x01).map((bytes) {
+      LogService.info('📥 [FLUTTER] Received binary payload: ${bytes.length - 1} bytes');
+      return bytes.sublist(1);
+    });
   }
 
   /// Stream لحالة Socket
@@ -695,7 +774,7 @@ class MeshService {
     await database.enqueueRelayPacket(
       RelayQueueTableCompanion.insert(
         packetId: message.messageId,
-        toHash: message.finalDestinationId, // Blind relay header only
+        toHash: sha256.convert(utf8.encode(message.finalDestinationId)).toString(), // Blind relay header only (Hashed)
         ttl: Value(ttl),
         payload: message.toJsonString(), // Persist newest hop metadata
         createdAt: message.timestamp,
@@ -1079,6 +1158,12 @@ class MeshService {
         DateTime.now().difference(last) < const Duration(seconds: 10)) {
       return;
     }
+    final authStatus = _ref.read(authServiceProvider);
+    if (authStatus != AuthStatus.loggedIn) {
+      LogService.warning('Cannot fallback connect: User not logged in.');
+      return;
+    }
+
     _lastFallbackAttemptAt[deviceId] = DateTime.now();
 
     var delayMs = 1500;
@@ -1137,6 +1222,15 @@ class MeshService {
     if (_handshakeInProgress.contains(peerId)) {
       return false;
     }
+    final authStatus = _ref.read(authServiceProvider);
+    if (authStatus != AuthStatus.loggedIn) {
+      LogService.warning('Cannot handshake: User not logged in. Closing native socket.');
+      _handshakeInProgress.remove(peerId);
+      _markPeerDisconnected(peerId, reason: 'user_not_logged_in');
+      await closeSocket();
+      return false;
+    }
+
     _handshakeInProgress.add(peerId);
     _handshakeProtocol ??= _ref.read(handshakeProtocolProvider);
     try {

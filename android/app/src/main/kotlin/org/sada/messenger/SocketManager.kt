@@ -260,11 +260,9 @@ class SocketManager private constructor() {
             val payloadStart = offset + FRAME_HEADER_SIZE_BYTES
             val payloadEnd = payloadStart + messageSize
             val messageBytes = data.copyOfRange(payloadStart, payloadEnd)
-            val message = String(messageBytes, Charsets.UTF_8)
 
             Log.d(TAG, "${peerTag()} 📥 [READ] Received frame: $messageSize bytes payload.")
-            Log.v(TAG, "   Payload content: ${message.take(200)}")
-            messageEventSink?.success(message)
+            messageEventSink?.success(messageBytes)
 
             offset += frameSize
         }
@@ -312,7 +310,6 @@ class SocketManager private constructor() {
             }
 
             Log.d(TAG, "${peerTag()} 📤 [WRITE] Sent frame: ${data.size} bytes payload + 4 bytes header. Total: ${framed.size} bytes.")
-            Log.v(TAG, "   Payload context: ${String(data, Charsets.UTF_8).take(200)}")
             true
         } catch (e: IOException) {
             Log.e(TAG, "${peerTag()} Error writing data", e)
@@ -329,7 +326,12 @@ class SocketManager private constructor() {
      * كتابة نص (String) إلى Socket
      */
     fun writeText(text: String): Boolean {
-        return write(text.toByteArray(Charsets.UTF_8))
+        val textBytes = text.toByteArray(Charsets.UTF_8)
+        val framed = java.nio.ByteBuffer.allocate(1 + textBytes.size)
+            .put(0x00.toByte())
+            .put(textBytes)
+            .array()
+        return write(framed)
     }
 
     /**

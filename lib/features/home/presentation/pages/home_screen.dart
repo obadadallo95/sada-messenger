@@ -592,7 +592,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 class _NetworkStatusIndicator extends StatelessWidget {
   final NetworkState state;
 
-  const _NetworkStatusIndicator({super.key, required this.state});
+  const _NetworkStatusIndicator({required this.state});
 
   @override
   Widget build(BuildContext context) {

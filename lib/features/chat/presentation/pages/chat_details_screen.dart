@@ -10,6 +10,7 @@ import '../../data/repositories/messages_provider.dart';
 import '../../application/chat_controller.dart';
 import '../../domain/models/message_model.dart';
 import '../widgets/message_bubble.dart';
+import '../widgets/voice_recorder_button.dart';
 import '../../../network/presentation/providers/network_state_provider.dart';
 
 /// شاشة تفاصيل المحادثة
@@ -26,9 +27,23 @@ class _ChatDetailsScreenState extends ConsumerState<ChatDetailsScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
+  String? _currentPeerId; // cached for voice messages
+
   String _shortId(String value) {
     if (value.length <= 8) return value;
     return value.substring(0, 8);
+  }
+
+  Future<String?> _resolvePeerId() async {
+    if (_currentPeerId != null) return _currentPeerId;
+    if (!widget.chat.isGroup) {
+      try {
+        final database = await ref.read(appDatabaseProvider.future);
+        final chatData = await database.getChatById(widget.chat.id);
+        _currentPeerId = chatData?.peerId;
+      } catch (_) {}
+    }
+    return _currentPeerId;
   }
 
   @override
@@ -43,53 +58,37 @@ class _ChatDetailsScreenState extends ConsumerState<ChatDetailsScreen> {
     if (text.isEmpty) return;
 
     try {
-      // إرسال الرسالة عبر ChatController
       final controller = ref.read(chatControllerProvider.notifier);
-
-      // الحصول على peerId من قاعدة البيانات إذا كانت المحادثة فردية
-      String? peerId;
-      if (!widget.chat.isGroup) {
-        try {
-          final database = await ref.read(appDatabaseProvider.future);
-          final chatData = await database.getChatById(widget.chat.id);
-          peerId = chatData?.peerId;
-        } catch (e) {
-          // في حالة الفشل، نترك peerId = null وChatController سيتعامل معه
-          peerId = null;
-        }
-      }
-
+      final peerId = await _resolvePeerId();
       await controller.sendMessage(widget.chat.id, text, peerId: peerId);
-
       _messageController.clear();
-
-      // Scroll to bottom
-      _scrollController.animateTo(
-        0,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-      );
+      _scrollController.animateTo(0,
+          duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
     } catch (e) {
-      // إظهار رسالة خطأ للمستخدم
-      if (mounted) {
-        final errorMessage = e.toString();
-        final String userMessage;
+      if (!mounted) return;
+      final msg = e.toString().contains('Socket') || e.toString().contains('غير متصل')
+          ? 'Socket غير متصل - تأكد من اتصال WiFi P2P بين الأجهزة'
+          : 'فشل إرسال الرسالة: ${e.toString()}';
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(msg),
+        backgroundColor: Theme.of(context).colorScheme.error,
+        duration: const Duration(seconds: 4),
+      ));
+    }
+  }
 
-        if (errorMessage.contains('Socket') ||
-            errorMessage.contains('غير متصل')) {
-          userMessage = 'Socket غير متصل - تأكد من اتصال WiFi P2P بين الأجهزة';
-        } else {
-          userMessage = 'فشل إرسال الرسالة: ${e.toString()}';
-        }
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(userMessage),
-            backgroundColor: Theme.of(context).colorScheme.error,
-            duration: const Duration(seconds: 4),
-          ),
-        );
-      }
+  Future<void> _onVoiceRecorded(String filePath) async {
+    try {
+      final controller = ref.read(chatControllerProvider.notifier);
+      final peerId = await _resolvePeerId();
+      await controller.sendVoiceMessage(widget.chat.id, filePath, peerId: peerId);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('فشل إرسال الرسالة الصوتية: ${e.toString()}'),
+        backgroundColor: Theme.of(context).colorScheme.error,
+        duration: const Duration(seconds: 4),
+      ));
     }
   }
 
@@ -293,6 +292,9 @@ class _ChatDetailsScreenState extends ConsumerState<ChatDetailsScreen> {
                               onSubmitted: (_) => _sendMessage(),
                             ),
                           ),
+                          SizedBox(width: 4.w),
+                          // Voice recorder button
+                          VoiceRecorderButton(onDone: _onVoiceRecorded),
                           SizedBox(width: 4.w),
                           // زر الإرسال
                           Container(

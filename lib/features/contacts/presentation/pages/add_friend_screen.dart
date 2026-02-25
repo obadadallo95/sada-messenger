@@ -16,6 +16,7 @@ import '../../../../core/services/auth_service.dart';
 import '../../../../core/database/database_provider.dart';
 import '../../../../core/database/app_database.dart';
 import '../../../../core/security/security_providers.dart';
+import '../../../../core/network/mesh_service.dart';
 import '../../../chat/domain/models/chat_model.dart';
 import '../../../../core/widgets/mesh_gradient_background.dart';
 import '../../../../core/widgets/glass_card.dart';
@@ -330,7 +331,31 @@ class _AddFriendScreenState extends ConsumerState<AddFriendScreen>
     String contactId,
     UserData currentUser,
   ) async {
-    // Logic same as original, omitted for brevity but assumed operational
+    try {
+      // Build a CONTACT_EXCHANGE payload with our profile info
+      final keyManager = ref.read(keyManagerProvider);
+      final publicKeyBytes = await keyManager.getPublicKey();
+      final publicKeyBase64 = base64Encode(publicKeyBytes);
+
+      final profilePayload = jsonEncode({
+        'name': currentUser.displayName,
+        'publicKey': publicKeyBase64,
+      });
+
+      final meshService = ref.read(meshServiceProvider);
+      await meshService.sendMeshMessage(
+        contactId,
+        profilePayload,
+        senderId: currentUser.userId,
+        maxHops: 10,
+        type: 'CONTACT_EXCHANGE',
+      );
+
+      LogService.info('📤 Sent CONTACT_EXCHANGE to $contactId');
+    } catch (e) {
+      LogService.warning('فشل إرسال CONTACT_EXCHANGE: $e');
+      // Don't rethrow — friend was already added locally, exchange is best-effort
+    }
   }
 
   int _generateAvatarColor(String name) {

@@ -225,28 +225,31 @@ class MainActivity : FlutterFragmentActivity() {
 
                     "socket_write" -> {
                         val peerId = call.argument<String>("peerId")
-                        val message = call.argument<String>("message")
+                        val data = call.argument<ByteArray>("data")
                         socketManager.setCurrentPeerId(peerId)
-                        if (message != null) {
-                            val isConnected = socketManager.isSocketConnected()
-                            Log.d(TAG, "socket_write called - peerId: $peerId, isConnected: $isConnected")
-                            Log.d(TAG, "Message preview: ${message.take(100)}...")
-                            
-                            if (!isConnected) {
-                                Log.w(TAG, "⚠️ Socket is NOT connected - cannot send message")
-                                result.success(false)
-                            } else {
-                                val success = socketManager.writeText(message)
-                                if (success) {
-                                    Log.d(TAG, "✅ Message sent successfully")
-                                } else {
-                                    Log.e(TAG, "❌ Failed to write message to socket")
-                                }
-                                result.success(success)
-                            }
+                        val isConnected = socketManager.isSocketConnected()
+
+                        if (!isConnected) {
+                            Log.w(TAG, "⚠️ Socket is NOT connected - cannot send message")
+                            result.success(false)
+                            return@setMethodCallHandler
+                        }
+
+                        if (data != null) {
+                            Log.d(TAG, "socket_write called with ByteArray - peerId: $peerId, isConnected: $isConnected")
+                            val success = socketManager.write(data)
+                            result.success(success)
                         } else {
-                            Log.e(TAG, "Message is null")
-                            result.error("INVALID_ARGUMENT", "Message is null", null)
+                            // Legacy string fallback
+                            val message = call.argument<String>("message")
+                            if (message != null) {
+                                Log.d(TAG, "socket_write called with String - peerId: $peerId, isConnected: $isConnected")
+                                val success = socketManager.writeText(message)
+                                result.success(success)
+                            } else {
+                                Log.e(TAG, "Message/Data is null")
+                                result.error("INVALID_ARGUMENT", "Message/Data is null", null)
+                            }
                         }
                     }
 

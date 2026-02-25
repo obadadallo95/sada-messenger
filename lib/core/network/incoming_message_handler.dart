@@ -3,6 +3,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'models/mesh_message.dart';
 import 'package:uuid/uuid.dart';
 import 'package:drift/drift.dart' hide Column;
 import '../database/database_provider.dart';
@@ -10,7 +11,6 @@ import '../database/app_database.dart';
 import '../security/security_providers.dart';
 import '../utils/log_service.dart';
 import '../network/mesh_service.dart';
-import 'models/mesh_message.dart';
 import '../services/auth_service.dart';
 import '../services/notification_provider.dart';
 import '../services/metrics_service.dart';
@@ -149,6 +149,24 @@ class IncomingMessageHandler {
       }
 
       final database = await _ref.read(appDatabaseProvider.future);
+
+      // ==================== CONTACT EXCHANGE BYPASS ====================
+      // CONTACT_EXCHANGE from a new friend must bypass the whitelist,
+      // otherwise the other device can never auto-add us.
+      if (isMeshMessage) {
+        final msgType = messageData['type']?.toString();
+        if (msgType == MeshMessage.typeContactExchange) {
+          LogService.info('🔄 CONTACT_EXCHANGE detected – bypassing whitelist');
+          await _handleContactExchange(
+            senderId: senderId,
+            content: isMeshMessage
+                ? (messageData['encryptedContent'] as String)
+                : encryptedContent,
+            database: database,
+          );
+          return;
+        }
+      }
 
       // ==================== SECURITY: Contact Whitelisting ====================
       // التحقق من أن المرسل هو جهة اتصال معروفة قبل معالجة الرسالة

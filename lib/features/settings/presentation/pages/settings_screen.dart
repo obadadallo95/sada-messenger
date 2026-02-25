@@ -50,8 +50,6 @@ class SettingsScreen extends ConsumerWidget {
             // Avatar Section
             _buildAvatarSection(context, ref),
             SizedBox(height: AppDimensions.spacingXl),
-            _buildDuressQuickSetupCard(context, ref, l10n),
-            SizedBox(height: AppDimensions.spacingLg),
 
             // قسم المظهر - GlassCard
             themeModeAsync.when(
@@ -161,8 +159,6 @@ class SettingsScreen extends ConsumerWidget {
                   _buildAppLockTile(context, ref, l10n),
                   Divider(height: AppDimensions.spacingLg),
                   _buildChangeMasterPinTile(context, ref, l10n),
-                  Divider(height: AppDimensions.spacingLg),
-                  _buildSetDuressPinTile(context, ref, l10n),
                 ],
               ),
             ),
@@ -781,81 +777,7 @@ class SettingsScreen extends ConsumerWidget {
       iconColor: Colors.blue,
       iconBackgroundColor: Colors.blue.withValues(alpha: 0.1),
       title: l10n.changeMasterPin,
-      onTap: () => _showChangePinDialog(context, ref, l10n, isMaster: true),
-    );
-  }
-
-  /// بناء عنصر تعيين Duress PIN
-  Widget _buildSetDuressPinTile(
-    BuildContext context,
-    WidgetRef ref,
-    AppLocalizations l10n,
-  ) {
-    return SettingsTile(
-      icon: Icons.security,
-      iconColor: Colors.red,
-      iconBackgroundColor: Colors.red.withValues(alpha: 0.1),
-      title: l10n.setDuressPin,
-      onTap: () => _showSetDuressPinDialog(context, ref, l10n),
-    );
-  }
-
-  /// بطاقة بارزة لإعداد Duress PIN بسرعة.
-  Widget _buildDuressQuickSetupCard(
-    BuildContext context,
-    WidgetRef ref,
-    AppLocalizations l10n,
-  ) {
-    final theme = Theme.of(context);
-    return GlassCard(
-      child: Container(
-        decoration: BoxDecoration(
-          color: theme.colorScheme.errorContainer.withValues(alpha: 0.2),
-          borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
-          border: Border.all(
-            color: theme.colorScheme.error.withValues(alpha: 0.35),
-          ),
-        ),
-        padding: EdgeInsets.all(AppDimensions.paddingMd),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(
-              Icons.shield_outlined,
-              color: theme.colorScheme.error,
-              size: AppDimensions.iconSizeLg,
-            ),
-            SizedBox(width: AppDimensions.spacingMd),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    l10n.setDuressPin,
-                    style: AppTypography.titleSmall(
-                      context,
-                    ).copyWith(fontWeight: FontWeight.w700),
-                  ),
-                  SizedBox(height: 6.h),
-                  Text(
-                    l10n.duressPinWarning,
-                    style: AppTypography.bodySmall(
-                      context,
-                    ).copyWith(color: theme.colorScheme.onSurfaceVariant),
-                  ),
-                  SizedBox(height: 10.h),
-                  ElevatedButton.icon(
-                    onPressed: () =>
-                        _showSetDuressPinDialog(context, ref, l10n),
-                    icon: const Icon(Icons.lock_open),
-                    label: Text(l10n.setDuressPin),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
+      onTap: () => _showChangePinDialog(context, ref, l10n),
     );
   }
 
@@ -863,23 +785,22 @@ class SettingsScreen extends ConsumerWidget {
   Future<void> _showChangePinDialog(
     BuildContext context,
     WidgetRef ref,
-    AppLocalizations l10n, {
-    required bool isMaster,
-  }) async {
+    AppLocalizations l10n,
+  ) async {
     final pinController = TextEditingController();
     final confirmPinController = TextEditingController();
 
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(isMaster ? l10n.changeMasterPin : l10n.setDuressPin),
+        title: Text(l10n.changeMasterPin),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
               controller: pinController,
               decoration: InputDecoration(
-                labelText: isMaster ? l10n.enterMasterPin : l10n.enterDuressPin,
+                labelText: l10n.enterMasterPin,
                 hintText: '••••••',
               ),
               obscureText: true,
@@ -926,9 +847,7 @@ class SettingsScreen extends ConsumerWidget {
 
     if (result == true) {
       final authService = ref.read(authServiceProvider.notifier);
-      final success = isMaster
-          ? await authService.setMasterPin(pinController.text)
-          : await authService.setDuressPin(pinController.text);
+      final success = await authService.setMasterPin(pinController.text);
 
       pinController.dispose();
       confirmPinController.dispose();
@@ -938,9 +857,7 @@ class SettingsScreen extends ConsumerWidget {
           SnackBar(
             content: Text(
               success
-                  ? (isMaster
-                        ? l10n.pinChangedSuccessfully
-                        : l10n.pinSetSuccessfully)
+                   ? l10n.pinChangedSuccessfully
                   : 'فشل تعيين PIN',
             ),
             backgroundColor: success
@@ -949,40 +866,6 @@ class SettingsScreen extends ConsumerWidget {
           ),
         );
       }
-    }
-  }
-
-  /// عرض حوار تعيين Duress PIN مع تحذير
-  Future<void> _showSetDuressPinDialog(
-    BuildContext context,
-    WidgetRef ref,
-    AppLocalizations l10n,
-  ) async {
-    // عرض تحذير أولاً
-    final proceed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('⚠️ تحذير'),
-        content: Text(l10n.duressPinWarning),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text('إلغاء'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            child: Text('متابعة'),
-          ),
-        ],
-      ),
-    );
-
-    if (proceed == true && context.mounted) {
-      await _showChangePinDialog(context, ref, l10n, isMaster: false);
     }
   }
 

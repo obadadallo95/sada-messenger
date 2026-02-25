@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'dart:ui';
 import '../../domain/models/message_model.dart';
+import 'voice_message_bubble.dart';
 
 /// Widget لعرض فقاعة الرسالة
 /// Cyber-Stealth aesthetic with glassmorphism
@@ -62,6 +63,15 @@ class MessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Delegate voice messages to specialised bubble
+    if (message.messageType == 'voice') {
+      return VoiceMessageBubble(
+        filePath: message.text, // text holds the file path for voice type
+        isMe: message.isMe,
+        timestamp: message.timestamp,
+      );
+    }
+
     final theme = Theme.of(context);
 
     if (message.isMe) {

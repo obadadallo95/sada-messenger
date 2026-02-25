@@ -9,7 +9,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/power_mode.dart';
-import '../services/auth_service.dart';
 import '../utils/log_service.dart';
 import '../database/app_database.dart';
 import '../database/database_provider.dart';
@@ -527,8 +526,6 @@ void onStart(ServiceInstance service) async {
     _backgroundContainer = ProviderContainer(
       overrides: [
         appDatabaseProvider.overrideWith((ref) => Future.value(database)),
-        currentAuthTypeProvider.overrideWith((ref) => AuthType.master),
-        databaseModeProvider.overrideWith((ref) => DatabaseMode.real),
       ],
     );
     LogService.info('Database Initialized in Background Service');

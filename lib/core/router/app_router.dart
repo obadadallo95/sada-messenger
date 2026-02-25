@@ -23,7 +23,6 @@ import '../../features/notifications/presentation/pages/notifications_screen.dar
 import '../../features/duress/presentation/pages/safe_notes_screen.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/biometric_service.dart';
-import '../../core/database/database_provider.dart';
 import '../../core/widgets/custom_bottom_nav.dart';
 import 'routes.dart';
 
@@ -43,30 +42,7 @@ GoRouter appRouter(Ref ref) {
       final isInitializing = authStatus == AuthStatus.initializing;
       final isLockEnabled = biometricState.isAppLockEnabled;
       
-      // الحصول على AuthType من Provider (reactive)
-      final authType = ref.watch(currentAuthTypeProvider);
-      final isAuthenticated = authType != null && 
-                              (authType == AuthType.master || authType == AuthType.duress);
-      
-      // تحديد الصفحات المحمية (تتطلب AuthType)
-      final protectedRoutes = [
-        AppRoutes.home,
-        AppRoutes.chat,
-        AppRoutes.settings,
-        AppRoutes.addFriend,
-        AppRoutes.scanQr,
-        AppRoutes.myQr,
-        AppRoutes.createGroup,
-        AppRoutes.groups,
-        AppRoutes.meshDebug,
-        AppRoutes.notifications,
-        AppRoutes.about,
-        AppRoutes.privacy,
-        AppRoutes.groupInfo,
-      ];
-      
-      final isOnProtectedRoute = protectedRoutes.any((route) => 
-        state.matchedLocation.startsWith(route));
+      final isAppUnlocked = ref.watch(isAppUnlockedProvider);
       
       final isOnAuthPage = state.matchedLocation == AppRoutes.register ||
           state.matchedLocation == AppRoutes.splash ||
@@ -83,34 +59,27 @@ GoRouter appRouter(Ref ref) {
         return AppRoutes.register;
       }
 
-      // Rule 2: إذا كان مسجل دخول لكن AuthType غير محدد (لم يدخل PIN بعد)
-      // وليس في صفحة Lock، redirect إلى lock
-      if (isLoggedIn && !isAuthenticated && !isOnAuthPage) {
+      // Rule 2: إذا كان مسجل دخول لكن قفل التطبيق مفعل ولم يفتح القفل بعد وهو في صفحة محمية أو SplashScreen
+      if (isLoggedIn && isLockEnabled && !isAppUnlocked && !isOnAuthPage) {
         return AppRoutes.lock;
       }
 
       // Rule 3: إذا كان مسجل دخول وهو في صفحة register، redirect إلى lock أو home
       if (isLoggedIn && state.matchedLocation == AppRoutes.register) {
-        if (isLockEnabled || !isAuthenticated) {
+        if (isLockEnabled && !isAppUnlocked) {
           return AppRoutes.lock;
         }
         return AppRoutes.home;
       }
 
-      // Rule 4: إذا كان مسجل دخول ومصادق عليه (AuthType محدد) وهو في صفحة Lock، redirect إلى home
-      if (isLoggedIn && isAuthenticated && state.matchedLocation == AppRoutes.lock) {
+      // Rule 4: إذا كان مسجل دخول وهو في صفحة Lock وتم الفتح (أو القفل غير مفعل)، redirect إلى home
+      if (isLoggedIn && state.matchedLocation == AppRoutes.lock && (!isLockEnabled || isAppUnlocked)) {
         return AppRoutes.home;
       }
 
-      // Rule 5: إذا كان مسجل دخول لكن AuthType غير محدد وهو يحاول الوصول لصفحة محمية، redirect إلى lock
-      if (isLoggedIn && !isAuthenticated && isOnProtectedRoute) {
-        return AppRoutes.lock;
-      }
-
-      // Rule 6: إذا كان قفل التطبيق مفعل وليس في صفحة Lock، redirect إلى lock
-      if (isLoggedIn && isLockEnabled && state.matchedLocation != AppRoutes.lock && 
-          !isAuthenticated) {
-        return AppRoutes.lock;
+      // Rule 5: إذا كان قفل التطبيق مفعل وهو في SplashScreen فقط ولم يفك القفل
+      if (isLoggedIn && isLockEnabled && state.matchedLocation == AppRoutes.splash && !isAppUnlocked) {
+         return AppRoutes.lock;
       }
 
       return null;

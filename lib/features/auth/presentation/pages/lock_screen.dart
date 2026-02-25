@@ -102,7 +102,7 @@ class _LockScreenState extends ConsumerState<LockScreen> {
     });
 
     if (success) {
-      await _handleSuccessfulAuth(AuthType.master);
+      await _handleSuccessfulAuth();
     } else {
       setState(() {
         _showPinPad = true;
@@ -143,7 +143,7 @@ class _LockScreenState extends ConsumerState<LockScreen> {
     });
 
     final authService = ref.read(authServiceProvider.notifier);
-    final authType = await authService.verifyPin(_enteredPin);
+    final success = await authService.verifyPin(_enteredPin);
 
     if (!mounted) return;
 
@@ -151,22 +151,22 @@ class _LockScreenState extends ConsumerState<LockScreen> {
       _isAuthenticating = false;
     });
 
-    if (authType == AuthType.failure) {
+    if (!success) {
       setState(() {
         _enteredPin = '';
       });
       HapticFeedback.heavyImpact();
       await _syncLockoutState();
     } else {
-      await _handleSuccessfulAuth(authType);
+      await _handleSuccessfulAuth();
     }
   }
 
-  Future<void> _handleSuccessfulAuth(AuthType authType) async {
+  Future<void> _handleSuccessfulAuth() async {
     try {
-      ref.read(currentAuthTypeProvider.notifier).state = authType;
+      ref.read(isAppUnlockedProvider.notifier).state = true;
       final dbInitializer = ref.read(databaseInitializerProvider);
-      await dbInitializer.initializeDatabase(authType);
+      await dbInitializer.initializeDatabase();
 
       if (!mounted) return;
 

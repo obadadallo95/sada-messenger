@@ -19,6 +19,8 @@ class MessageModel {
   final MessageStatus status;
   final String? senderName; // اسم المرسل (للمجموعات)
   final int? senderColor; // لون المرسل (للمجموعات)
+  /// 'text' | 'voice' | 'image' | 'file'
+  final String messageType;
 
   const MessageModel({
     required this.id,
@@ -29,6 +31,7 @@ class MessageModel {
     this.status = MessageStatus.sent,
     this.senderName,
     this.senderColor,
+    this.messageType = 'text',
   });
 
   factory MessageModel.fromJson(Map<String, dynamic> json) {
@@ -44,6 +47,7 @@ class MessageModel {
       ),
       senderName: json['senderName'] as String?,
       senderColor: json['senderColor'] as int?,
+      messageType: json['messageType'] as String? ?? 'text',
     );
   }
 
@@ -57,6 +61,7 @@ class MessageModel {
       'status': status.name,
       'senderName': senderName,
       'senderColor': senderColor,
+      'messageType': messageType,
     };
   }
 
@@ -69,6 +74,7 @@ class MessageModel {
     MessageStatus? status,
     String? senderName,
     int? senderColor,
+    String? messageType,
   }) {
     return MessageModel(
       id: id ?? this.id,
@@ -79,6 +85,7 @@ class MessageModel {
       status: status ?? this.status,
       senderName: senderName ?? this.senderName,
       senderColor: senderColor ?? this.senderColor,
+      messageType: messageType ?? this.messageType,
     );
   }
 

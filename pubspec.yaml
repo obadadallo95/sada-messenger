@@ -91,6 +91,10 @@ dependencies:
   nearby_connections: ^4.3.0
   wakelock_plus: ^1.4.0
 
+  # Voice Messaging
+  record: ^6.2.0
+  audioplayers: ^6.1.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

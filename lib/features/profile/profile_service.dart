@@ -6,14 +6,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
-import '../../core/services/auth_service.dart';
-import '../../core/database/database_provider.dart';
 import '../../core/utils/log_service.dart';
 
 /// Provider لـ ProfileService
 final profileServiceProvider =
     StateNotifierProvider<ProfileService, ProfileState>(
-  (ref) => ProfileService(ref),
+  (ref) => ProfileService(),
 );
 
 /// حالة الملف الشخصي
@@ -41,9 +39,7 @@ class ProfileState {
 /// تتعامل مع الصور الشخصية مع دعم Duress Mode
 class ProfileService extends StateNotifier<ProfileState> {
   static const String _avatarRealKey = 'avatar_real';
-  static const String _avatarDuressKey = 'avatar_duress';
 
-  final Ref _ref;
   // Modern 2026: EncryptedSharedPreferences is deprecated, using default secure storage
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage(
     aOptions: AndroidOptions(),
@@ -54,19 +50,14 @@ class ProfileService extends StateNotifier<ProfileState> {
 
   final ImagePicker _imagePicker = ImagePicker();
 
-  ProfileService(this._ref) : super(ProfileState()) {
+  ProfileService() : super(ProfileState()) {
     _loadAvatar();
   }
 
-  /// تحميل الصورة الشخصية بناءً على AuthMode الحالي
+  /// تحميل الصورة الشخصية
   Future<void> _loadAvatar() async {
     try {
-      final authType = _ref.read(currentAuthTypeProvider);
-      final storageKey = authType == AuthType.duress
-          ? _avatarDuressKey
-          : _avatarRealKey;
-
-      final avatarBase64 = await _secureStorage.read(key: storageKey);
+      final avatarBase64 = await _secureStorage.read(key: _avatarRealKey);
       state = state.copyWith(avatarBase64: avatarBase64);
     } catch (e) {
       LogService.error('خطأ في تحميل الصورة الشخصية', e);
@@ -102,13 +93,7 @@ class ProfileService extends StateNotifier<ProfileState> {
       // تحويل إلى Base64
       final base64String = base64Encode(compressedBytes);
 
-      // حفظ بناءً على AuthMode
-      final authType = _ref.read(currentAuthTypeProvider);
-      final storageKey = authType == AuthType.duress
-          ? _avatarDuressKey
-          : _avatarRealKey;
-
-      await _secureStorage.write(key: storageKey, value: base64String);
+      await _secureStorage.write(key: _avatarRealKey, value: base64String);
 
       // تحديث الحالة
       state = state.copyWith(
@@ -161,12 +146,7 @@ class ProfileService extends StateNotifier<ProfileState> {
   /// حذف الصورة الشخصية
   Future<void> deleteAvatar() async {
     try {
-      final authType = _ref.read(currentAuthTypeProvider);
-      final storageKey = authType == AuthType.duress
-          ? _avatarDuressKey
-          : _avatarRealKey;
-
-      await _secureStorage.delete(key: storageKey);
+      await _secureStorage.delete(key: _avatarRealKey);
 
       state = state.copyWith(avatarBase64: null);
 

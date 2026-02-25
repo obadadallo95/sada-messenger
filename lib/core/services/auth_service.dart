@@ -43,8 +43,8 @@ class UserData {
 /// حالة المصادقة
 enum AuthStatus { initializing, loggedIn, loggedOut }
 
-/// نوع المصادقة (Master أو Duress)
-enum AuthType { master, duress, failure }
+/// Provider لحالة قفل التطبيق
+final isAppUnlockedProvider = StateProvider<bool>((ref) => false);
 
 /// Provider لخدمة المصادقة
 final authServiceProvider = StateNotifierProvider<AuthService, AuthStatus>(
@@ -62,11 +62,9 @@ class AuthService extends StateNotifier<AuthStatus> {
   static const String _storageBackupKey = 'user_data_backup';
   static const String _deviceIdKey = 'device_id_fallback';
   static const String _masterPinHashKey = 'master_pin_hash';
-  static const String _duressPinHashKey = 'duress_pin_hash';
   static const String _failedPinAttemptsKey = 'failed_pin_attempts';
   static const String _pinLockUntilKey = 'pin_lock_until_epoch_ms';
   static const String _pinSaltKey = 'pin_salt';
-  static const String _authTypeKey = 'current_auth_type';
 
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage(
     aOptions: AndroidOptions(),
@@ -76,7 +74,6 @@ class AuthService extends StateNotifier<AuthStatus> {
   );
 
   UserData? _currentUser;
-  AuthType? _currentAuthType;
   sodium_sumo_libs.SodiumSumo? _sodiumSumo;
 
   AuthService() : super(AuthStatus.initializing) {
@@ -226,11 +223,6 @@ class AuthService extends StateNotifier<AuthStatus> {
 
   UserData? get currentUser => _currentUser;
   bool get isLoggedIn => state == AuthStatus.loggedIn;
-  AuthType? get currentAuthType => _currentAuthType;
-  bool get isAuthenticated =>
-      _currentAuthType != null &&
-      (_currentAuthType == AuthType.master ||
-          _currentAuthType == AuthType.duress);
 
   Future<String> _generatePinSalt() async {
     final existingSalt = await _secureStorage.read(key: _pinSaltKey);
@@ -353,40 +345,21 @@ class AuthService extends StateNotifier<AuthStatus> {
     }
   }
 
-  Future<bool> setDuressPin(String pin) async {
-    try {
-      if (!_isValidPin(pin)) {
-        LogService.warning('PIN يجب أن يكون 6 أرقام بالضبط');
-        return false;
-      }
-
-      final hash = await _hashPinStrong(pin);
-      await _secureStorage.write(key: _duressPinHashKey, value: hash);
-      await _clearPinFailures();
-      LogService.info('تم تعيين Duress PIN بنجاح');
-      return true;
-    } catch (e) {
-      LogService.error('خطأ في تعيين Duress PIN', e);
-      return false;
-    }
-  }
-
-  Future<AuthType> verifyPin(String inputPin) async {
+  Future<bool> verifyPin(String inputPin) async {
     try {
       if (!_isValidPin(inputPin)) {
         await _registerPinFailure();
         LogService.warning('PIN format invalid');
-        return AuthType.failure;
+        return false;
       }
 
       final remainingLockout = await getRemainingLockoutSeconds();
       if (remainingLockout > 0) {
         LogService.warning('PIN locked. Remaining: ${remainingLockout}s');
-        return AuthType.failure;
+        return false;
       }
 
       final masterPinHash = await _secureStorage.read(key: _masterPinHashKey);
-      final duressPinHash = await _secureStorage.read(key: _duressPinHashKey);
 
       if (masterPinHash != null &&
           await _verifyPinHash(inputPin, masterPinHash)) {
@@ -396,32 +369,16 @@ class AuthService extends StateNotifier<AuthStatus> {
           _masterPinHashKey,
         );
         await _clearPinFailures();
-        _currentAuthType = AuthType.master;
-        await _secureStorage.write(key: _authTypeKey, value: 'master');
         LogService.info('تم التحقق من Master PIN بنجاح');
-        return AuthType.master;
-      }
-
-      if (duressPinHash != null &&
-          await _verifyPinHash(inputPin, duressPinHash)) {
-        await _migrateLegacyPinIfNeeded(
-          inputPin,
-          duressPinHash,
-          _duressPinHashKey,
-        );
-        await _clearPinFailures();
-        _currentAuthType = AuthType.duress;
-        await _secureStorage.write(key: _authTypeKey, value: 'duress');
-        LogService.info('تم التحقق من Duress PIN - تم تفعيل Duress Mode');
-        return AuthType.duress;
+        return true;
       }
 
       await _registerPinFailure();
       LogService.warning('PIN غير صحيح');
-      return AuthType.failure;
+      return false;
     } catch (e) {
       LogService.error('خطأ في التحقق من PIN', e);
-      return AuthType.failure;
+      return false;
     }
   }
 
@@ -430,15 +387,8 @@ class AuthService extends StateNotifier<AuthStatus> {
     return masterPinHash != null;
   }
 
-  Future<bool> hasDuressPin() async {
-    final duressPinHash = await _secureStorage.read(key: _duressPinHashKey);
-    return duressPinHash != null;
-  }
-
   void resetAuthType() async {
-    _currentAuthType = null;
-    await _secureStorage.delete(key: _authTypeKey);
     await _clearPinFailures();
-    LogService.info('تم إعادة تعيين AuthType');
+    LogService.info('تم إعادة تعيين حالة قفل التطبيق');
   }
 }
