@@ -46,15 +46,29 @@ class EncryptionService {
     final sodiumSumo = _sodiumSumo!;
 
     try {
-      if (remotePublicKey.length != sodium.crypto.box.publicKeyBytes) {
+      // تحويل Remote Public Key (Ed25519) إلى X25519
+      // نفترض أن remotePublicKey هو Ed25519 (Identity Key)
+      // إذا كان قديم (X25519) سيتم تحويله وقد ينتج مفتاح غير صالح، ولكن بما أن المفاتيح
+      // المحلية تم تدويرها، لن يعمل فك التشفير القديم على أي حال.
+      Uint8List x25519RemotePublicKey;
+      try {
+        x25519RemotePublicKey = sodium.crypto.sign.ed25519PkToCurve25519(remotePublicKey);
+      } catch (e) {
+        // محاولة استخدامه كما هو (قد يكون X25519 بالفعل في بعض الحالات النادرة)
+        LogService.warning('فشل تحويل Public Key إلى Curve25519 - استخدام الأصل', e);
+        x25519RemotePublicKey = remotePublicKey;
+      }
+
+      if (x25519RemotePublicKey.length != sodium.crypto.box.publicKeyBytes) {
         throw ArgumentError(
-          'طول المفتاح العام غير صالح: ${remotePublicKey.length} '
-          '(expected ${sodium.crypto.box.publicKeyBytes})',
+          'طول المفتاح العام غير صالح: ${x25519RemotePublicKey.length} ',
         );
       }
 
-      // الحصول على المفتاح الخاص
-      final myPrivateKey = await _keyManager.getPrivateKey();
+      // الحصول على مفاتيح التشفير (X25519) الخاصة بي (المشتقة من Ed25519)
+      final myEncryptionKeyPair = await _keyManager.getEncryptionKeyPair();
+      final myPrivateKey = myEncryptionKeyPair.privateKey;
+
       if (myPrivateKey.length != sodium.crypto.box.secretKeyBytes) {
         throw StateError(
           'طول المفتاح الخاص غير صالح: ${myPrivateKey.length} '
@@ -69,7 +83,7 @@ class EncryptionService {
       try {
         sharedSecretSecureKey = sodiumSumo.crypto.scalarmult(
           n: myPrivateSecureKey,
-          p: remotePublicKey,
+          p: x25519RemotePublicKey,
         );
 
         final ecdhSharedSecret = sharedSecretSecureKey.runUnlockedSync(
