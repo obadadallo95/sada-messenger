@@ -160,6 +160,9 @@ class _MeshDebugScreenState extends ConsumerState<MeshDebugScreen> {
       'db_statusCounts: ${(_deliveryDiagnostics['database']?['statusCounts']) ?? '-'}',
       'db_retryBacklog: ${(_deliveryDiagnostics['database']?['retryBacklog']) ?? '-'}',
       'db_recentFailedMessageIds: ${(_deliveryDiagnostics['database']?['recentFailedMessageIds']) ?? '-'}',
+      'last_message_id: ${(_deliveryDiagnostics['transport']?['lastMessageId']) ?? '-'}',
+      'last_hop_count: ${(_deliveryDiagnostics['transport']?['lastHopCount']) ?? '-'}',
+      'last_trace: ${(_deliveryDiagnostics['transport']?['lastMessageTrace']) ?? '-'}',
     ];
     return lines.join('\n');
   }
@@ -345,6 +348,8 @@ class _MeshDebugScreenState extends ConsumerState<MeshDebugScreen> {
               _buildBackgroundDiagnosticsCard(theme),
               SizedBox(height: 16.h),
               _buildDeliveryDiagnosticsCard(theme),
+              SizedBox(height: 16.h),
+              _buildLastMessageCard(theme),
               SizedBox(height: 16.h),
               _buildInfoCard(
                 theme,
@@ -753,6 +758,46 @@ class _MeshDebugScreenState extends ConsumerState<MeshDebugScreen> {
                 style: TextStyle(color: Colors.grey[600], fontSize: 12.sp),
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLastMessageCard(ThemeData theme) {
+    final transport = (_deliveryDiagnostics['transport'] as Map?) ?? const {};
+    final msgId = transport['lastMessageId']?.toString() ?? '-';
+    final hops = transport['lastHopCount']?.toString() ?? '-';
+    final trace = (transport['lastMessageTrace'] as List?)?.join(' -> ') ?? '-';
+
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
+      child: Padding(
+        padding: EdgeInsets.all(16.w),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.route, color: Colors.teal),
+                SizedBox(width: 8.w),
+                Text(
+                  'آخر رسالة مستلمة (Hop Count)',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 12.h),
+            Center(child: _buildMetricItem('Hop Count', hops, color: Colors.teal)),
+            SizedBox(height: 8.h),
+            Text('Message ID:', style: TextStyle(fontSize: 12.sp, color: Colors.grey)),
+            Text(msgId, style: TextStyle(fontSize: 10.sp, fontFamily: 'monospace')),
+            SizedBox(height: 8.h),
+            Text('Trace:', style: TextStyle(fontSize: 12.sp, color: Colors.grey)),
+            Text(trace, style: TextStyle(fontSize: 10.sp, fontFamily: 'monospace')),
           ],
         ),
       ),
