@@ -61,17 +61,17 @@ class KeyManager {
   }
 
   /// توليد زوج مفاتيح جديد
-  /// يستخدم Curve25519 (crypto_box)
+  /// يستخدم Ed25519 (crypto_sign) للهوية والتوقيع
   Future<KeyPair> generateKeyPair() async {
     _ensureInitialized();
     final sodium = _sodium!;
 
     try {
-      // توليد زوج المفاتيح باستخدام Curve25519
-      // sodium_libs API: استخدام crypto.box
-      final seedBytes = sodium.randombytes.buf(sodium.crypto.box.seedBytes);
+      // توليد زوج المفاتيح باستخدام Ed25519
+      // sodium_libs API: استخدام crypto.sign
+      final seedBytes = sodium.randombytes.buf(sodium.crypto.sign.seedBytes);
       final seed = SecureKey.fromList(sodium, seedBytes);
-      final keyPair = sodium.crypto.box.seedKeyPair(seed);
+      final keyPair = sodium.crypto.sign.seedKeyPair(seed);
 
       // حفظ PrivateKey بشكل آمن
       final privateKeyBytes = keyPair.secretKey.runUnlockedSync((bytes) => Uint8List.fromList(bytes));
@@ -81,7 +81,6 @@ class KeyManager {
       );
 
       // حفظ PublicKey في SharedPreferences العادية (للمشاركة عبر QR)
-      // سنستخدم SecureStorage أيضاً للأمان الإضافي
       await _secureStorage.write(
         key: _publicKeyStorageKey,
         value: base64Encode(keyPair.publicKey),
@@ -94,7 +93,7 @@ class KeyManager {
       
       seed.dispose();
 
-      LogService.info('تم توليد زوج المفاتيح بنجاح');
+      LogService.info('تم توليد زوج المفاتيح (Ed25519) بنجاح');
       return _cachedKeyPair!;
     } catch (e) {
       LogService.error('خطأ في توليد زوج المفاتيح', e);
@@ -104,12 +103,14 @@ class KeyManager {
 
   /// الحصول على زوج المفاتيح
   /// يحاول التحميل من التخزين، وإذا لم يكن موجوداً يولد واحداً جديداً
+  /// يقوم بترقية المفاتيح القديمة (Curve25519) إلى Ed25519
   Future<KeyPair> getKeyPair() async {
     if (_cachedKeyPair != null) {
       return _cachedKeyPair!;
     }
 
     _ensureInitialized();
+    final sodium = _sodium!;
 
     try {
       // محاولة تحميل المفاتيح من التخزين
@@ -117,11 +118,21 @@ class KeyManager {
       final publicKeyBase64 = await _secureStorage.read(key: _publicKeyStorageKey);
 
       if (privateKeyBase64 != null && publicKeyBase64 != null) {
+        final privateKeyBytes = base64Decode(privateKeyBase64);
+        final publicKeyBytes = base64Decode(publicKeyBase64);
+
+        // التحقق مما إذا كانت المفاتيح قديمة (Curve25519) أو جديدة (Ed25519)
+        if (privateKeyBytes.length != sodium.crypto.sign.secretKeyBytes) {
+           LogService.warning('⚠️ اكتشاف مفاتيح قديمة (Curve25519) - جاري الترقية إلى Ed25519...');
+           await deleteKeys();
+           return await generateKeyPair();
+        }
+
         _cachedKeyPair = KeyPair(
-          publicKey: base64Decode(publicKeyBase64),
-          privateKey: base64Decode(privateKeyBase64),
+          publicKey: publicKeyBytes,
+          privateKey: privateKeyBytes,
         );
-        LogService.info('تم تحميل المفاتيح من التخزين');
+        LogService.info('تم تحميل المفاتيح (Ed25519) من التخزين');
         return _cachedKeyPair!;
       } else {
         // لا توجد مفاتيح محفوظة - توليد جديد
@@ -132,6 +143,81 @@ class KeyManager {
       LogService.error('خطأ في تحميل المفاتيح', e);
       // في حالة الخطأ، توليد مفاتيح جديدة
       return await generateKeyPair();
+    }
+  }
+
+  /// تحويل مفاتيح Ed25519 الحالية إلى Curve25519 للتشفير (X25519)
+  Future<KeyPair> getEncryptionKeyPair() async {
+    final edKeyPair = await getKeyPair();
+    _ensureInitialized();
+    final sodium = _sodium!;
+
+    try {
+      final edPk = edKeyPair.publicKey;
+      final edSk = SecureKey.fromList(sodium, edKeyPair.privateKey);
+
+      // تحويل Public Key
+      final curvePk = sodium.crypto.sign.ed25519PkToCurve25519(edPk);
+
+      // تحويل Secret Key
+      final curveSk = sodium.crypto.sign.ed25519SkToCurve25519(edSk);
+
+      final curveSkBytes = curveSk.runUnlockedSync((bytes) => Uint8List.fromList(bytes));
+
+      return KeyPair(
+        publicKey: curvePk,
+        privateKey: curveSkBytes,
+      );
+    } catch (e) {
+      LogService.error('خطأ في اشتقاق مفاتيح التشفير', e);
+      rethrow;
+    }
+  }
+
+  /// تحويل Public Key خارجي من Ed25519 إلى Curve25519
+  Future<Uint8List> convertPublicKeyToX25519(Uint8List edPublicKey) async {
+    _ensureInitialized();
+    final sodium = _sodium!;
+    try {
+      return sodium.crypto.sign.ed25519PkToCurve25519(edPublicKey);
+    } catch (e) {
+      LogService.error('خطأ في تحويل Public Key', e);
+      rethrow;
+    }
+  }
+
+  /// توقيع رسالة باستخدام Ed25519 Private Key
+  Future<Uint8List> sign(Uint8List message) async {
+    final keyPair = await getKeyPair();
+    _ensureInitialized();
+    final sodium = _sodium!;
+
+    try {
+      final sk = SecureKey.fromList(sodium, keyPair.privateKey);
+      return sodium.crypto.sign.detached(
+        message: message,
+        secretKey: sk,
+      );
+    } catch (e) {
+      LogService.error('خطأ في توقيع الرسالة', e);
+      rethrow;
+    }
+  }
+
+  /// التحقق من توقيع رسالة باستخدام Ed25519 Public Key
+  Future<bool> verify(Uint8List message, Uint8List signature, Uint8List publicKey) async {
+    _ensureInitialized();
+    final sodium = _sodium!;
+
+    try {
+      return sodium.crypto.sign.verifyDetached(
+        message: message,
+        signature: signature,
+        publicKey: publicKey,
+      );
+    } catch (e) {
+      LogService.error('خطأ في التحقق من التوقيع', e);
+      return false;
     }
   }
 

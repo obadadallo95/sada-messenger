@@ -43,6 +43,7 @@ class MeshService {
   final Set<String> _connectedPeers = {};
   final _connectedPeersController = StreamController<List<String>>.broadcast();
   final Map<String, PeerSessionState> _peerStates = {};
+  final Map<String, HandshakeSession> _handshakeSessions = {};
   final Map<String, Completer<bool>> _handshakeAckWaiters = {};
   final Set<String> _handshakeInProgress = {};
   final Map<String, String> _peerIdByIp = {};
@@ -303,7 +304,16 @@ class MeshService {
 
   /// Stream للرسائل المستلمة
   Stream<String> get onMessageReceived {
-    return _onRawMessageReceived.where((bytes) => bytes.isNotEmpty && bytes[0] == 0x00).map((bytes) {
+    return _onRawMessageReceived.where((bytes) => bytes.isNotEmpty && bytes[0] == 0x00)
+    .where((_) {
+       // Filter out messages if handshake not complete
+       if (_activeSocketPeerId == null || !_connectedPeers.contains(_activeSocketPeerId)) {
+          LogService.warning('Blocked incoming text message from unauthenticated peer: $_activeSocketPeerId');
+          return false;
+       }
+       return true;
+    })
+    .map((bytes) {
       try {
         final message = utf8.decode(bytes.sublist(1));
         LogService.info('📥 [FLUTTER] Received text from Native: ${message.length} chars');
@@ -317,8 +327,25 @@ class MeshService {
 
   /// Stream للرسائل الثنائية (DTN chunks)
   Stream<Uint8List> get onBinaryMessageReceived {
-    return _onRawMessageReceived.where((bytes) => bytes.isNotEmpty && bytes[0] == 0x01).map((bytes) {
+    return _onRawMessageReceived.where((bytes) => bytes.isNotEmpty && bytes[0] == 0x01)
+    .where((_) {
+       // Filter out messages if handshake not complete
+       if (_activeSocketPeerId == null || !_connectedPeers.contains(_activeSocketPeerId)) {
+          LogService.warning('Blocked incoming binary message from unauthenticated peer: $_activeSocketPeerId');
+          return false;
+       }
+       return true;
+    })
+    .map((bytes) {
       LogService.info('📥 [FLUTTER] Received binary payload: ${bytes.length - 1} bytes');
+      return bytes.sublist(1);
+    });
+  }
+
+  /// Stream لرسائل Handshake (Header 0x02)
+  Stream<Uint8List> get onHandshakeMessageReceived {
+    return _onRawMessageReceived.where((bytes) => bytes.isNotEmpty && bytes[0] == 0x02).map((bytes) {
+      LogService.info('📥 [FLUTTER] Received handshake frame: ${bytes.length - 1} bytes');
       return bytes.sublist(1);
     });
   }
@@ -582,19 +609,6 @@ class MeshService {
     try {
       // Parse JSON
       final jsonData = _toJsonMap(rawMessage);
-
-      // التحقق من نوع الرسالة - هل هي Handshake؟
-      final messageType = jsonData['type']?.toString();
-
-      if (messageType == 'HANDSHAKE') {
-        await _handleIncomingHandshake(rawMessage);
-        return;
-      }
-
-      if (messageType == 'HANDSHAKE_ACK') {
-        await _handleHandshakeAck(rawMessage);
-        return;
-      }
 
       // Parse to MeshMessage
       final meshMessage = MeshMessage.fromJson(jsonData);
@@ -1063,6 +1077,37 @@ class MeshService {
             resolvedPeerId,
             reason: 'native status: $status',
           );
+          _handshakeSessions.remove(resolvedPeerId);
+        }
+      });
+
+      // الاستماع لرسائل Handshake
+      onHandshakeMessageReceived.listen((bytes) async {
+        try {
+          final json = utf8.decode(bytes);
+          final data = jsonDecode(json);
+          final type = data['type'];
+
+          String? peerId = data['senderId'];
+
+          if (peerId == null && _activeSocketPeerId != null && _activeSocketPeerId != 'unknown') {
+            peerId = _activeSocketPeerId;
+          }
+
+          if (peerId == null) {
+             LogService.warning('Received handshake message without peerId');
+             return;
+          }
+
+          if (type == HandshakeProtocol.TYPE_INIT) {
+             await _handleIncomingHandshakeInit(json, peerId);
+          } else if (type == HandshakeProtocol.TYPE_AUTH) {
+             await _handleIncomingHandshakeAuth(json, peerId);
+          } else if (type == HandshakeProtocol.TYPE_FIN) {
+             await _handleIncomingHandshakeFin(json, peerId);
+          }
+        } catch (e) {
+          LogService.error('Error handling handshake message', e);
         }
       });
 
@@ -1218,6 +1263,27 @@ class MeshService {
     }
   }
 
+  Future<bool> _socketWriteHandshake({
+    required String peerId,
+    required String message,
+    required String context,
+  }) async {
+      final payloadBytes = utf8.encode(message);
+      final framedBytes = Uint8List(payloadBytes.length + 1);
+      framedBytes[0] = 0x02; // Handshake header
+      framedBytes.setRange(1, framedBytes.length, payloadBytes);
+
+      final result = await _methodChannel.invokeMethod<bool>('socket_write', {
+        'peerId': peerId,
+        'data': framedBytes,
+      });
+
+      if (result == true) {
+        LogService.info('${_tag(peerId)} 📤 [HANDSHAKE] sent ($context)');
+      }
+      return result ?? false;
+  }
+
   Future<bool> _sendHandshakeWithRetry(String peerId) async {
     if (_handshakeInProgress.contains(peerId)) {
       return false;
@@ -1242,23 +1308,25 @@ class MeshService {
           reason: 'attempt $attempt',
         );
 
-        final handshakeMessage = await _handshakeProtocol!.createHandshakeMessage();
-        final sent = await _socketWrite(
+        final result = await _handshakeProtocol!.createInit();
+        _handshakeSessions[peerId] = result.session.copyWith(peerId: peerId);
+
+        final sent = await _socketWriteHandshake(
           peerId: peerId,
-          message: handshakeMessage,
-          context: 'handshake',
-          allowBeforeReady: true,
+          message: result.messageToSend!,
+          context: 'INIT',
         );
+
         if (!sent) {
           LogService.warning(
-            '${_tag(peerId)} handshake write failed on attempt $attempt',
+            '${_tag(peerId)} handshake INIT write failed on attempt $attempt',
           );
         } else {
           final waiter = Completer<bool>();
           _handshakeAckWaiters[peerId] = waiter;
           try {
-            final acked = await waiter.future.timeout(const Duration(seconds: 5));
-            if (acked) {
+            final success = await waiter.future.timeout(const Duration(seconds: 10));
+            if (success) {
               _handshakeAcks++;
               LogService.info(
                 '${_tag(peerId)} handshake completed on attempt $attempt',
@@ -1268,7 +1336,7 @@ class MeshService {
           } catch (_) {
             _handshakeTimeouts++;
             LogService.warning(
-              '${_tag(peerId)} handshake ACK timeout (attempt $attempt)',
+              '${_tag(peerId)} handshake timeout (attempt $attempt)',
             );
           } finally {
             _handshakeAckWaiters.remove(peerId);
@@ -1276,7 +1344,7 @@ class MeshService {
         }
 
         if (attempt < 3) {
-          final delayMs = 500 * (1 << (attempt - 1));
+          final delayMs = 1000 * attempt;
           await Future.delayed(Duration(milliseconds: delayMs));
         }
       }
@@ -1285,6 +1353,84 @@ class MeshService {
       return false;
     } finally {
       _handshakeInProgress.remove(peerId);
+    }
+  }
+
+  /// معالجة INIT
+  Future<void> _handleIncomingHandshakeInit(String json, String peerId) async {
+    try {
+      _handshakeProtocol ??= _ref.read(handshakeProtocolProvider);
+
+      final session = _handshakeSessions[peerId];
+      final result = await _handshakeProtocol!.processInit(json, session);
+
+      _handshakeSessions[peerId] = result.session;
+      _activeSocketPeerId = peerId; // Ensure we map the socket to this peerId
+
+      await _socketWriteHandshake(
+        peerId: peerId,
+        message: result.messageToSend!,
+        context: 'AUTH',
+      );
+
+      _setPeerState(peerId, PeerSessionState.handshakeSent, reason: 'sent AUTH');
+    } catch (e) {
+      LogService.error('Error handling handshake INIT', e);
+      _markPeerDisconnected(peerId, reason: 'handshake init error');
+    }
+  }
+
+  /// معالجة AUTH
+  Future<void> _handleIncomingHandshakeAuth(String json, String peerId) async {
+    try {
+      _handshakeProtocol ??= _ref.read(handshakeProtocolProvider);
+
+      final session = _handshakeSessions[peerId];
+      if (session == null) {
+        LogService.warning('Received AUTH without session for $peerId');
+        return;
+      }
+
+      final result = await _handshakeProtocol!.processAuth(json, session);
+      _handshakeSessions[peerId] = result.session;
+
+      await _socketWriteHandshake(
+        peerId: peerId,
+        message: result.messageToSend!,
+        context: 'FIN',
+      );
+
+      // I (Initiator) am done.
+      await _completeHandshake(peerId, result.peerBloomFilter);
+      _handshakeAckWaiters.remove(peerId)?.complete(true);
+
+    } catch (e) {
+      LogService.error('Error handling handshake AUTH', e);
+      _markPeerDisconnected(peerId, reason: 'handshake auth error');
+      _handshakeAckWaiters.remove(peerId)?.complete(false);
+    }
+  }
+
+  /// معالجة FIN
+  Future<void> _handleIncomingHandshakeFin(String json, String peerId) async {
+    try {
+      _handshakeProtocol ??= _ref.read(handshakeProtocolProvider);
+
+      final session = _handshakeSessions[peerId];
+      if (session == null) {
+        LogService.warning('Received FIN without session for $peerId');
+        return;
+      }
+
+      final result = await _handshakeProtocol!.processFin(json, session);
+      _handshakeSessions[peerId] = result.session;
+
+      // I (Receiver) am done.
+      await _completeHandshake(peerId, result.peerBloomFilter);
+
+    } catch (e) {
+      LogService.error('Error handling handshake FIN', e);
+      _markPeerDisconnected(peerId, reason: 'handshake fin error');
     }
   }
 
