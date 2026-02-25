@@ -116,22 +116,28 @@ class BlobReassembler {
   final int totalChunks;
   final String mimeType;
   final List<BlobChunk?> _slots;
+  DateTime lastUpdated;
 
   BlobReassembler({
     required this.groupId,
     required this.totalChunks,
     required this.mimeType,
-  }) : _slots = List.filled(totalChunks, null);
+  })  : _slots = List.filled(totalChunks, null),
+        lastUpdated = DateTime.now();
 
   bool addChunk(BlobChunk chunk) {
     if (chunk.groupId != groupId) return false;
     _slots[chunk.chunkIndex] = chunk;
+    lastUpdated = DateTime.now();
     return true;
   }
 
   bool get isComplete => _slots.every((s) => s != null);
 
   int get receivedCount => _slots.where((s) => s != null).length;
+
+  int get currentSizeBytes =>
+      _slots.fold<int>(0, (acc, s) => acc + (s?.data.length ?? 0));
 
   /// Reassembles the complete file from ordered slots.
   Uint8List assemble() {
@@ -150,11 +156,46 @@ class BlobReassembler {
 
 /// Registry of in-progress reassembly sessions.
 class BlobReassemblyManager {
+  static const int kMaxConcurrentSessions = 5;
+  static const int kMaxTotalMemoryBytes = 50 * 1024 * 1024; // 50 MB
+  static const Duration kSessionTimeout = Duration(seconds: 30);
+  static const int kMaxChunksPerFile = 2000; // ~128MB at 64KB/chunk
+
   final Map<String, BlobReassembler> _active = {};
 
   /// Processes an incoming [BlobChunk]. Returns the complete [Uint8List] when
   /// all chunks have arrived; otherwise returns `null`.
   Uint8List? receive(BlobChunk chunk) {
+    // 1. Validation to prevent allocation attacks
+    if (chunk.totalChunks > kMaxChunksPerFile) {
+      LogService.warning(
+        'BlobChunk: totalChunks ${chunk.totalChunks} exceeds limit $kMaxChunksPerFile',
+      );
+      return null;
+    }
+
+    // 2. Prune old sessions to free up space
+    pruneStale(timeout: kSessionTimeout);
+
+    // 3. Check session limits if this is a new session
+    if (!_active.containsKey(chunk.groupId)) {
+      if (_active.length >= kMaxConcurrentSessions) {
+        LogService.warning(
+          'BlobReassemblyManager: Max concurrent sessions reached ($kMaxConcurrentSessions). Dropping chunk.',
+        );
+        return null;
+      }
+
+      // Check total memory usage across all active sessions
+      final currentTotal = _totalMemoryUsage();
+      if (currentTotal > kMaxTotalMemoryBytes) {
+        LogService.warning(
+          'BlobReassemblyManager: Max memory usage reached ($currentTotal > $kMaxTotalMemoryBytes). Dropping chunk.',
+        );
+        return null;
+      }
+    }
+
     _active.putIfAbsent(
       chunk.groupId,
       () => BlobReassembler(
@@ -180,4 +221,20 @@ class BlobReassemblyManager {
   String? mimeTypeFor(String groupId) => _active[groupId]?.mimeType;
 
   void prune() => _active.clear();
+
+  void pruneStale({Duration timeout = const Duration(minutes: 5)}) {
+    final now = DateTime.now();
+    final initialCount = _active.length;
+    _active.removeWhere(
+      (key, value) => now.difference(value.lastUpdated) > timeout,
+    );
+    if (_active.length < initialCount) {
+      LogService.info(
+        '🧹 Pruned ${initialCount - _active.length} stale blob sessions',
+      );
+    }
+  }
+
+  int _totalMemoryUsage() =>
+      _active.values.fold(0, (sum, buf) => sum + buf.currentSizeBytes);
 }
