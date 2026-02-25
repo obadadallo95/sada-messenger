@@ -115,17 +115,17 @@ class SocketManager private constructor() {
     /**
      * الاتصال بخادم على العنوان المحدد
      */
-    fun connectToHost(hostAddress: String) {
+    fun connectToHost(hostAddress: String, port: Int = PORT) {
         socketScope.launch {
-            connectToHostAndWait(hostAddress, currentPeerId.get())
+            connectToHostAndWait(hostAddress, port, currentPeerId.get())
         }
     }
 
-    suspend fun connectToHostAndWait(hostAddress: String, peerId: String?): Boolean {
+    suspend fun connectToHostAndWait(hostAddress: String, port: Int = PORT, peerId: String?): Boolean {
         if (!peerId.isNullOrBlank()) currentPeerId.set(peerId)
 
         return try {
-            Log.d(TAG, "${peerTag()} Attempting to connect to host: $hostAddress:$PORT")
+            Log.d(TAG, "${peerTag()} Attempting to connect to host: $hostAddress:$port")
             closeActiveClientConnection()
 
             isServer = false
@@ -135,10 +135,10 @@ class SocketManager private constructor() {
                 Log.d(TAG, "${peerTag()} Connection attempt $attempt/$MAX_RETRY_ATTEMPTS")
                 try {
                     val socket = Socket()
-                    socket.connect(java.net.InetSocketAddress(hostAddress, PORT), 5000)
-                    Log.d(TAG, "${peerTag()} Successfully connected to $hostAddress")
+                    socket.connect(java.net.InetSocketAddress(hostAddress, port), 5000)
+                    Log.d(TAG, "${peerTag()} Successfully connected to $hostAddress:$port")
                     setupSocket(socket)
-                    notifyConnectionStatus("connected", "Connected to $hostAddress")
+                    notifyConnectionStatus("connected", "Connected to $hostAddress:$port")
                     return true
                 } catch (e: IOException) {
                     Log.w(TAG, "${peerTag()} Connection attempt $attempt failed: ${e.message}")
