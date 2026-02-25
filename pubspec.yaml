@@ -116,6 +116,7 @@ dev_dependencies:
   flutter_launcher_icons: ^0.14.4
   # Native Splash Screen
   flutter_native_splash: ^2.4.1
+  async: ^2.13.0
 
 
 flutter:

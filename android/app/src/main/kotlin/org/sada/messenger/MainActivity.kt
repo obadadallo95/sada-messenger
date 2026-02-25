@@ -273,7 +273,7 @@ class MainActivity : FlutterFragmentActivity() {
                             Log.d(TAG, "Connecting to peer: $ip:$port (peerId=$peerId)")
                             socketManager.setCurrentPeerId(peerId ?: ip)
                             CoroutineScope(Dispatchers.IO).launch {
-                                val connected = socketManager.connectToHostAndWait(ip, peerId ?: ip)
+                                val connected = socketManager.connectToHostAndWait(ip, port, peerId ?: ip)
                                 withContext(Dispatchers.Main) {
                                     result.success(connected)
                                 }
