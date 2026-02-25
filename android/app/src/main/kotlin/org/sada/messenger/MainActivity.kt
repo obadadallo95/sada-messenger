@@ -426,8 +426,8 @@ class MainActivity : FlutterFragmentActivity() {
             .setMethodCallHandler { call, result ->
                 when (call.method) {
                     "startUdpService" -> {
-                        val port = call.argument<Int>("port") ?: 45454
-                        Log.d(TAG, "Starting UDP service on port $port")
+                        // Port is now fixed to 8888 in UdpBroadcastManager
+                        Log.d(TAG, "Starting UDP service (Port 8888)")
                         val started = udpBroadcastManager.startListening()
                         result.success(started)
                     }
@@ -440,7 +440,7 @@ class MainActivity : FlutterFragmentActivity() {
 
                     "sendBroadcast" -> {
                         val payload = call.argument<String>("payload")
-                        val port = call.argument<Int>("port") ?: 45454
+                        // Port argument is ignored; we use fixed port 8888
                         if (payload != null) {
                             Log.d(TAG, "Sending UDP broadcast: ${payload.take(50)}...")
                             val sent = udpBroadcastManager.sendBroadcast(payload)

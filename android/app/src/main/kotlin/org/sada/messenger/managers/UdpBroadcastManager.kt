@@ -12,7 +12,7 @@ import java.net.*
  * مدير UDP Broadcast لاكتشاف الأجهزة على نفس WiFi LAN
  * 
  * Features:
- * - UDP Socket للاستماع على Port 45454
+ * - UDP Socket للاستماع على Port 8888
  * - UDP Broadcast للإرسال إلى 255.255.255.255
  * - Filtering للبث الذاتي (تجاهل البث من نفس الجهاز)
  * - Background Coroutine للاستماع المستمر
@@ -21,7 +21,7 @@ import java.net.*
 class UdpBroadcastManager private constructor(private val context: Context) {
     companion object {
         private const val TAG = "SadaUDP"
-        private const val DISCOVERY_PORT = 45454
+        private const val DISCOVERY_PORT = 8888 // Port Uniformity: Changed from 45454 to 8888
         
         @Volatile
         private var INSTANCE: UdpBroadcastManager? = null
@@ -36,11 +36,15 @@ class UdpBroadcastManager private constructor(private val context: Context) {
     private var listenSocket: DatagramSocket? = null
     private var broadcastSocket: DatagramSocket? = null
     private var listenJob: Job? = null
+    private var broadcastJob: Job? = null // Retry Mechanism: Job for periodic broadcasts
     private var eventSink: EventChannel.EventSink? = null
     private var multicastLock: WifiManager.MulticastLock? = null
     
     private val udpScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var isRunning = false
+
+    @Volatile
+    private var lastBroadcastPayload: String? = null
     
     // Cache local IP to avoid frequent lookups
     private var cachedLocalIp: String? = null
@@ -65,18 +69,22 @@ class UdpBroadcastManager private constructor(private val context: Context) {
         }
 
         return try {
-            listenSocket = DatagramSocket(DISCOVERY_PORT).apply {
+            // Socket Binding: Ensure bound to 0.0.0.0
+            listenSocket = DatagramSocket(null).apply {
                 broadcast = true
                 reuseAddress = true
                 soTimeout = 1000 
+                bind(InetSocketAddress(InetAddress.getByName("0.0.0.0"), DISCOVERY_PORT))
             }
             
+            // Multicast Lock: Ensure acquired
             val wifiManager = context.getSystemService(Context.WIFI_SERVICE) as? WifiManager
             multicastLock = wifiManager?.createMulticastLock("SadaUDP")
             multicastLock?.setReferenceCounted(true)
             multicastLock?.acquire()
+            Log.d(TAG, "MulticastLock acquired: ${multicastLock?.isHeld}")
             
-            Log.d(TAG, "UDP Socket bound to port $DISCOVERY_PORT")
+            Log.d(TAG, "UDP Socket bound to 0.0.0.0:$DISCOVERY_PORT")
             // Refresh local IP on start
             cachedLocalIp = findLocalIpAddress()
             Log.d(TAG, "Local IP: $localIpAddress")
@@ -100,6 +108,10 @@ class UdpBroadcastManager private constructor(private val context: Context) {
         listenJob?.cancel()
         listenJob = null
         
+        // Stop broadcast loop
+        broadcastJob?.cancel()
+        broadcastJob = null
+
         try {
             listenSocket?.close()
             broadcastSocket?.close()
@@ -128,52 +140,75 @@ class UdpBroadcastManager private constructor(private val context: Context) {
             return false
         }
 
-        // Fire and forget on IO thread to avoid NetworkOnMainThreadException
+        lastBroadcastPayload = message
+
+        // Retry Mechanism: Start periodic broadcast loop if not running
+        if (broadcastJob == null || !broadcastJob!!.isActive) {
+            startBroadcastLoop()
+        }
+
+        // Fire immediately as well
         udpScope.launch(Dispatchers.IO) {
-            try {
-                if (broadcastSocket == null || broadcastSocket!!.isClosed) {
-                    broadcastSocket = DatagramSocket().apply {
-                        broadcast = true
-                        reuseAddress = true // reusable
-                    }
-                }
+            sendPacket(message)
+        }
 
-                val data = message.toByteArray(Charsets.UTF_8)
-                
-                // Try to send to specific broadcast address first
-                val broadcastAddr = getBroadcastAddress()
-                val targetAddress = broadcastAddr ?: InetAddress.getByName("255.255.255.255")
-                
-                val packet = DatagramPacket(
-                    data,
-                    data.size,
-                    targetAddress,
-                    DISCOVERY_PORT
-                )
+        return true
+    }
 
-                broadcastSocket?.send(packet)
-                
-                Log.d(TAG, "📡 UDP Broadcast sent to $targetAddress")
-            } catch (e: Exception) {
-                Log.e(TAG, "Error sending UDP broadcast", e)
-                // Fallback attempt
-                try {
-                    val fallbackData = message.toByteArray(Charsets.UTF_8)
-                    val fallbackPacket = DatagramPacket(
-                        fallbackData,
-                        fallbackData.size,
-                        InetAddress.getByName("255.255.255.255"),
-                        DISCOVERY_PORT
-                    )
-                    broadcastSocket?.send(fallbackPacket)
-                    Log.d(TAG, "📡 Fallback UDP Broadcast sent to 255.255.255.255")
-                } catch (e2: Exception) {
-                    Log.e(TAG, "Error sending fallback UDP broadcast", e2)
+    private fun startBroadcastLoop() {
+        broadcastJob = udpScope.launch(Dispatchers.IO) {
+            Log.d(TAG, "Starting aggressive broadcast loop (every 2s)")
+            while (isActive && isRunning) {
+                lastBroadcastPayload?.let { payload ->
+                    sendPacket(payload)
                 }
+                delay(2000) // Aggressive interval: 2 seconds
             }
         }
-        
-        return true // Returned immediately to Main Thread indicating "Request Queued"
+    }
+
+    private fun sendPacket(message: String) {
+        try {
+            if (broadcastSocket == null || broadcastSocket!!.isClosed) {
+                broadcastSocket = DatagramSocket().apply {
+                    broadcast = true
+                    reuseAddress = true
+                }
+            }
+
+            val data = message.toByteArray(Charsets.UTF_8)
+
+            // Try to send to specific broadcast address first
+            val broadcastAddr = getBroadcastAddress()
+            val targetAddress = broadcastAddr ?: InetAddress.getByName("255.255.255.255")
+
+            val packet = DatagramPacket(
+                data,
+                data.size,
+                targetAddress,
+                DISCOVERY_PORT
+            )
+
+            broadcastSocket?.send(packet)
+
+            Log.d(TAG, "📡 UDP Broadcast sent to $targetAddress")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error sending UDP broadcast", e)
+            // Fallback attempt
+            try {
+                val fallbackData = message.toByteArray(Charsets.UTF_8)
+                val fallbackPacket = DatagramPacket(
+                    fallbackData,
+                    fallbackData.size,
+                    InetAddress.getByName("255.255.255.255"),
+                    DISCOVERY_PORT
+                )
+                broadcastSocket?.send(fallbackPacket)
+                Log.d(TAG, "📡 Fallback UDP Broadcast sent to 255.255.255.255")
+            } catch (e2: Exception) {
+                Log.e(TAG, "Error sending fallback UDP broadcast", e2)
+            }
+        }
     }
 
     private fun _startListeningLoop() {
@@ -320,4 +355,3 @@ class UdpBroadcastManager private constructor(private val context: Context) {
         udpScope.cancel()
     }
 }
-
