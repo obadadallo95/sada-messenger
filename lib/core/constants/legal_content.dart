@@ -25,7 +25,7 @@ class LegalContent {
 
 - **Local Storage**: All data (messages, contacts, keys) is stored on your device using **Drift (SQLite)**.
 - **Encryption Keys**: Your private keys are stored securely in your device's **Android Keystore** (encrypted storage).
-- **Duress Mode**: You can use a "Duress PIN" to access a dummy database, providing plausible deniability.
+- **App Lock**: You can set a PIN to prevent unauthorized access to the app.
 
 ## Mesh Networking
 

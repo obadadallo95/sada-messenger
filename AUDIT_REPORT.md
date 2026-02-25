@@ -1,436 +1,302 @@
-# 🔍 تقرير التدقيق الشامل لتطبيق Sada
-## Deep Audit & Virtual Walkthrough Report
+# 🔒 Sada (صدى) — تقرير مراجعة أمنية وهندسية شامل
 
-**تاريخ التقرير:** 2025-02-06  
-**المحلل:** Senior Product Manager & Lead Mobile Architect  
-**الهدف:** تقييم جاهزية التطبيق لإصدار Alpha
-
----
-
-## 📱 1. Virtual Walkthrough (رحلة المستخدم)
-
-### ✅ **Onboarding/Auth Flow**
-
-#### **Splash Screen** (`splash_screen.dart`)
-- ✅ **مكتمل:** Animation جيد (Fade + Scale)
-- ✅ **Navigation Logic:** يتحقق من Auth Status → Onboarding → Home/Lock
-- ⚠️ **مشكلة:** لا يوجد timeout handling إذا استمرت التهيئة لفترة طويلة
-- ✅ **UI:** تصميم احترافي مع Gradient
-
-#### **Onboarding Screen** (`onboarding_screen.dart`)
-- ✅ **مكتمل:** 3 slides مع PageIndicator
-- ✅ **Skip Button:** يعمل بشكل صحيح
-- ✅ **Navigation:** ينتقل إلى Home بعد الإكمال
-- ⚠️ **مفقود:** لا يوجد إمكانية للرجوع للخلف (Back button)
-
-#### **Register Screen** (`register_screen.dart`)
-- ✅ **مكتمل:** Form validation جيد
-- ✅ **Security Note:** يظهر ملاحظة أمنية
-- ✅ **Error Handling:** يعرض رسائل خطأ
-- ⚠️ **مفقود:** لا يوجد Terms of Service checkbox
-- ⚠️ **مفقود:** لا يوجد Privacy Policy link
-
-#### **Lock Screen** (`lock_screen.dart`)
-- ✅ **مكتمل:** Biometric + PIN authentication
-- ✅ **Duress Mode:** منطق Duress PIN موجود في `auth_service.dart`
-- ✅ **UI:** تصميم احترافي مع PIN Pad
-- ⚠️ **مشكلة:** عند فشل Biometric، لا يوجد retry limit
-- ✅ **Database Initialization:** يهيئ قاعدة البيانات بناءً على AuthType (Master/Duress)
-
-### ✅ **Home Screen** (`home_screen.dart`)
-
-#### **Layout & Navigation**
-- ✅ **BottomNavBar:** يعمل بشكل صحيح (5 tabs)
-- ✅ **SliverAppBar:** تصميم Material 3
-- ✅ **FAB Speed Dial:** يعمل مع 3 خيارات (Add Friend, Create Group, Add Friend - مكرر!)
-- ⚠️ **مشكلة:** FAB يحتوي على "Add Friend" مرتين (سطر 119 و 193)
-
-#### **Showcase (Tutorial)**
-- ✅ **مكتمل:** يستخدم `showcaseview` package
-- ✅ **Keys:** `_profileKey` و `_fabKey` موجودة
-- ✅ **Logic:** يتحقق من `hasSeenHomeTour` في SharedPreferences
-
-#### **Empty States**
-- ✅ **مكتمل:** يعرض "No Chats" مع icon
-- ✅ **Loading State:** CircularProgressIndicator
-- ✅ **Error State:** يعرض رسالة خطأ
-
-#### **Chat List**
-- ✅ **مكتمل:** يستخدم `ChatTile` widget
-- ✅ **Navigation:** ينتقل إلى `ChatDetailsScreen` عند الضغط
-
-### ⚠️ **Discovery (Radar) - Groups Screen**
-
-#### **UI Design**
-- ✅ **مكتمل:** SliverAppBar مع Radar icon
-- ✅ **Empty States:** موجودة
-- ✅ **Loading States:** موجودة
-
-#### **Discovery Logic**
-- ⚠️ **مشكلة حرجة:** لا يوجد اتصال بين `GroupsScreen` و `MeshChannel`!
-- ⚠️ **مشكلة:** `groups_repository.dart` غير موجود في الكود (يتم استدعاؤه لكن الملف غير موجود)
-- ⚠️ **مشكلة:** لا يوجد UI لبدء/إيقاف Discovery في Groups Screen
-- ✅ **MeshDebugScreen:** موجود لكنه Debug فقط، غير متصل بالـ UI الرئيسي
-
-### ✅ **Chat Features**
-
-#### **Chat Page** (`chat_page.dart`)
-- ✅ **مكتمل:** قائمة المحادثات
-- ✅ **Empty/Loading/Error States:** موجودة
-
-#### **Chat Details Screen** (`chat_details_screen.dart`)
-- ✅ **مكتمل:** UI جيد مع MessageBubbles
-- ✅ **Input Field:** موجود مع Send button
-- ⚠️ **مشكلة حرجة:** `_sendMessage()` فارغ! لا يوجد منطق إرسال فعلي
-- ⚠️ **مشكلة:** لا يوجد دعم لإرسال الصور/Attachments
-- ⚠️ **مشكلة:** لا يوجد دعم لإرسال Emoji
-- ⚠️ **مشكلة:** لا يوجد "Delete Message" أو "Block User"
-
-#### **Message Repository**
-- ⚠️ **مشكلة حرجة:** `chat_repository.dart` يرجع قائمة فارغة!
-  ```dart
-  @override
-  Future<List<ChatModel>> build() async {
-    return []; // ⚠️ قائمة فارغة!
-  }
-  ```
-- ⚠️ **مشكلة:** `getMessages()` يرجع قائمة فارغة أيضاً
-
-### ✅ **Settings Screen** (`settings_screen.dart`)
-
-#### **Profile Section**
-- ✅ **مكتمل:** Avatar مع Edit button
-- ✅ **Profile Service:** موجود ويعمل
-
-#### **Appearance & Language**
-- ✅ **مكتمل:** Theme Mode selector (Light/System/Dark)
-- ✅ **مكتمل:** Language selector (Arabic/English)
-- ✅ **UI:** SegmentedButton design جيد
-
-#### **Performance**
-- ✅ **مكتمل:** Power Mode selector
-- ✅ **مكتمل:** Battery Optimization tile
-
-#### **Security**
-- ✅ **مكتمل:** App Lock toggle
-- ✅ **مكتمل:** Change Master PIN
-- ✅ **مكتمل:** Set Duress PIN مع تحذير
-- ⚠️ **مفقود:** لا يوجد "Logout" أو "Wipe Data" option
-
-#### **About & Legal**
-- ✅ **مكتمل:** About Screen
-- ✅ **مكتمل:** Privacy Policy Screen
-- ✅ **مكتمل:** App Sharing (APK Share) - **متصلة بالـ UI!**
-- ✅ **مكتمل:** Open Source Licenses
+> **التاريخ:** 2025-02-25  
+> **المرحلة:** Alpha — قبل أول اختبار ميداني  
+> **المراجع:** Antigravity / Deep Code Audit  
+> **منهجية المراجعة:** تحليل ثابت (Static Analysis) لكامل الكود المصدري مع مراجعة يدوية معمّقة لكل ملف أمني وشبكي
 
 ---
 
-## 🎨 2. UI/UX & Design Critique
+## الملخص التنفيذي
 
-### ✅ **Consistency**
+| المجال | الحالة | مستوى الجاهزية |
+|---|---|---|
+| التشفير E2E | ⚠️ يعمل جزئياً | **غير جاهز للميدان** |
+| إدارة المفاتيح | 🔴 ثغرات حرجة | **غير جاهز** |
+| Duress Mode | 🔴 غير مكتمل | **هيكل فقط** |
+| Mesh Networking | ⚠️ يعمل مع مشاكل | **يحتاج إصلاحات** |
+| قاعدة البيانات | 🔴 غير مشفرة | **غير جاهز** |
+| الأمان التشغيلي | 🔴 تسريبات واسعة | **غير جاهز** |
+| LoRa | 🔴 غير موجود | **لم يُنفَّذ بعد** |
 
-#### **ScreenUtil**
-- ✅ **مستخدم في:** جميع الشاشات تقريباً
-- ✅ **Design Size:** `Size(375, 812)` - iPhone X
-- ✅ **Usage:** `.w`, `.h`, `.sp`, `.r` مستخدمة بشكل صحيح
-
-#### **FlexColorScheme**
-- ✅ **مكتمل:** Theme Provider موجود
-- ✅ **Material 3:** يستخدم Material 3 design
-- ⚠️ **ملاحظة:** لا يوجد Dark Theme مخصص (يستخدم نفس Theme)
-
-### ⚠️ **Edge Cases**
-
-#### **Empty States**
-- ✅ **موجودة في:** Home, Chat, Groups, Add Friend
-- ✅ **Design:** Icons + Text messages
-
-#### **Loading States**
-- ✅ **موجودة في:** معظم الشاشات
-- ⚠️ **مفقود:** لا يوجد Shimmer effects (يستخدم CircularProgressIndicator فقط)
-
-#### **Error States**
-- ✅ **موجودة في:** معظم الشاشات
-- ⚠️ **تحسين:** يمكن إضافة Retry buttons
-
-### ✅ **Accessibility & RTL**
-
-#### **RTL Support**
-- ✅ **مكتمل:** Localization موجودة (Arabic/English)
-- ✅ **Locale Provider:** موجود ويعمل
-- ⚠️ **تحقق:** يجب اختبار RTL يدوياً للتأكد من التخطيط
-
-#### **Accessibility**
-- ⚠️ **مفقود:** لا يوجد Semantics labels
-- ⚠️ **مفقود:** لا يوجد TalkBack support واضح
-
-### ⚠️ **Visual Polish**
-
-#### **Widgets التي تحتاج تحسين:**
-1. **Home Screen FAB:** يحتوي على "Add Friend" مكرر
-2. **Chat Input:** Emoji button لا يعمل
-3. **Groups Screen:** Radar icon ثابت (لا يوجد animation)
+> [!CAUTION]
+> **لا يُنصح بالنشر الميداني في الحالة الحالية.** يوجد عدد من الثغرات الحرجة التي يمكن أن تعرّض المستخدمين للخطر في بيئة عالية المخاطر (مناطق نزاع).
 
 ---
 
-## 🛡️ 3. Security & Mesh Architecture Review
+## 1. تقييم الأمان والتشفير
 
-### ✅ **Crypto Implementation**
+### 1.1 التشفير End-to-End
 
-#### **Encryption Service** (`encryption_service.dart`)
-- ✅ **مكتمل:** يستخدم `sodium_libs` package
-- ✅ **ECDH:** `calculateSharedSecret()` موجود
-- ✅ **Encryption:** `encryptMessage()` و `decryptMessage()` موجودان
-- ✅ **Algorithm:** XSalsa20-Poly1305 (crypto.secretBox)
-- ⚠️ **مشكلة:** لا يوجد Key Exchange UI! المفاتيح لا يتم تبادلها عبر Mesh
+**الحالة الحالية:**
+- الخوارزمية: X25519 ECDH → Blake2b KDF → XSalsa20-Poly1305 (عبر libsodium) ✅
+- كل رسالة تُشفَّر بـ Nonce عشوائي 24 بايت ✅
+- MAC verification يمنع التلاعب بالرسائل ✅
 
-#### **Key Manager** (`key_manager.dart`)
-- ⚠️ **غير موجود:** الملف غير موجود في الكود
-- ⚠️ **مشكلة حرجة:** `EncryptionService` يحتاج `KeyManager` لكنه غير موجود!
+**المخاطر المكتشفة:**
 
-### ✅ **Native Bridge**
+| الخطورة | الوصف | الملف |
+|---|---|---|
+| 🔴 **حرج** | **لا يوجد Forward Secrecy** — نفس الـ Shared Secret يُستخدم لكل الرسائل بين أي زوج. إذا سُرق المفتاح الخاص، يمكن فك تشفير **كل** الرسائل السابقة والمستقبلية | [encryption_service.dart](file:///Users/obadadallo/Desktop/sada/lib/core/security/encryption_service.dart#L43-L106) |
+| 🔴 **حرج** | **المفتاح الخاص مخبأ كـ `Uint8List` عادي** في ذاكرة Dart الـ heap — يمكن استخراجه من memory dump. libsodium's `SecureKey` يُستخدم فقط مؤقتاً ثم يُنسخ إلى `Uint8List` عادي | [key_manager.dart:77](file:///Users/obadadallo/Desktop/sada/lib/core/security/key_manager.dart#L77) |
+| ⚠️ **عالي** | **لا يوجد آلية Key Rotation** — المفتاح يبقى ثابتاً طوال حياة التطبيق | [key_manager.dart](file:///Users/obadadallo/Desktop/sada/lib/core/security/key_manager.dart) |
+| ⚠️ **عالي** | **عند فشل تحميل المفاتيح يتم توليد مفاتيح جديدة بصمت** — هذا يعني ضياع القدرة على فك تشفير كل الرسائل السابقة بدون إعلام المستخدم | [key_manager.dart:131-135](file:///Users/obadadallo/Desktop/sada/lib/core/security/key_manager.dart#L131-L135) |
+| ⚠️ **عالي** | **فشل فك التشفير يُعاد كنص واضح** — `decryptedMessage = encryptedContent` إذا لم يكن هناك publicKey، مما يعني أن الرسائل تُعرض بشكل مشوّه بدل رفضها | [incoming_message_handler.dart:183-189](file:///Users/obadadallo/Desktop/sada/lib/core/network/incoming_message_handler.dart#L183-L189) |
 
-#### **MainActivity.kt**
-- ✅ **مكتمل:** MethodChannel متصل بشكل صحيح
-- ✅ **Methods:** `startDiscovery`, `stopDiscovery`, `getPeers`, `getApkPath` موجودة
-- ✅ **EventChannels:** `peersChanges`, `connectionChanges` موجودة
-- ✅ **SocketManager:** موجود ومتصل
-- ⚠️ **ملاحظة:** `sendMessage` موجود لكن غير مستخدم في Flutter
+**التوصيات:**
 
-#### **MeshChannel.dart**
-- ✅ **مكتمل:** Wrapper جيد للـ Native methods
-- ✅ **Streams:** `onPeersUpdated`, `onConnectionInfo` موجودة
-- ⚠️ **مشكلة:** لا يوجد method للاتصال بـ Peer محدد
+```
+الأولوية 1 (قبل الميدان):
+├── تنفيذ Double Ratchet Protocol (أو على الأقل per-session ephemeral keys)
+├── استخدام SecureKey من libsodium بدلاً من Uint8List للمفاتيح الخاصة
+├── عند فشل تحميل المفاتيح: إعلام المستخدم ورفض التشغيل (لا توليد صامت)
+└── رفض الرسائل غير القابلة لفك التشفير بدلاً من عرض النص المشفر
+```
 
-### ⚠️ **Data Layer**
+### 1.2 إدارة المفاتيح
 
-#### **Database**
-- ⚠️ **مشكلة حرجة:** لا يوجد Drift أو Hive implementation!
-- ⚠️ **مشكلة:** `database_provider.dart` يحتوي على placeholders فقط
-- ⚠️ **مشكلة:** `ChatRepository` يرجع قائمة فارغة
-- ⚠️ **مشكلة:** `DatabaseInitializer` لا يقوم بتهيئة قاعدة بيانات فعلية
+**الحالة الحالية:**
+- المفاتيح تُخزن في `FlutterSecureStorage` (Android Keystore / iOS Keychain) ✅
+- يُولَّد زوج مفاتيح Curve25519 عند أول استخدام ✅
 
-#### **Duress Mode**
-- ✅ **مكتمل:** منطق Duress PIN موجود في `auth_service.dart`
-- ✅ **مكتمل:** `DatabaseInitializer` يفرق بين Real/Dummy database
-- ⚠️ **مشكلة:** Dummy database غير مطبقة فعلياً
+**المخاطر:**
 
----
+| الخطورة | الوصف |
+|---|---|
+| 🔴 **حرج** | `_cachedKeyPair` يحتوي `Uint8List privateKey` كعضو في كائن Dart عادي. هذا يعني أن المفتاح الخاص يبقى في الـ heap حتى يُجمع من GC — لا يمكن مسحه بشكل حاسم (`clearCache()` يضع `null` لكن البايتات لا تزال في الذاكرة) |
+| ⚠️ **عالي** | `AndroidOptions()` فارغ — لا يُفعّل `encryptedSharedPreferences`. التعليق يقول "deprecated" لكن هذا غير صحيح في الإصدارات الحالية |
+| ⚠️ **عالي** | لا يوجد فحص Integrity — إذا تم التلاعب بالمفتاح المخزن، لا يتم اكتشاف ذلك |
 
-## 🕵️ 4. Gap Analysis (الميزات المفقودة)
+### 1.3 Duress Mode
 
-### 🔴 **Critical Missing Features**
+**الحالة الحالية:**
+- الهيكل موجود: `AuthType.duress` في `background_service.dart` يمنع تشغيل الشبكة
+- النصوص (localization) موجودة: `setDuressPin`, `duressPinWarning`, `enterDuressPin`
+- الـ routing موجود: `safe_notes_screen.dart`
 
-1. **Database Implementation**
-   - ❌ لا يوجد Drift/Hive setup
-   - ❌ لا يوجد Message storage
-   - ❌ لا يوجد Chat storage
-   - ❌ لا يوجد Contact storage
+**المخاطر:**
 
-2. **Message Sending Logic**
-   - ❌ `_sendMessage()` في `chat_details_screen.dart` فارغ
-   - ❌ لا يوجد اتصال بـ MeshChannel لإرسال الرسائل
-   - ❌ لا يوجد Message encryption قبل الإرسال
+| الخطورة | الوصف |
+|---|---|
+| 🔴 **حرج** | **Duress Mode غير مكتمل فعلياً** — لا يوجد PIN ثانٍ (duress PIN) في `AuthService`. `verifyPin()` يتحقق فقط من `masterPinHash`. لا يوجد كود يميز بين Master PIN و Duress PIN |
+| 🔴 **حرج** | **لا يوجد قاعدة بيانات وهمية فعلية** — `AppDatabase.create()` تأخذ filename واحد. لا يوجد كود يُنشئ أو يعرض قاعدة بيانات مختلفة. التعليق `/// تدعم Duress Mode` لم يُنفَّذ بعد |
+| ⚠️ **عالي** | مجرد فحص اسم ملف قاعدة بيانات (بدون تشفير) ليس كافياً — محقق جنائي يمكنه رؤية ملفين `.db` وفهم الآلية |
 
-3. **Key Exchange**
-   - ❌ لا يوجد UI لتبادل المفاتيح العامة
-   - ❌ لا يوجد Key Exchange protocol
-   - ❌ لا يوجد Key storage للجهات الاتصال
+**التوصية:** إما تنفيذ الآلية بالكامل أو **إزالة كل إشارات Duress Mode** من واجهة المستخدم حتى لا تعطي إحساساً زائفاً بالأمان.
 
-4. **Groups Repository**
-   - ❌ `groups_repository.dart` غير موجود
-   - ❌ `getNearbyGroups()` غير موجود
-   - ❌ `getMyGroups()` غير موجود
+### 1.4 QR Code Key Exchange — مخاطر MITM
 
-5. **Discovery Integration**
-   - ❌ Groups Screen غير متصل بـ MeshChannel
-   - ❌ لا يوجد UI لبدء/إيقاف Discovery
-   - ❌ لا يوجد Connection Status indicator في UI الرئيسي
+**الحالة الحالية:**
+- QR Code يحتوي: `{id, name, publicKey}` بصيغة JSON
+- المسح يتم وجهاً لوجه (Physical Verification) ✅
 
-### 🟡 **Important Missing Features**
+**المخاطر:**
 
-6. **Message Features**
-   - ❌ Delete Message
-   - ❌ Block User
-   - ❌ Image Attachments
-   - ❌ Voice Messages
-   - ❌ Message Status (Sent/Delivered/Read)
+| الخطورة | الوصف |
+|---|---|
+| ⚠️ **متوسط** | لا يوجد Trust-On-First-Use (TOFU) verification — إذا تم استبدال QR Code (مثل طباعة ملصق مزور) فلا يمكن للمستخدم التحقق لاحقاً |
+| ⚠️ **متوسط** | لا يوجد Safety Number / Fingerprint — لا يمكن للمستخدمين التحقق من أن المفاتيح لم تتغير |
 
-7. **User Management**
-   - ❌ Logout functionality
-   - ❌ Wipe Data / Reset App
-   - ❌ Edit Profile Name
-   - ❌ Block/Unblock Users
+**التوصية:** إضافة شاشة "التحقق من الأمان" تعرض fingerprint مشتق من المفتاحين العامين (مثل Signal Safety Numbers).
 
-8. **Legal & Terms**
-   - ❌ Terms of Service screen
-   - ❌ Terms checkbox في Register screen
+### 1.5 Forward Secrecy
 
-9. **Connection Status**
-   - ❌ Connection indicator في AppBar
-   - ❌ Number of connected peers
-   - ❌ Mesh network status
-
-10. **Error Recovery**
-    - ❌ Retry buttons في Error states
-    - ❌ Network reconnection logic
-    - ❌ Offline mode handling
-
-### 🟢 **Nice-to-Have Features**
-
-11. **UI Enhancements**
-    - ❌ Shimmer loading effects
-    - ❌ Pull-to-refresh
-    - ❌ Swipe actions (Delete, Archive)
-    - ❌ Message search
-
-12. **Notifications**
-    - ⚠️ Notification service موجود لكن غير متصل بالـ Messages
-    - ❌ In-app notifications للرسائل الجديدة
+| الخطورة | الوصف |
+|---|---|
+| 🔴 **حرج** | **لا يوجد Forward Secrecy إطلاقاً.** `calculateSharedSecret()` يُنتج مفتاح جلسة ثابت من مفتاحين ثابتين. سرقة المفتاح الخاص = فك تشفير كل المحادثات (ماضي + حاضر + مستقبل) |
 
 ---
 
-## 📝 5. Executive Summary & Next Steps
+## 2. مراجعة بنية Mesh Networking
 
-### 📊 **Current Readiness Score: 4.5/10**
+### 2.1 طبقات النقل
 
-#### **التقييم التفصيلي:**
-- **UI/UX:** 7/10 (تصميم جيد لكن بعض الميزات غير مكتملة)
-- **Security:** 6/10 (Crypto موجود لكن Key Exchange مفقود)
-- **Mesh Architecture:** 5/10 (Native bridge موجود لكن غير متصل بالـ UI)
-- **Data Layer:** 2/10 (لا يوجد database implementation)
-- **Core Features:** 3/10 (Message sending غير موجود)
+**الحالة الحالية:**
+- **WiFi LAN**: UDP Broadcast (port 45454) → TCP Socket (port 8888) ✅
+- **Nearby Connections**: عبر `EpidemicRouter` (BLE + WiFi Direct) ✅
+- **LoRa**: ❌ لم يُنفَّذ بعد
 
-### 🔴 **Top 3 Critical Fixes (قبل Alpha Release)**
+**المخاطر:**
 
-#### **1. Database Implementation (أولوية قصوى)**
-**المشكلة:**
-- لا يوجد database implementation
-- جميع البيانات mock/empty
-- Messages لا يتم حفظها
+| الخطورة | الوصف | الملف |
+|---|---|---|
+| 🔴 **حرج** | **UDP Broadcast يرسل DeviceId (SHA-256 hash) بشكل واضح** — أي جهاز على نفس الشبكة يمكنه جمع هوية جميع مستخدمي صدى. هذا يُمكّن Traffic Analysis | [udp_broadcast_service.dart:161](file:///Users/obadadallo/Desktop/sada/lib/core/network/discovery/udp_broadcast_service.dart#L161) |
+| 🔴 **حرج** | **TCP Sockets بدون TLS** — كل البيانات (بما فيها Handshake JSON) تُنقل بصيغة نص واضح عبر الشبكة المحلية. مهاجم على نفس WiFi يمكنه قراءة كل metadata | [SocketManager.kt](file:///Users/obadadallo/Desktop/sada/android/app/src/main/kotlin/org/sada/messenger/SocketManager.kt) |
+| ⚠️ **عالي** | **Handshake يرسل peerId و publicKey بشكل واضح** عبر TCP — حتى لو كان محتوى الرسائل مشفراً، الـ metadata (من يتحدث مع من) مكشوف | [handshake_protocol.dart](file:///Users/obadadallo/Desktop/sada/lib/core/network/protocols/handshake_protocol.dart) |
+| ⚠️ **عالي** | **TCP port 8888 ثابت** — يسهّل الكشف عن مستخدمي صدى عبر port scanning | [udp_broadcast_service.dart:34](file:///Users/obadadallo/Desktop/sada/lib/core/network/discovery/udp_broadcast_service.dart#L34) |
 
-**الحل:**
-- إضافة Drift database
-- إنشاء Tables: `chats`, `messages`, `contacts`
-- ربط `ChatRepository` بالـ database
-- ربط `MessagesProvider` بالـ database
+### 2.2 Discovery و Battery Optimization
 
-**الوقت المتوقع:** 3-5 أيام
+**الحالة الحالية:**
+- `DiscoveryStrategy` تُكيّف فترات الاكتشاف حسب البطارية/الشحن ✅
+- المدى: 5 ثوان (أداء) → 600 ثانية (بطارية منخفضة) ✅
+- `EpidemicRouter` يستخدم Token Bucket لمنع burst flooding ✅
 
----
+**المخاطر:**
 
-#### **2. Message Sending & Receiving (أولوية قصوى)**
-**المشكلة:**
-- `_sendMessage()` فارغ
-- لا يوجد اتصال بـ MeshChannel
-- لا يوجد Message encryption قبل الإرسال
+| الخطورة | الوصف |
+|---|---|
+| ⚠️ **متوسط** | `updateBatteryStatus()` يُستدعى مرة واحدة عند التهيئة فقط — لا يوجد listener مستمر لتغييرات البطارية |
+| ⚠️ **متوسط** | `Nearby Connections` يستخدم `Strategy.P2P_CLUSTER` مما يعني استهلاك بطارية مرتفع بسبب BLE scanning المستمر |
 
-**الحل:**
-- تنفيذ `_sendMessage()` في `ChatDetailsScreen`
-- ربط بـ `MeshChannel.sendMessage()` (يحتاج إضافة method)
-- تشفير الرسالة قبل الإرسال باستخدام `EncryptionService`
-- حفظ الرسالة في Database بعد الإرسال
-- استقبال الرسائل من `SocketManager` (EventChannel موجود)
+### 2.3 Message Routing — Loops و Broadcast Storms
 
-**الوقت المتوقع:** 2-3 أيام
+**الحالة الحالية:**
+- **Loop Detection**: `trace` list تمنع إعادة المرور على نفس الجهاز ✅
+- **TTL**: `hopCount / maxHops` (default: 10 hops) ✅
+- **Deduplication**: `_processedMessages` Set + Bloom Filters ✅
+- **Token Bucket**: يحدّ من عدد الرسائل لكل peer ✅
 
----
+**المخاطر:**
 
-#### **3. Key Exchange Protocol (أولوية عالية)**
-**المشكلة:**
-- لا يوجد Key Exchange
-- لا يمكن تشفير الرسائل بدون المفاتيح المشتركة
-- `KeyManager` غير موجود
-
-**الحل:**
-- إنشاء `KeyManager` class
-- تنفيذ Key Exchange عند إضافة صديق (QR Code scan)
-- حفظ Public Keys في Database
-- استخدام `EncryptionService.calculateSharedSecret()` عند إرسال الرسائل
-
-**الوقت المتوقع:** 2-3 أيام
+| الخطورة | الوصف |
+|---|---|
+| ⚠️ **متوسط** | `_processedMessages` هو `Set` في الذاكرة — يُفقد عند إعادة تشغيل التطبيق، مما يسمح بمعالجة رسائل مكررة |
+| ⚠️ **متوسط** | `_processedMessages` ينمو بلا حد — لا يوجد حد أقصى أو تنظيف دوري (memory leak محتمل) |
+| ⚠️ **عالي** | `EpidemicRouter` و `MeshService` نظامان متوازيان يقومان بنفس الوظيفة (اكتشاف + توجيه) — تعقيد غير ضروري ومصدر محتمل لتناقضات |
 
 ---
 
-### 🟡 **Additional Recommendations**
+## 3. تحليل الكود والهندسة البرمجية
 
-#### **4. Groups Repository Implementation**
-- إنشاء `groups_repository.dart`
-- ربط `GroupsScreen` بـ `MeshChannel`
-- إضافة Discovery toggle في Groups Screen
+### 3.1 Flutter + Riverpod + GoRouter
 
-#### **5. Connection Status Indicator**
-- إضافة Connection indicator في AppBar
-- عرض عدد الأجهزة المتصلة
-- عرض Mesh network status
+**المخاطر:**
 
-#### **6. Error Handling & Recovery**
-- إضافة Retry buttons
-- تحسين Error messages
-- إضافة Offline mode handling
+| الخطورة | الوصف |
+|---|---|
+| ⚠️ **عالي** | `keyManagerProvider` و `encryptionServiceProvider` يُنشآن instances جديدة بدون `initialize()` — الاستدعاء الأول لـ `calculateSharedSecret()` سيرمي `StateError` إذا لم يُستدعَ `initialize()` مسبقاً. لا يوجد lifecycle management |
+| ⚠️ **متوسط** | `AuthService` يستخدم `StateNotifier` مع constructor يستدعي async `_checkLoginStatus()` — هذا anti-pattern لأن الـ state يمكن أن يتغير قبل أن يُقرأ |
+| ⚠️ **متوسط** | `MeshService` ملف ضخم (1350+ سطر) يمزج بين Transport, Discovery, Handshake, Routing, و Diagnostics — يحتاج تقسيم |
 
----
+### 3.2 Drift Database
 
-### 📋 **Checklist قبل Alpha Release**
+**الحالة الحالية:**
+- SQLite عبر Drift مع background isolate (`NativeDatabase.createInBackground`) ✅
+- Schema version 7 مع migration strategy ✅
 
-#### **Must Have (Critical)**
-- [ ] Database implementation (Drift/Hive)
-- [ ] Message sending logic
-- [ ] Message receiving logic
-- [ ] Key Exchange protocol
-- [ ] Key Manager implementation
-- [ ] Groups Repository
-- [ ] Connection Status indicator
+**المخاطر:**
 
-#### **Should Have (Important)**
-- [ ] Delete Message feature
-- [ ] Block User feature
-- [ ] Logout functionality
-- [ ] Terms of Service
-- [ ] Error recovery (Retry buttons)
+| الخطورة | الوصف |
+|---|---|
+| 🔴 **حرج** | **قاعدة البيانات غير مشفرة** — ملف `.db` في `getApplicationDocumentsDirectory()` يمكن قراءته بأي أداة SQLite. كل الرسائل والجهات مكشوفة | 
+| ⚠️ **عالي** | `getApplicationDocumentsDirectory()` لا يُشفَّر تلقائياً على Android. يجب الانتقال إلى `getApplicationSupportDirectory()` أو استخدام SQLCipher |
+| ⚠️ **متوسط** | Relay Queue لا تُنظَّف بشكل كافٍ — `cleanupOldRelayMessages()` تعتمد على طابع زمني لكن لا يوجد حد على العدد الكلي |
 
-#### **Nice to Have (Optional)**
-- [ ] Image attachments
-- [ ] Shimmer loading effects
-- [ ] Message search
-- [ ] Pull-to-refresh
+### 3.3 Native Bridge (Kotlin)
 
----
+**الحالة الحالية:**
+- `MethodChannel` لاستدعاء TCP operations ✅
+- `EventChannel` لـ message stream و socket status ✅
+- Length-prefixed framing (4 bytes header) ✅
 
-### 🎯 **Timeline Estimate**
+**المخاطر:**
 
-**Minimum Viable Alpha (MVA):**
-- **Critical Fixes:** 7-11 أيام
-- **Important Features:** 3-5 أيام إضافية
-- **Testing & Bug Fixes:** 3-5 أيام
-- **Total:** 13-21 يوم عمل
+| الخطورة | الوصف |
+|---|---|
+| ⚠️ **عالي** | `MAX_MESSAGE_SIZE_BYTES` ثابت (غير مرئي في الكود المعروض) — إذا كان كبيراً جداً قد يسمح بهجوم DoS عبر إرسال frame ضخم |
+| ⚠️ **متوسط** | `ServerSocket` يقبل اتصال واحد فقط في كل مرة — اتصال ثانٍ يُلغي الأول |
+| ⚠️ **متوسط** | لا يوجد authentication على TCP connection — أي جهاز على الشبكة يمكنه الاتصال بـ port 8888 |
 
-**Recommended Alpha Release:**
-- بعد إكمال جميع Critical Fixes
-- بعد إضافة Important Features الأساسية
-- بعد Testing شامل
+### 3.4 Error Handling في بيئة Offline
+
+| الخطورة | الوصف |
+|---|---|
+| ⚠️ **عالي** | `_addFriendToDatabase` لا يتعامل مع فشل إنشاء chat — إذا فشل `insertChat()` بعد نجاح `insertContact()` تبقى جهة الاتصال بدون محادثة |
+| ⚠️ **عالي** | `CONTACT_EXCHANGE` يتجاوز Whitelist بالكامل — هذا يفتح احتمال spam عبر إرسال CONTACT_EXCHANGE من أي جهاز لإضافة نفسه قسراً |
+| ⚠️ **متوسط** | `sendMeshMessage` يفشل بصمت إذا لم يكن هناك peer متصل — الرسالة تُخزن في relay queue لكن لا يوجد إخطار واضح للمستخدم |
 
 ---
 
-### 💡 **Final Notes**
+## 4. نقاط الضعف التشغيلية (Operational Security)
 
-**نقاط القوة:**
-- ✅ UI/UX design احترافي
-- ✅ Native bridge متصل بشكل جيد
-- ✅ Security architecture موجودة (Crypto)
-- ✅ Duress Mode منطق موجود
+### 4.1 Metadata Leakage
 
-**نقاط الضعف:**
-- ❌ Database layer مفقود بالكامل
-- ❌ Message sending/receiving غير موجود
-- ❌ Key Exchange غير مطبق
-- ❌ بعض الميزات غير متصلة بالـ UI
+| الخطورة | الوصف |
+|---|---|
+| 🔴 **حرج** | **LogService يسجل كل شيء** — معرفات الأجهزة، عناوين IP، حالات الاتصال، أسماء المستخدمين. الـ Logs تبقى في `logcat` ويمكن استخراجها بأداة `adb logcat` |
+| 🔴 **حرج** | **الرسائل المستلمة تُعرض في الإشعارات** — محتوى الرسالة يظهر في notification bar (مرئي للمراقب) |
+| ⚠️ **عالي** | `SharedPreferences` يحتوي backup لبيانات المستخدم (`user_data_backup`) — هذا **نص واضح** يشمل userId و displayName |
+| ⚠️ **عالي** | `test_output.txt` في مجلد المشروع قد يحتوي مخرجات تشخيصية حساسة |
 
-**التوصية:**
-التطبيق يحتاج إلى **7-11 أيام عمل إضافية** لإكمال Critical Fixes قبل إصدار Alpha. البنية الأساسية جيدة، لكن Core Features (Database, Messaging) مفقودة.
+### 4.2 Forensic Analysis
+
+| الخطورة | الوصف |
+|---|---|
+| 🔴 **حرج** | قاعدة بيانات SQLite غير مشفرة = كل الرسائل قابلة للقراءة بأداة مثل `sqlite3` |
+| 🔴 **حرج** | ملفات الصوت تُخزن في `getApplicationDocumentsDirectory()` بدون تشفير — ملفات `.ogg` يمكن تشغيلها مباشرة |
+| ⚠️ **عالي** | عند استخدام Duress PIN (عندما يُنفَّذ)، وجود ملفي `.db` على نفس الجهاز يكشف أن هناك نظام ثنائي |
+
+### 4.3 Physical Security
+
+| الخطورة | الوصف |
+|---|---|
+| ⚠️ **عالي** | لا يوجد screen protection (FLAG_SECURE) — يمكن تصوير الشاشة أو أخذ screenshots |
+| ⚠️ **عالي** | لا يوجد clipboard protection — نسخ الرسائل يبقيها في clipboard |
+| ⚠️ **متوسط** | المفاتيح المخبأة في `_cachedKeyPair` عرضة لـ Cold Boot Attack (استخراج الذاكرة) |
 
 ---
 
-**تم إعداد التقرير بواسطة:** Senior Product Manager & Lead Mobile Architect  
-**التاريخ:** 2025-02-06
+## 5. LoRa Integration
 
+### الحالة الحالية
+
+🔴 **لم يُنفَّذ بعد.** لا يوجد أي كود LoRa في المشروع. فقط ذكر في التوثيق.
+
+### التوصيات للتنفيذ المستقبلي
+
+| الموضوع | التوصية |
+|---|---|
+| **التردد** | 868 MHz لسوريا/أوروبا (ISM band). **لا تستخدم 915 MHz** (أمريكا فقط) |
+| **Spread Factor** | SF10-SF12 للمدى الأقصى في بيئة حضرية (حتى 5 كم). SF7 فقط إذا المسافة < 500م |
+| **Payload** | حد أقصى ~51-222 بايت حسب SF. يجب تنفيذ message fragmentation لأي رسالة > 50 بايت |
+| **Power** | Heltec WiFi LoRa 32 يستهلك ~120mA TX. يجب تنفيذ deep sleep + duty cycle (< 1% TX time) |
+| **البروتوكول** | JSON ضخم جداً لـ LoRa. استخدم binary protobuf أو custom packed format |
+
+---
+
+## 6. Checklist قبل أول اختبار ميداني
+
+### 🔴 حرج — يجب إكماله قبل أي اختبار
+
+- [ ] **تشفير قاعدة البيانات** — الانتقال إلى SQLCipher عبر `drift` + `sqlcipher_flutter_libs`
+- [ ] **تشفير ملفات الصوت** — استخدام XSalsa20 لتشفير `.ogg` قبل الحفظ
+- [ ] **إيقاف Logging الحساس** — إزالة/تعطيل طباعة device IDs, IPs, و أسماء المستخدمين في production
+- [ ] **إصلاح privacy إشعارات** — إخفاء محتوى الرسالة من notification bar
+- [ ] **إزالة backup من SharedPreferences** — حذف `_storageBackupKey`
+- [ ] **إصلاح CONTACT_EXCHANGE** — إضافة rate limiting + token verification بدل الفتح الكامل
+
+### ⚠️ عالي — يُفضَّل قبل الميدان
+
+- [ ] **إضافة FLAG_SECURE** لمنع screenshots
+- [ ] **Per-session ephemeral keys** — على الأقل ratchet بسيط بدل shared secret ثابت
+- [ ] **رفض الرسائل غير القابلة لفك التشفير** بدل عرض النص المشفر
+- [ ] **تحديد حجم `_processedMessages`** — LRU cache بحد أقصى 10,000 عنصر
+- [ ] **تعشية Port** — استخدام port عشوائي بدل 8888 الثابت
+- [ ] **إكمال Duress Mode** أو إزالة إشاراته من UI
+
+### 📋 متوسط — حسب الأولوية
+
+- [ ] تقسيم `mesh_service.dart` إلى ملفات أصغر
+- [ ] إضافة Safety Numbers لفحص هوية المفاتيح
+- [ ] إضافة battery listener مستمر بدل فحص مرة واحدة
+- [ ] حد على حجم relay queue
+- [ ] Auto-expire لـ `_processedMessages`
+
+---
+
+## 7. ملاحظات معمارية إيجابية
+
+وسط كل الملاحظات النقدية، هناك نقاط قوة مهمة:
+
+- ✅ **اختيار libsodium** — مكتبة مُثبتة وآمنة. الخوارزميات صحيحة
+- ✅ **PIN hashing بـ Argon2id** — أفضل خوارزمية متاحة لـ password hashing
+- ✅ **Lockout بعد محاولات فاشلة** — مع exponential backoff
+- ✅ **Loop Detection + TTL** — حماية فعالة ضد broadcast storms
+- ✅ **Store-Carry-Forward** — منطق DTN سليم مع relay queue مستمر
+- ✅ **Token Bucket** — يمنع flooding في epidemic routing
+- ✅ **بنية Riverpod نظيفة** — dependency injection محترمة اصطلاحات Flutter
+
+---
+
+> **الخلاصة:** المشروع يحتوي أساس هندسي سليم لكنه يحتاج أعمال أمنية جوهرية قبل الاعتماد عليه في بيئة عالية المخاطر. أولوية العمل: **تشفير قاعدة البيانات → إيقاف التسريبات → إصلاح إدارة المفاتيح**.
