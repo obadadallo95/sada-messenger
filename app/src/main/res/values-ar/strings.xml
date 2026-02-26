@@ -1,0 +1,54 @@
+<resources>
+    <string name="app_name">صدى / Sada</string>
+    <string name="onboarding_skip">تخطي</string>
+    <string name="onboarding_next">التالي</string>
+    <string name="onboarding_done">ابدأ الآن</string>
+
+    <string name="onboarding_title_1">تواصل بلا حدود</string>
+    <string name="onboarding_desc_1">صدى يعمل حتى عند انقطاع الإنترنت. شبكتك هي الناس من حولك.</string>
+
+    <string name="onboarding_title_2">شبكة البشر (Mesh)</string>
+    <string name="onboarding_desc_2">رسائلك تقفز من هاتف لآخر عبر WiFi و Bluetooth حتى تصل لصديقك البعيد.</string>
+
+    <string name="onboarding_title_3">أمان وتشفير تام</string>
+    <string name="onboarding_desc_3">لا خوادم مركزية. رسائلك مشفرة ولا يمكن لأحد قراءتها غيرك أنت والمستلم.</string>
+
+    <string name="battery_optimization_title">مهم لاستقرار الشبكة</string>
+    <string name="battery_optimization_button">تعطيل تحسين البطارية (مهم للشبكة)</string>
+    <string name="battery_optimization_success">تم تفعيل استثناء تحسين البطارية بنجاح</string>
+    <string name="battery_optimization_error">تعذر فتح الإعدادات. يرجى تعطيل تحسين البطارية يدوياً</string>
+
+    <string name="register_title">إنشاء هويتك الرقمية</string>
+    <string name="register_nickname_hint">اللقب (يظهر للآخرين)</string>
+    <string name="register_button">بدء الاستخدام</string>
+    <string name="register_generating_keys">جارٍ تشفير مفاتيحك الخاصة...</string>
+
+    <string name="home_title">رسائل صدى / Sada</string>
+    <string name="home_empty_chats">لا توجد محادثات نشطة حالياً.\nابحث عن عقد قريبة للبدء.</string>
+    <string name="mesh_status_active">الشبكة نشطة / Mesh Active</string>
+    <string name="mesh_status_scanning">جارٍ البحث...</string>
+    <string name="mesh_status_offline">غير متصل</string>
+    <string name="mesh_relaying_packets">📦 أنت تحمل %1$d حزمة مشفرة من الشبكة</string>
+    <string name="mesh_no_packets">📦 لا تحمل حالياً أي حزم مرحّلة</string>
+
+    <string name="fab_scan_qr">مسح الكود</string>
+    <string name="fab_safe_notes">ملاحظاتي الآمنة</string>
+    <string name="fab_create_group">إنشاء قناة/مجموعة</string>
+
+    <string name="sos_title">بث طوارئ / Emergency SOS</string>
+    <string name="sos_message">هل أنت متأكد من رغبتك في إرسال نداء استغاثة لجميع الأجهزة القريبة؟ سيتم تضمين موقعك الحالي.</string>
+    <string name="sos_send">إرسال نداء الاستغاثة</string>
+    <string name="sos_cancel">إلغاء</string>
+    <string name="navigation_home">الرئيسية</string>
+    <string name="navigation_chat">الدردشات</string>
+    <string name="navigation_groups">المجموعات</string>
+    <string name="navigation_add">إضافة صديق</string>
+    <string name="navigation_settings">الإعدادات</string>
+    <string name="navigation_communities">المجتمعات</string>
+    <string name="groups_nearby_title">المجتمعات القريبة</string>
+    <string name="groups_my_title">مجموعاتي</string>
+    <string name="groups_empty">لا توجد مجموعات قريبة حالياً</string>
+    <string name="groups_create_button">إنشاء مجتمع</string>
+    <string name="groups_join">انضمام</string>
+    <string name="groups_peers_nearby">%1$d نظماء قريبون</string>
+</resources>
