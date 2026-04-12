@@ -25,6 +25,7 @@ import kotlinx.coroutines.launch
 import org.sada.messenger.network.MeshEngine
 import org.sada.messenger.ui.theme.*
 import org.sada.messenger.ui.utils.tr
+import androidx.activity.compose.BackHandler
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,7 +39,12 @@ fun MeshDiagnosticsScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    
+
+    // Handle system back button
+    BackHandler {
+        onBack()
+    }
+
     // Refresh diagnostics periodically
     LaunchedEffect(Unit) {
         while(true) {

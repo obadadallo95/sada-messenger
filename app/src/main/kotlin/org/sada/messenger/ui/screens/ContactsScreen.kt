@@ -382,6 +382,8 @@ private fun ModernQrScannerSheet(
         contract = ActivityResultContracts.RequestPermission()
     ) { granted ->
         hasCameraPermission = granted
+        // Force recomposition to recreate AndroidView with camera
+        barcodeViewRef = null
     }
 
     DisposableEffect(lifecycleOwner, barcodeViewRef) {
