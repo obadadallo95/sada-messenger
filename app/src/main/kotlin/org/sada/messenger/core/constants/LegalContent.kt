@@ -98,136 +98,122 @@ Last Updated: 2026-02-26
     fun intellectualProperty(isArabic: Boolean): String {
         return if (isArabic) {
             """
-حقوق الملكية الفكرية وشروط الاستخدام
+الترخيص وحقوق الملكية الفكرية
 
-آخر تحديث: أبريل 2026
-جميع الحقوق محفوظة © 2026 — عبادة دللو
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1) الملكية الفكرية
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-جميع حقوق الملكية الفكرية المتعلقة بتطبيق "صدى" (Sada)، بما تشمل:
-- الكود المصدري (Source Code)
-- التصميم البصري وهوية الواجهة
-- البنية التقنية ونماذج التشبيك اللامركزي
-- الوثائق والمحتوى الأدبي المرفق
-- الشعارات والعلامات التجارية
-
-... هي ملكية حصرية لـ عبادة دللو (Obada Dallo).
+رخصة GNU العمومية الإصدار 3 (GPL v3)
+حقوق النشر © 2026 — عبادة دللو (Obada Dallo)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-2) رخصة الاستخدام
+1) المشروع مفتوح المصدر
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-يُمنح المستخدم ترخيصاً شخصياً غير تجاري لاستخدام التطبيق وفق الشروط التالية:
+تطبيق "صدى" (Sada) هو مشروع مفتوح المصدر مُرخّص بموجب رخصة GNU العمومية الإصدار 3 (GPL v3).
 
-✅ مسموح به:
-- استخدام التطبيق للاتصالات الشخصية والميدانية.
-- مشاركة التطبيق مع أفراد آخرين دون تعديل.
-- الاطلاع على الكود المصدري للأغراض التعليمية فقط.
-
-🚫 ممنوع دون إذن كتابي مسبق:
-- نسخ أو توزيع أو بيع التطبيق أو الكود بشكل تجاري.
-- إنشاء مشاريع مشتقة (Fork) للنشر العلني.
-- إزالة إشعارات حقوق الملكية أو نسب العمل.
-- استخدام الكود أو التصميم في منتج أو خدمة أخرى.
-- العكسية الهندسية (Reverse Engineering) بغرض تجاري.
+المطور الأصلي والمؤسس: عبادة دللو (Obada Dallo)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-3) المكونات مفتوحة المصدر
+2) ما يحق لك فعله
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-يستخدم هذا التطبيق مكتبات مفتوحة المصدر خاضعة لرخصها الخاصة:
-- Jetpack Compose — Apache License 2.0
-- Room Database — Apache License 2.0
-- ZXing QR Code — Apache License 2.0
-- Material Design 3 — Apache License 2.0
-- Kotlin / Coroutines — Apache License 2.0
+✅ استخدام التطبيق لأي غرض (شخصي أو تجاري).
+✅ نسخ وتوزيع الكود المصدري.
+✅ تعديل الكود وإنشاء مشاريع مشتقة (Fork).
+✅ دمج أجزاء من الكود في مشاريع أخرى.
+✅ دراسة الكود والتعلم منه.
 
-لا تمتد حقوق مالك التطبيق لتشمل هذه المكونات.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+3) الشروط الملزمة
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⚠️ يجب الالتزام بالشروط التالية:
+
+• ذكر المصدر الأصلي — يجب الإشارة إلى أن العمل الأصلي من تطوير عبادة دللو (Obada Dallo) مع رابط المستودع الأصلي.
+
+• النشر بنفس الرخصة — أي مشروع مشتق أو معدّل يجب أن يكون مفتوح المصدر تحت GPL v3 أيضاً.
+
+• مشاركة الكود المصدري — إذا وزّعت نسخة معدّلة، يجب أن توفّر الكود المصدري الكامل لها.
+
+• الإبقاء على إشعارات حقوق النشر — لا يجوز إزالة أو تعديل إشعارات حقوق النشر الأصلية.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 4) إخلاء المسؤولية
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 - التطبيق مقدم "كما هو" دون أي ضمان صريح أو ضمني.
-- المالك غير مسؤول عن أي ضرر مباشر أو غير مباشر ناتج عن الاستخدام.
-- المستخدم يتحمل كامل المسؤولية عن أي استخدام مخالف للقوانين المحلية.
+- المطور غير مسؤول عن أي ضرر مباشر أو غير مباشر ناتج عن الاستخدام.
+- المستخدم يتحمل كامل المسؤولية عن استخدامه.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-5) التواصل وطلب الأذونات
+5) لماذا GPL v3؟
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-لطلب ترخيص تجاري أو الاستفسار عن الاستخدام:
+صدى مشروع أمن وخصوصية — نؤمن أن الشفافية تبني الثقة. رخصة GPL v3 تضمن أن أي نسخة معدّلة تبقى مفتوحة ليتمكن الجميع من التحقق من أمانها.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+6) التواصل
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 البريد الإلكتروني: obada.dallo95@gmail.com
 GitHub: github.com/obadadallo95
 
             """.trimIndent()
         } else {
             """
-Intellectual Property & Usage Rights
+License & Intellectual Property
 
-Last Updated: April 2026
-All Rights Reserved © 2026 — Obada Dallo
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1) Intellectual Property Ownership
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-All intellectual property rights related to the "Sada" application, including but not limited to:
-- Source code
-- Visual design and UI identity
-- Technical architecture and decentralized networking models
-- Documentation and literary content
-- Logos and trademarks
-
-... are the exclusive property of Obada Dallo (عبادة دللو).
+GNU General Public License v3 (GPL v3)
+Copyright (c) 2026 — Obada Dallo
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-2) License Grant
+1) Open Source Project
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Users are granted a personal, non-commercial license to use the application under the following conditions:
+Sada is an open-source project licensed under the GNU General Public License v3 (GPL v3).
 
-✅ Permitted:
-- Using the application for personal and field communications.
-- Sharing the application with others without modification.
-- Viewing the source code for educational purposes only.
-
-🚫 Prohibited without prior written permission:
-- Copying, distributing, or selling the application or source code commercially.
-- Creating derivative works (Forks) for public release.
-- Removing copyright notices or attribution.
-- Using the code or design in any other product or service.
-- Reverse engineering for commercial purposes.
+Original developer & founder: Obada Dallo
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-3) Open Source Components
+2) What You Can Do
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-This application uses open-source libraries governed by their own licenses:
-- Jetpack Compose — Apache License 2.0
-- Room Database — Apache License 2.0
-- ZXing QR Code — Apache License 2.0
-- Material Design 3 — Apache License 2.0
-- Kotlin / Coroutines — Apache License 2.0
+✅ Use the application for any purpose (personal or commercial).
+✅ Copy and distribute the source code.
+✅ Modify the code and create derivative works (Fork).
+✅ Integrate parts of the code into other projects.
+✅ Study the code and learn from it.
 
-The owner's rights do not extend to these components.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+3) Required Conditions
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⚠️ You must comply with the following:
+
+• Attribution — You must credit the original work to Obada Dallo with a link to the original repository.
+
+• Same License — Any derivative or modified work must also be open-sourced under GPL v3.
+
+• Share Source Code — If you distribute a modified version, you must provide the complete source code.
+
+• Keep Copyright Notices — You may not remove or alter the original copyright notices.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 4) Disclaimer
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 - The application is provided "as is" without any express or implied warranty.
-- The owner is not liable for any direct or indirect damage resulting from use.
-- Users bear full responsibility for any use that violates local laws.
+- The developer is not liable for any direct or indirect damage resulting from use.
+- Users bear full responsibility for their use of the software.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-5) Contact & Permission Requests
+5) Why GPL v3?
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-For commercial licensing or usage inquiries:
+Sada is a security and privacy project — we believe transparency builds trust. GPL v3 ensures that any modified version remains open so everyone can verify its safety.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+6) Contact
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 Email: obada.dallo95@gmail.com
 GitHub: github.com/obadadallo95
 
