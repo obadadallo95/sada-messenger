@@ -121,5 +121,6 @@ Sada is **fully open source** under GPL v3. This means:
 - Community can verify all privacy claims
 - Security researchers can report vulnerabilities
 
-> To report a security vulnerability, please email: **security@sada-messenger.org**
-> لإبلاغ عن ثغرة أمنية: **security@sada-messenger.org**
+> 🔒 **Report a security issue / الإبلاغ عن ثغرات:**
+> [Open a GitHub Issue](https://github.com/obadadallo95/sada-messenger/issues) 
+> or contact via Telegram: [@obada_dallo95](https://t.me/obada_dallo95)

@@ -7,7 +7,7 @@
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg?style=for-the-badge)](https://www.gnu.org/licenses/gpl-3.0)
 [![GitHub](https://img.shields.io/badge/GitHub-obadadallo95-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/obadadallo95/sada-messenger)
-[![Email](https://img.shields.io/badge/Contact-legal@sada--messenger.org-D14836?style=for-the-badge&logo=gmail&logoColor=white)](mailto:legal@sada-messenger.org)
+[![Telegram](https://img.shields.io/badge/Contact-@obada__dallo95-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white)](https://t.me/obada_dallo95)
 
 > *By using Sada, you agree to protect privacy, respect others, and follow the law.*
 > *باستخدام صدى، فإنك توافق على حماية الخصوصية، احترام الآخرين، والالتزام بالقانون.*
@@ -168,9 +168,10 @@ By downloading, installing, or using Sada, you agree to:
 ## 10. 📧 التواصل / Contact
 
 ### 📧 **للاستفسارات / For Inquiries**
-- عام: contact@sada-messenger.org
-- قانوني: legal@sada-messenger.org
-- دعم: support@sada-messenger.org
+📬 **Contact / التواصل:**
+- GitHub: [github.com/obadadallo95](https://github.com/obadadallo95)
+- Telegram: [@obada_dallo95](https://t.me/obada_dallo95)
+- LinkedIn: [Obada Dallo](https://www.linkedin.com/in/obada-dallo-777a47a9/)
 
 ---
 
@@ -224,7 +225,7 @@ You do NOT have the right to:
 
 **[View Source Code](https://github.com/obadadallo95/sada-messenger)** | 
 **[Report Issue](https://github.com/obadadallo95/sada-messenger/issues)** |
-**[Security Contact](mailto:security@sada-messenger.org)**
+**[Security Contact](https://t.me/obada_dallo95)**
 
 *Note: A simplified version is available for non-technical users.*
 *ملاحظة: نسخة مبسطة متاحة للمستخدمين غير التقنيين.*

@@ -7,7 +7,7 @@
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg?style=for-the-badge)](https://www.gnu.org/licenses/gpl-3.0)
 [![GitHub](https://img.shields.io/badge/GitHub-obadadallo95-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/obadadallo95/sada-messenger)
-[![Email](https://img.shields.io/badge/Contact-privacy@sada--messenger.org-D14836?style=for-the-badge&logo=gmail&logoColor=white)](mailto:privacy@sada-messenger.org)
+[![Telegram](https://img.shields.io/badge/Contact-@obada__dallo95-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white)](https://t.me/obada_dallo95)
 
 > *Sada collects zero personal data. Everything stays on your device.*
 > *صدى لا يجمع أي بيانات شخصية. كل شيء يبقى على جهازك.*
@@ -135,11 +135,14 @@ We do NOT collect any personal information:
 
 ## 8. التواصل معنا / Contact Us
 
-للأسئلة حول الخصوصية:
-📧 privacy@sada-messenger.org
+📬 **Contact / التواصل:**
+- GitHub: [github.com/obadadallo95](https://github.com/obadadallo95)
+- Telegram: [@obada_dallo95](https://t.me/obada_dallo95)
+- LinkedIn: [Obada Dallo](https://www.linkedin.com/in/obada-dallo-777a47a9/)
 
-للإبلاغ عن مشكلة أمنية:
-🔒 security@sada-messenger.org
+🔒 **Report a security issue / الإبلاغ عن ثغرات:**
+- [Open a GitHub Issue](https://github.com/obadadallo95/sada-messenger/issues)
+- or contact via Telegram: [@obada_dallo95](https://t.me/obada_dallo95)
 
 ---
 
@@ -174,6 +177,6 @@ We do NOT collect any personal information:
 
 **[View Source Code](https://github.com/obadadallo95/sada-messenger)** | 
 **[Report Issue](https://github.com/obadadallo95/sada-messenger/issues)** |
-**[Security Contact](mailto:security@sada-messenger.org)**
+**[Security Contact](https://t.me/obada_dallo95)**
 
 </div>
