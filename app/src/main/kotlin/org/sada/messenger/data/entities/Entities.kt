@@ -8,13 +8,27 @@ data class ContactEntity(
     @PrimaryKey val id: String,
     val name: String,
     val publicKey: String? = null,
+    val isServiceProfile: Boolean = false,
+    val serviceCategory: String? = null,
+    val serviceChatId: String? = null,
+    val serviceAddress: String? = null,
+    val serviceWorkingHours: String? = null,
+    val serviceContactInfo: String? = null,
+    val serviceDeliveryAvailable: Boolean = false,
+    val serviceDeliveryRadiusKm: String? = null,
+    val serviceQuickReply: String? = null,
     val avatar: String? = null,
     val lastSeen: Date? = null,
     val lastRssi: Int? = null,
     val lastSnr: Double? = null,
     val isBlocked: Boolean = false,
+    val isVerified: Boolean = false, // true only after QR code exchange
+    val statusText: String? = null,
+    val statusExpiresAt: Date? = null,
     val createdAt: Date = Date(),
-    val updatedAt: Date = Date()
+    val updatedAt: Date = Date(),
+    val lastActionAt: Date? = null, // For rejection cooldowns (24h)
+    val isGroup: Boolean = false // Indicates if this contact represents a group
 )
 
 @Entity(tableName = "chats")
@@ -25,27 +39,16 @@ data class ChatEntity(
     val lastMessageAt: Date? = null,
     val unreadCount: Int = 0,
     val isGroup: Boolean = false,
+    val groupDescription: String? = null,
+    val isPublic: Boolean = true,
+    val joinPolicy: String = "open", // open | approval | invite_only
     val groupKey: String? = null, // Shared symmetric key (Base64)
-    val ownerId: String? = null
-)
-
-@Entity(
-    tableName = "group_members",
-    primaryKeys = ["groupId", "peerId"],
-    foreignKeys = [
-        ForeignKey(
-            entity = ChatEntity::class,
-            parentColumns = ["id"],
-            childColumns = ["groupId"],
-            onDelete = ForeignKey.CASCADE
-        )
-    ]
-)
-data class GroupMemberEntity(
-    val groupId: String,
-    val peerId: String,
-    val role: String = "member",
-    val joinedAt: Date = Date()
+    val ownerId: String? = null,
+    val inviteCode: String? = null, // Group invite code
+    // Group restriction settings
+    val slowModeSeconds: Int = 0, // 0 = disabled, otherwise seconds between messages
+    val restrictNewMembers: Boolean = false, // New members can only read, not send
+    val requireAdminApproval: Boolean = false // Require admin approval for messages
 )
 
 @Entity(
@@ -78,7 +81,17 @@ data class MessageEntity(
     val latitude: Double? = null,
     val longitude: Double? = null,
     val replyToId: String? = null,
-    val retryCount: Int = 0
+    val replyToSender: String? = null,
+    val replyToContent: String? = null,
+    val retryCount: Int = 0,
+    val isPinned: Boolean = false, // Pin message feature
+    val pinnedAt: Date? = null, // When the message was pinned
+    val pinnedBy: String? = null, // Who pinned the message
+    val editedAt: Date? = null, // Edit message feature - when edited
+    val mediaLocalPath: String? = null,
+    val mediaDuration: Int? = null, // seconds
+    val isVoice: Boolean = false, // Voice message flag
+    val voiceDurationMs: Long? = null // Voice message duration in milliseconds
 )
 
 @Entity(
@@ -100,4 +113,32 @@ data class RelayQueueEntity(
     val recipientHash: String, // SHA256 of recipient ID for Blind Relay
     val payload: String,
     val expiresAt: Date
+)
+
+@Entity(
+    tableName = "seen_messages",
+    indices = [
+        Index(value = ["seenAt"], name = "seen_messages_seen_at_idx")
+    ]
+)
+data class SeenMessageEntity(
+    @PrimaryKey val messageId: String,
+    val seenAt: Date = Date()
+)
+
+@Entity(
+    tableName = "connection_requests",
+    indices = [
+        Index(value = ["peerId"], unique = true)
+    ]
+)
+data class ConnectionRequestEntity(
+    @PrimaryKey val id: String, // UUID
+    val peerId: String,
+    val peerName: String,
+    val publicKey: String,
+    val status: String = "pending", // pending | approved | rejected
+    val type: String = "incoming", // incoming | outgoing
+    val createdAt: Date = Date(),
+    val resolvedAt: Date? = null
 )

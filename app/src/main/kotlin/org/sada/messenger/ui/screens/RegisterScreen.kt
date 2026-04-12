@@ -21,7 +21,7 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import org.sada.messenger.R
 import org.sada.messenger.security.KeyManager
-import org.sada.messenger.ui.theme.NeonTeal
+import org.sada.messenger.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

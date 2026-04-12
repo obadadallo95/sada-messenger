@@ -40,7 +40,7 @@
     <string name="sos_send">إرسال نداء الاستغاثة</string>
     <string name="sos_cancel">إلغاء</string>
     <string name="navigation_home">الرئيسية</string>
-    <string name="navigation_chat">الدردشات</string>
+    <string name="navigation_chat">قائمة الأصدقاء</string>
     <string name="navigation_groups">المجموعات</string>
     <string name="navigation_add">إضافة صديق</string>
     <string name="navigation_settings">الإعدادات</string>

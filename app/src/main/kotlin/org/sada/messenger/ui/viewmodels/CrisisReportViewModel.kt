@@ -39,6 +39,11 @@ class CrisisReportViewModel(
         _step.value = CrisisReportStep.RecordAudio
     }
 
+    fun skipImage() {
+        // Allow proceeding without image - image is now optional
+        _step.value = CrisisReportStep.RecordAudio
+    }
+
     fun startRecording() {
         val file = File(videoEngine.getOutputDirectory(), "temp_audio_${System.currentTimeMillis()}.m4a")
         if (audioRecorderManager.startRecording(file)) {
@@ -56,8 +61,9 @@ class CrisisReportViewModel(
         val image = _selectedImage.value
         val audio = recordedAudioFile
         
-        if (image == null || audio == null) {
-            _step.value = CrisisReportStep.Error("Missing image or audio")
+        // Audio is required, image is optional
+        if (audio == null) {
+            _step.value = CrisisReportStep.Error("Missing audio recording")
             return
         }
 
@@ -65,11 +71,22 @@ class CrisisReportViewModel(
 
         viewModelScope.launch {
             val outputFile = File(videoEngine.getOutputDirectory(), "report_${UUID.randomUUID()}.mp4")
-            val success = videoEngine.createCrisisReport(
-                imagePath = image.absolutePath,
-                audioPath = audio.absolutePath,
-                outputPath = outputFile.absolutePath
-            )
+            // If no image, create audio-only report or use placeholder
+            val success = if (image != null) {
+                videoEngine.createCrisisReport(
+                    imagePath = image.absolutePath,
+                    audioPath = audio.absolutePath,
+                    outputPath = outputFile.absolutePath
+                )
+            } else {
+                // Audio-only report - copy audio file as output
+                try {
+                    audio.copyTo(outputFile, overwrite = true)
+                    true
+                } catch (e: Exception) {
+                    false
+                }
+            }
             
             if (success) {
                 _step.value = CrisisReportStep.Success(outputFile)

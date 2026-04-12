@@ -9,6 +9,7 @@
 - [UI_SCREENS_AND_FLOWS.md](UI_SCREENS_AND_FLOWS.md): كل الشاشات ومسارات الاستخدام.
 - [CODE_STYLE_AND_I18N.md](CODE_STYLE_AND_I18N.md): طريقة كتابة الكود والترجمة RTL/LTR.
 - [DELIVERY_CHECKLIST.md](DELIVERY_CHECKLIST.md): قائمة التحقق قبل الدمج/الإصدار.
+- [GO_NO_GO_FIELD_RELEASE.md](GO_NO_GO_FIELD_RELEASE.md): قرار الجاهزية الميدانية (Go/No-Go).
 
 ## مستندات تاريخية/انتقالية
 - [FEATURE_PARITY_MATRIX.md](FEATURE_PARITY_MATRIX.md)

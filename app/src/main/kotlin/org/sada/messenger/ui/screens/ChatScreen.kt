@@ -1,38 +1,47 @@
+@file:OptIn(
+    androidx.compose.foundation.ExperimentalFoundationApi::class,
+    androidx.compose.material3.ExperimentalMaterial3Api::class
+)
 package org.sada.messenger.ui.screens
 
+import android.Manifest
+import android.content.pm.PackageManager
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import coil.compose.AsyncImage
 import org.sada.messenger.data.entities.MessageEntity
 import org.sada.messenger.ui.viewmodels.ChatViewModel
 import org.sada.messenger.managers.MediaManager
-import org.sada.messenger.ui.theme.NeonTeal
-import org.sada.messenger.ui.theme.CyberBlue
-import java.util.*
+import org.sada.messenger.ui.theme.*
+import org.sada.messenger.ui.components.*
+import org.sada.messenger.ui.utils.tr
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,15 +52,32 @@ fun ChatScreen(
     onCrisisReportClick: () -> Unit
 ) {
     val messages by viewModel.messages.collectAsState()
+    val isVoiceRecording by viewModel.isVoiceRecording.collectAsState()
+    val recordingDuration by viewModel.recordingDurationSeconds.collectAsState()
+    val amplitude by viewModel.amplitude.collectAsState()
+    val isSelectionMode by viewModel.isSelectionMode.collectAsState()
+    val selectedIds by viewModel.selectedMessageIds.collectAsState()
+    
+    val listState = rememberLazyListState()
     var textState by remember { mutableStateOf("") }
     var showAttachmentMenu by remember { mutableStateOf(false) }
     val context = LocalContext.current
-    val mediaManager = remember { MediaManager(context) }
+    val density = LocalDensity.current
+    val isImeOpen = WindowInsets.ime.getBottom(density) > 0
+    var showClearChatConfirm by remember { mutableStateOf(false) }
+    var showDeleteMessagesConfirm by remember { mutableStateOf(false) }
+
+    LaunchedEffect(messages.size, isImeOpen) {
+        if (isImeOpen && messages.isNotEmpty()) {
+            listState.animateScrollToItem(messages.lastIndex)
+        }
+    }
 
     val filePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
         uri?.let {
+            val mediaManager = MediaManager(context)
             val file = mediaManager.saveMediaToInternalStorage(it)
             if (file != null) {
                 val mimeType = context.contentResolver.getType(it) ?: "application/octet-stream"
@@ -60,259 +86,499 @@ fun ChatScreen(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        MeshBackground()
+    val recordAudioPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) viewModel.startVoiceRecording()
+    }
 
+    Box(modifier = Modifier.fillMaxSize().background(LocalSadaPalette.current.background)) {
         Scaffold(
             topBar = {
-                TopAppBar(
-                    title = { 
-                        Column {
-                            Text(chatName, fontWeight = FontWeight.Bold)
-                            Text("تشفير طرف لطرف / E2EE", style = MaterialTheme.typography.labelSmall, color = NeonTeal.copy(alpha = 0.5f))
-                        }
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = onBackClick) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color.Transparent,
-                        scrolledContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
-                    )
-                )
+                AnimatedContent(targetState = isSelectionMode, label = "TopBar") { selection ->
+                    if (selection) {
+                        TopAppBar(
+                            title = { Text(tr("${selectedIds.size} رسائل محددة", "${selectedIds.size} messages selected")) },
+                            navigationIcon = {
+                                IconButton(onClick = { viewModel.exitSelectionMode() }) {
+                                    Icon(Icons.Default.Close, contentDescription = "Close", tint = LocalSadaPalette.current.textPrimary)
+                                }
+                            },
+                            actions = {
+                                IconButton(onClick = { showDeleteMessagesConfirm = true }) {
+                                    Icon(Icons.Default.Delete, contentDescription = "Delete", tint = ErrorRed)
+                                }
+                            },
+                            colors = TopAppBarDefaults.topAppBarColors(
+                                containerColor = LocalSadaPalette.current.background.copy(alpha = 0.9f),
+                                titleContentColor = LocalSadaPalette.current.textPrimary,
+                                navigationIconContentColor = LocalSadaPalette.current.textPrimary,
+                                actionIconContentColor = LocalSadaPalette.current.textPrimary
+                            )
+                        )
+                    } else {
+                        TopAppBar(
+                            title = {
+                                Column {
+                                    Text(chatName, fontWeight = FontWeight.Bold, color = LocalSadaPalette.current.textPrimary)
+                                    Text(tr("تشفير طرف لطرف", "End-to-end encryption"), style = MaterialTheme.typography.labelSmall, color = LocalSadaPalette.current.surface.copy(alpha = 0.5f))
+                                }
+                            },
+                            navigationIcon = {
+                                IconButton(onClick = onBackClick) {
+                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = LocalSadaPalette.current.textPrimary)
+                                }
+                            },
+                            actions = {
+                                IconButton(onClick = { showClearChatConfirm = true }) {
+                                    Icon(Icons.Default.DeleteSweep, contentDescription = "Clear", tint = LocalSadaPalette.current.textSecondary)
+                                }
+                            },
+                            colors = TopAppBarDefaults.topAppBarColors(
+                                containerColor = LocalSadaPalette.current.background.copy(alpha = 0.9f),
+                                titleContentColor = LocalSadaPalette.current.textPrimary,
+                                navigationIconContentColor = LocalSadaPalette.current.textPrimary,
+                                actionIconContentColor = LocalSadaPalette.current.textPrimary
+                            )
+                        )
+                    }
+                }
             },
             bottomBar = {
-                ChatInput(
-                    text = textState,
-                    onTextChange = { textState = it },
-                    onSend = {
-                        if (textState.isNotBlank()) {
-                            viewModel.sendMessage(textState)
-                            textState = ""
+                val replyToMessage by viewModel.replyToMessage.collectAsState()
+                val editingMessage by viewModel.editingMessage.collectAsState()
+                Column {
+                    editingMessage?.let { editMsg ->
+                        ReplyBarGlass(
+                            senderName = tr("تعديل رسالة", "Editing message"),
+                            messagePreview = editMsg.content,
+                            onCancel = { 
+                                viewModel.cancelEditing()
+                                textState = ""
+                            }
+                        )
+                    }
+                    if (editingMessage == null) {
+                        replyToMessage?.let { replyMsg ->
+                            ReplyBarGlass(
+                                senderName = if (replyMsg.isFromMe) "أنت" else replyMsg.replyToSender ?: "Unknown",
+                                messagePreview = replyMsg.content,
+                                onCancel = { viewModel.clearReplyTo() }
+                            )
                         }
-                    },
-                    onAttach = { showAttachmentMenu = true }
-                )
+                    }
+                    ChatInputGlass(
+                        text = textState,
+                        onTextChange = { textState = it },
+                        onSend = {
+                            if (textState.isNotBlank()) {
+                                editingMessage?.let { editMsg ->
+                                    viewModel.editMessage(editMsg.id, textState)
+                                    viewModel.cancelEditing()
+                                } ?: viewModel.sendMessage(textState)
+                                textState = ""
+                            }
+                        },
+                        onAttach = { showAttachmentMenu = true },
+                        isVoiceRecording = isVoiceRecording,
+                        recordingDuration = recordingDuration,
+                        amplitude = amplitude,
+                        onVoiceRecordToggle = {
+                            if (!isVoiceRecording) {
+                                if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+                                    viewModel.startVoiceRecording()
+                                } else {
+                                    recordAudioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                                }
+                            } else {
+                                viewModel.stopVoiceRecordingAndSend()
+                            }
+                        }
+                    )
+                }
             },
-            containerColor = Color.Transparent
+            containerColor = LocalSadaPalette.current.background
         ) { padding ->
             LazyColumn(
+                state = listState,
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
-                    .padding(horizontal = 16.dp),
-                reverseLayout = true,
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(messages.reversed(), key = { it.id }) { message ->
-                    GlassMessageBubble(message = message)
+                items(messages, key = { it.id }) { message ->
+                    GlassMessageBubble(
+                        message = message,
+                        isSelected = selectedIds.contains(message.id),
+                        onClick = {
+                            if (isSelectionMode) {
+                                viewModel.toggleMessageSelection(message.id)
+                            }
+                        },
+                        onLongClick = {
+                            viewModel.toggleMessageSelection(message.id)
+                        },
+                        onReply = { viewModel.setReplyTo(message) },
+                        onEdit = { 
+                            if (message.isFromMe && message.type == "text") {
+                                viewModel.startEditing(message)
+                                textState = message.content
+                            }
+                        },
+                        onForward = { viewModel.setForwardMessage(message) }
+                    )
                 }
-                item { Spacer(modifier = Modifier.height(16.dp)) }
             }
+        }
+
+        if (showClearChatConfirm) {
+            GlassAlertDialog(
+                onDismissRequest = { showClearChatConfirm = false },
+                title = tr("مسح المحادثة", "Clear Chat"),
+                text = tr("هل أنت متأكد من مسح جميع الرسائل؟", "Are you sure you want to clear all messages?"),
+                confirmButton = {
+                    GlassButton(
+                        onClick = {
+                            viewModel.clearChatContent()
+                            showClearChatConfirm = false
+                        }
+                    ) {
+                        Text(tr("مسح", "Clear"))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showClearChatConfirm = false }) {
+                        Text(tr("إلغاء", "Cancel"))
+                    }
+                }
+            )
+        }
+
+        if (showDeleteMessagesConfirm) {
+            GlassAlertDialog(
+                onDismissRequest = { showDeleteMessagesConfirm = false },
+                title = tr("حذف الرسائل", "Delete Messages"),
+                text = tr("هل أنت متأكد من حذف ${selectedIds.size} رسائل محددة؟", "Are you sure you want to delete ${selectedIds.size} selected messages?"),
+                confirmButton = {
+                    GlassButton(
+                        onClick = {
+                            viewModel.deleteSelectedMessages()
+                            showDeleteMessagesConfirm = false
+                        }
+                    ) {
+                        Text(tr("حذف", "Delete"))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDeleteMessagesConfirm = false }) {
+                        Text(tr("إلغاء", "Cancel"))
+                    }
+                }
+            )
         }
 
         if (showAttachmentMenu) {
-            ModalBottomSheet(
-                onDismissRequest = { showAttachmentMenu = false },
-                containerColor = Color(0xFF1A1A1A),
-                shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(24.dp)
-                        .navigationBarsPadding()
-                ) {
-                    Text(
-                        "إرفاق / Attachments", 
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                    Spacer(modifier = Modifier.height(24.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly
-                    ) {
-                        AttachmentItem(
-                            icon = Icons.Default.Image,
-                            label = "Photo",
-                            color = NeonTeal,
-                            onClick = {
-                                showAttachmentMenu = false
-                                filePicker.launch("image/*")
-                            }
-                        )
-                        AttachmentItem(
-                            icon = Icons.Default.AddAlert,
-                            label = "Report",
-                            color = Color.Red,
-                            onClick = {
-                                showAttachmentMenu = false
-                                onCrisisReportClick()
-                            }
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(40.dp))
-                }
-            }
+            AttachmentBottomSheetGlass(
+                onDismiss = { showAttachmentMenu = false },
+                onImageSelect = { filePicker.launch("image/*") },
+                onFileSelect = { filePicker.launch("*/*") },
+                onReportClick = onCrisisReportClick
+            )
         }
     }
 }
 
 @Composable
-fun GlassMessageBubble(message: MessageEntity) {
-    val alignment = if (message.isFromMe) Alignment.CenterEnd else Alignment.CenterStart
-    val bubbleColor = if (message.isFromMe) 
-        NeonTeal.copy(alpha = 0.15f) 
-    else 
-        Color.White.copy(alpha = 0.05f)
+fun GlassMessageBubble(
+    message: MessageEntity,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit,
+    onReply: () -> Unit,
+    onEdit: () -> Unit,
+    onForward: () -> Unit
+) {
+    val isFromMe = message.isFromMe
+    val bubbleColor = if (isFromMe) {
+        LocalSadaPalette.current.surface.copy(alpha = 0.2f)
+    } else {
+        LocalSadaPalette.current.surfaceVariant.copy(alpha = 0.5f)
+    }
     
-    val borderColor = if (message.isFromMe) NeonTeal.copy(alpha = 0.3f) else Color.White.copy(alpha = 0.1f)
-
-    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = alignment) {
-        Surface(
-            color = bubbleColor,
-            shape = RoundedCornerShape(
-                topStart = 20.dp,
-                topEnd = 20.dp,
-                bottomStart = if (message.isFromMe) 20.dp else 4.dp,
-                bottomEnd = if (message.isFromMe) 4.dp else 20.dp
-            ),
-            border = androidx.compose.foundation.BorderStroke(1.dp, borderColor),
-            modifier = Modifier.widthIn(max = 300.dp)
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 2.dp)
+            .background(if (isSelected) LocalSadaPalette.current.surface.copy(alpha = 0.15f) else Color.Transparent),
+        contentAlignment = if (isFromMe) Alignment.CenterEnd else Alignment.CenterStart
+    ) {
+        GlassSurface(
+            modifier = Modifier
+                .widthIn(max = 280.dp)
+                .combinedClickable(
+                    onClick = onClick,
+                    onLongClick = onLongClick
+                ),
+            cornerRadius = 16.dp
         ) {
-            Column(modifier = Modifier.padding(12.dp)) {
-                if (message.attachmentPath != null && message.attachmentType?.startsWith("image") == true) {
-                    AsyncImage(
-                        model = message.attachmentPath,
-                        contentDescription = null,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .padding(bottom = 8.dp)
+            Column(
+                modifier = Modifier.padding(12.dp)
+            ) {
+                if (message.replyToId != null && message.replyToContent != null) {
+                    ReplyBubbleGlass(
+                        senderName = message.replyToSender ?: tr("مستخدم", "User"),
+                        content = message.replyToContent,
+                        isCurrentUser = message.replyToId == message.id
                     )
+                    Spacer(modifier = Modifier.height(4.dp))
                 }
-                Text(text = message.content, color = Color.White, fontSize = 16.sp)
+                
+                Text(
+                    text = message.content,
+                    color = LocalSadaPalette.current.textPrimary,
+                    fontSize = 15.sp
+                )
                 
                 Row(
-                    modifier = Modifier.align(Alignment.End),
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    if (message.isRelayed) {
-                        Icon(
-                            Icons.Default.Hub, 
-                            contentDescription = null, 
-                            modifier = Modifier.size(10.dp),
-                            tint = NeonTeal.copy(alpha = 0.5f)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                    }
                     Text(
-                        text = java.text.SimpleDateFormat("HH:mm", Locale.getDefault()).format(message.timestamp),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color.White.copy(alpha = 0.4f)
+                        text = formatTimestamp(message.timestamp.time),
+                        color = LocalSadaPalette.current.textSecondary.copy(alpha = 0.7f),
+                        fontSize = 11.sp
                     )
+                    if (isFromMe) {
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Icon(
+                            imageVector = when (message.status) {
+                                "read" -> Icons.Default.DoneAll
+                                "delivered" -> Icons.Default.Done
+                                else -> Icons.Default.Schedule
+                            },
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp),
+                            tint = when (message.status) {
+                                "read" -> LocalSadaPalette.current.successGreen
+                                else -> LocalSadaPalette.current.textSecondary.copy(alpha = 0.5f)
+                            }
+                        )
+                    }
                 }
             }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ChatInput(
+fun ReplyBarGlass(
+    senderName: String,
+    messagePreview: String,
+    onCancel: () -> Unit
+) {
+    val backgroundColor = if (senderName == "أنت" || senderName == "You") {
+        LocalSadaPalette.current.surface.copy(alpha = 0.15f)
+    } else {
+        LocalSadaPalette.current.surfaceVariant.copy(alpha = 0.3f)
+    }
+    
+    val indicatorColor = if (senderName == "أنت" || senderName == "You") {
+        LocalSadaPalette.current.successGreen
+    } else {
+        LocalSadaPalette.current.textSecondary
+    }
+    
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(backgroundColor)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .width(4.dp)
+                .height(36.dp)
+                .background(indicatorColor, RoundedCornerShape(2.dp))
+        )
+        
+        Spacer(modifier = Modifier.width(12.dp))
+        
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = senderName,
+                style = MaterialTheme.typography.labelMedium,
+                color = indicatorColor,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = messagePreview.take(60) + if (messagePreview.length > 60) "..." else "",
+                style = MaterialTheme.typography.bodySmall,
+                color = LocalSadaPalette.current.textPrimary.copy(alpha = 0.7f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+        
+        IconButton(onClick = onCancel) {
+            Icon(
+                imageVector = Icons.Default.Close,
+                contentDescription = "Cancel reply",
+                tint = LocalSadaPalette.current.textSecondary
+            )
+        }
+    }
+}
+
+@Composable
+fun ReplyBubbleGlass(
+    senderName: String,
+    content: String,
+    isCurrentUser: Boolean
+) {
+    val indicatorColor = if (senderName == "أنت" || senderName == "You") {
+        NeonTeal
+    } else {
+        LocalSadaPalette.current.textSecondary
+    }
+    
+    val backgroundColor = if (isCurrentUser) {
+        NeonTeal.copy(alpha = 0.1f)
+    } else {
+        LocalSadaPalette.current.surfaceVariant.copy(alpha = 0.3f)
+    }
+    
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(backgroundColor, RoundedCornerShape(8.dp))
+            .padding(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .width(3.dp)
+                .height(32.dp)
+                .background(indicatorColor, RoundedCornerShape(2.dp))
+        )
+        
+        Spacer(modifier = Modifier.width(8.dp))
+        
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = senderName,
+                style = MaterialTheme.typography.labelSmall,
+                color = indicatorColor,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1
+            )
+            Text(
+                text = content.take(50) + if (content.length > 50) "..." else "",
+                style = MaterialTheme.typography.bodySmall,
+                color = LocalSadaPalette.current.textPrimary.copy(alpha = 0.8f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}
+
+@Composable
+fun ChatInputGlass(
     text: String,
     onTextChange: (String) -> Unit,
     onSend: () -> Unit,
-    onAttach: () -> Unit
+    onAttach: () -> Unit,
+    isVoiceRecording: Boolean,
+    recordingDuration: Int,
+    amplitude: Float,
+    onVoiceRecordToggle: () -> Unit
 ) {
-    Surface(
-        color = Color(0xFF1A1A1A).copy(alpha = 0.9f),
-        modifier = Modifier
-            .fillMaxWidth()
-            .blur(20.dp) // Subtle blur for the input area background
+    GlassSurface(
+        modifier = Modifier.fillMaxWidth(),
+        cornerRadius = 24.dp
     ) {
         Row(
             modifier = Modifier
-                .padding(horizontal = 12.dp, vertical = 8.dp)
                 .fillMaxWidth()
-                .navigationBarsPadding()
-                .imePadding(),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            IconButton(
-                onClick = onAttach,
-                modifier = Modifier
-                    .size(44.dp)
-                    .background(Color.White.copy(alpha = 0.05f), CircleShape)
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Attach", tint = NeonTeal)
+            IconButton(onClick = onAttach) {
+                Icon(
+                    imageVector = Icons.Default.AttachFile,
+                    contentDescription = "Attach",
+                    tint = LocalSadaPalette.current.textSecondary
+                )
             }
             
-            Spacer(modifier = Modifier.width(12.dp))
-
-            TextField(
+            GlassInputField(
                 value = text,
                 onValueChange = onTextChange,
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(24.dp)),
-                placeholder = { Text("رسالة مشفرة / Secure Msg...", color = Color.White.copy(alpha = 0.3f)) },
-                colors = TextFieldDefaults.textFieldColors(
-                    containerColor = Color.White.copy(alpha = 0.05f),
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent,
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White
-                ),
-                maxLines = 4
+                placeholder = tr("اكتب رسالة...", "Type a message..."),
+                modifier = Modifier.weight(1f)
             )
             
-            Spacer(modifier = Modifier.width(12.dp))
-
-            IconButton(
-                onClick = onSend,
-                enabled = text.isNotBlank(),
-                modifier = Modifier
-                    .size(44.dp)
-                    .background(if (text.isNotBlank()) NeonTeal else Color.White.copy(alpha = 0.05f), CircleShape)
-            ) {
-                Icon(
-                    Icons.AutoMirrored.Filled.Send,
-                    contentDescription = "Send",
-                    tint = if (text.isNotBlank()) Color.Black else Color.White.copy(alpha = 0.2f),
-                    modifier = Modifier.size(24.dp)
-                )
+            if (text.isBlank()) {
+                IconButton(onClick = onVoiceRecordToggle) {
+                    Icon(
+                        imageVector = if (isVoiceRecording) Icons.Default.Stop else Icons.Default.Mic,
+                        contentDescription = if (isVoiceRecording) "Stop recording" else "Record voice",
+                        tint = if (isVoiceRecording) ErrorRed else SadaPrimary
+                    )
+                }
+            } else {
+                IconButton(onClick = onSend) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.Send,
+                        contentDescription = "Send",
+                        tint = NeonTeal
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-fun AttachmentItem(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    label: String,
-    color: Color,
-    onClick: () -> Unit
+fun AttachmentBottomSheetGlass(
+    onDismiss: () -> Unit,
+    onImageSelect: () -> Unit,
+    onFileSelect: () -> Unit,
+    onReportClick: () -> Unit
 ) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.clickable(onClick = onClick).padding(8.dp)
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = LocalSadaPalette.current.surface
     ) {
-        Surface(
-            shape = CircleShape,
-            color = color.copy(alpha = 0.1f),
-            border = androidx.compose.foundation.BorderStroke(1.dp, color.copy(alpha = 0.3f)),
-            modifier = Modifier.size(64.dp)
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(icon, contentDescription = label, tint = color, modifier = Modifier.size(28.dp))
-            }
+            Text(
+                tr("إرفاق", "Attachments"),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = LocalSadaPalette.current.textPrimary
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            Text(
+                text = tr("لا يوجد خيارات إرفاق", "No attachment options"),
+                color = LocalSadaPalette.current.textSecondary,
+                style = MaterialTheme.typography.bodyMedium
+            )
         }
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(label, style = MaterialTheme.typography.labelMedium, color = Color.White)
     }
+}
+
+private fun formatTimestamp(timestamp: Long): String {
+    val date = java.util.Date(timestamp)
+    val format = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
+    return format.format(date)
 }

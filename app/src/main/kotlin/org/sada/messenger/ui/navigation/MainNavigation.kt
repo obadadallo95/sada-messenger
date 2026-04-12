@@ -2,10 +2,14 @@ package org.sada.messenger.ui.navigation
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerState
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -22,11 +26,45 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
 import org.sada.messenger.R
 import org.sada.messenger.ui.theme.NeonTeal
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun MainTabsHost(
+    pagerState: PagerState,
+    content: @Composable (page: Int) -> Unit
+) {
+    val scope = rememberCoroutineScope()
+    val tabRoutes = listOf("home", "chats", "groups", "contacts", "settings")
+    Scaffold(
+        bottomBar = {
+            SadaBottomBar(
+                currentRoute = tabRoutes[pagerState.currentPage],
+                onNavigate = { route ->
+                    val idx = tabRoutes.indexOf(route)
+                    if (idx >= 0) scope.launch { pagerState.animateScrollToPage(idx) }
+                }
+            )
+        }
+    ) { padding ->
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize()
+        ) { page -> content(page) }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun rememberMainPagerState(): PagerState = rememberPagerState(pageCount = { 5 })
 
 sealed class NavItem(
     val route: String,
@@ -60,10 +98,10 @@ fun SadaBottomBar(
             .padding(horizontal = 16.dp, vertical = 12.dp)
             .height(72.dp),
         shape = RoundedCornerShape(24.dp),
-        color = Color.Black.copy(alpha = 0.6f),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
         border = androidx.compose.foundation.BorderStroke(
             1.dp,
-            Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.1f), Color.Transparent))
+            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f)
         )
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -72,17 +110,22 @@ fun SadaBottomBar(
             
             Row(
                 modifier = Modifier.fillMaxSize(),
-                horizontalArrangement = Arrangement.SpaceAround,
+                horizontalArrangement = Arrangement.spacedBy(2.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 items.forEach { item ->
                     val isSelected = currentRoute == item.route
-                    
-                    BottomNavItem(
-                        item = item,
-                        isSelected = isSelected,
-                        onClick = { onNavigate(item.route) }
-                    )
+
+                    Box(
+                        modifier = Modifier.weight(1f),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        BottomNavItem(
+                            item = item,
+                            isSelected = isSelected,
+                            onClick = { onNavigate(item.route) }
+                        )
+                    }
                 }
             }
         }
@@ -111,8 +154,7 @@ fun BottomNavItem(
         modifier = Modifier
             .clip(RoundedCornerShape(12.dp))
             .clickable(onClick = onClick)
-            .padding(8.dp)
-            .width(64.dp)
+            .padding(horizontal = 2.dp, vertical = 8.dp)
     ) {
         Box(contentAlignment = Alignment.Center) {
             if (isSelected) {
@@ -128,7 +170,7 @@ fun BottomNavItem(
             Icon(
                 imageVector = if (isSelected) item.selectedIcon else item.icon,
                 contentDescription = stringResource(item.labelRes),
-                tint = if (isSelected) NeonTeal else Color.White.copy(alpha = 0.4f),
+                tint = if (isSelected) NeonTeal else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
                 modifier = Modifier.size(26.dp)
             )
         }
@@ -138,10 +180,11 @@ fun BottomNavItem(
         Text(
             text = stringResource(item.labelRes),
             style = MaterialTheme.typography.labelSmall,
-            color = if (isSelected) NeonTeal else Color.White.copy(alpha = 0.4f),
+            color = if (isSelected) NeonTeal else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-            fontSize = 9.sp,
-            maxLines = 1
+            fontSize = 8.sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
     }
 }

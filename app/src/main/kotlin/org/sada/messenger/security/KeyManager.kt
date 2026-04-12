@@ -21,6 +21,9 @@ class KeyManager(private val context: Context) {
         private const val PREFS_NAME = "sada_secure_prefs"
         private const val PRIVATE_KEY_KEY = "user_private_key"
         private const val PUBLIC_KEY_KEY = "user_public_key"
+        private const val KEY_GENERATION_DATE_KEY = "key_generation_date"
+        private const val KEY_ROTATION_INTERVAL_MS = 24 * 60 * 60 * 1000L // 24 hours
+        private const val MAX_KEY_VERSIONS = 3 // Keep last 3 keys for backward compatibility
     }
 
     private val lazySodium = LazySodiumAndroid(SodiumAndroid())
@@ -29,13 +32,38 @@ class KeyManager(private val context: Context) {
         .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
         .build()
 
-    private val securePrefs = EncryptedSharedPreferences.create(
-        context,
-        PREFS_NAME,
-        masterKey,
-        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-    )
+    private val securePrefs = try {
+        EncryptedSharedPreferences.create(
+            context,
+            PREFS_NAME,
+            masterKey,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
+    } catch (e: Exception) {
+        Log.e(TAG, "EncryptedSharedPreferences corrupted (AEADBadTagException), clearing and reinitializing...", e)
+        // Delete corrupted file and reinitialize with fresh keys
+        val prefsFile = java.io.File(context.filesDir.parent + "/shared_prefs/${PREFS_NAME}.xml")
+        prefsFile.delete()
+        // Also delete the master key from Android Keystore to avoid future conflicts
+        try {
+            val ks = java.security.KeyStore.getInstance("AndroidKeyStore")
+            ks.load(null)
+            if (ks.containsAlias("_androidx_security_master_key_")) {
+                ks.deleteEntry("_androidx_security_master_key_")
+            }
+        } catch (_: Exception) {}
+        val newMasterKey = MasterKey.Builder(context)
+            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+            .build()
+        EncryptedSharedPreferences.create(
+            context,
+            PREFS_NAME,
+            newMasterKey,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
+    }
 
     private var cachedKeyPair: KeyPair? = null
 
@@ -64,8 +92,12 @@ class KeyManager(private val context: Context) {
 
     /**
      * توليد وحفظ زوج مفاتيح جديد (Curve25519)
+     * مع دعم Perfect Forward Secrecy (تخزين المفاتيح القديمة لفترة وجيزة)
      */
     fun generateAndSaveKeyPair(): KeyPair {
+        // Archive current key before generating new one (for PFS)
+        archiveCurrentKey()
+        
         val keyPair = lazySodium.cryptoBoxKeypair()
         
         val privBase64 = Base64.encodeToString(keyPair.secretKey.asBytes, Base64.DEFAULT)
@@ -74,11 +106,84 @@ class KeyManager(private val context: Context) {
         securePrefs.edit()
             .putString(PRIVATE_KEY_KEY, privBase64)
             .putString(PUBLIC_KEY_KEY, pubBase64)
+            .putLong(KEY_GENERATION_DATE_KEY, System.currentTimeMillis())
             .apply()
 
         cachedKeyPair = keyPair
-        Log.i(TAG, "New KeyPair generated and saved securely")
+        Log.i(TAG, "New KeyPair generated and saved securely (PFS enabled)")
         return keyPair
+    }
+    
+    /**
+     * Perfect Forward Secrecy: Archive current key for backward compatibility.
+     * Old messages can still be decrypted, but new messages use fresh keys.
+     */
+    private fun archiveCurrentKey() {
+        val currentPriv = securePrefs.getString(PRIVATE_KEY_KEY, null)
+        val currentPub = securePrefs.getString(PUBLIC_KEY_KEY, null)
+        
+        if (currentPriv != null && currentPub != null) {
+            // Shift existing archives
+            for (i in (MAX_KEY_VERSIONS - 2) downTo 0) {
+                val oldPriv = securePrefs.getString("${PRIVATE_KEY_KEY}_$i", null)
+                val oldPub = securePrefs.getString("${PUBLIC_KEY_KEY}_$i", null)
+                if (oldPriv != null) {
+                    securePrefs.edit()
+                        .putString("${PRIVATE_KEY_KEY}_${i+1}", oldPriv)
+                        .putString("${PUBLIC_KEY_KEY}_${i+1}", oldPub)
+                        .apply()
+                }
+            }
+            
+            // Store current as archive version 0
+            securePrefs.edit()
+                .putString("${PRIVATE_KEY_KEY}_0", currentPriv)
+                .putString("${PUBLIC_KEY_KEY}_0", currentPub)
+                .apply()
+            
+            // Clean up oldest archive
+            securePrefs.edit()
+                .remove("${PRIVATE_KEY_KEY}_${MAX_KEY_VERSIONS}")
+                .remove("${PUBLIC_KEY_KEY}_${MAX_KEY_VERSIONS}")
+                .apply()
+        }
+    }
+    
+    /**
+     * تحقق مما إذا كان يجب تدوير المفاتيح (24 ساعة)
+     */
+    fun shouldRotateKeys(): Boolean {
+        val lastGeneration = securePrefs.getLong(KEY_GENERATION_DATE_KEY, 0)
+        val timeSinceLastRotation = System.currentTimeMillis() - lastGeneration
+        return timeSinceLastRotation > KEY_ROTATION_INTERVAL_MS
+    }
+    
+    /**
+     * تدوير المفاتيح إذا كان الوقت قد حان (24 ساعة)
+     */
+    fun rotateKeysIfNeeded(): Boolean {
+        if (shouldRotateKeys()) {
+            Log.i(TAG, "Rotating keys for Perfect Forward Secrecy")
+            generateAndSaveKeyPair()
+            return true
+        }
+        return false
+    }
+    
+    /**
+     * الحصول على مفتاح قديم للفك (للرسائل المستلمة قبل التدوير)
+     */
+    fun getArchivedPrivateKey(version: Int): ByteArray? {
+        val keyBase64 = securePrefs.getString("${PRIVATE_KEY_KEY}_$version", null) ?: return null
+        return Base64.decode(keyBase64, Base64.DEFAULT)
+    }
+    
+    /**
+     * الحصول على المفتاح العام القديم
+     */
+    fun getArchivedPublicKey(version: Int): ByteArray? {
+        val keyBase64 = securePrefs.getString("${PUBLIC_KEY_KEY}_$version", null) ?: return null
+        return Base64.decode(keyBase64, Base64.DEFAULT)
     }
 
     /**

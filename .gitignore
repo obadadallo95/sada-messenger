@@ -12,3 +12,24 @@ GeneratedPluginRegistrant.java
 key.properties
 **/*.keystore
 **/*.jks
+
+# Build outputs
+/build/
+**/build/
+**/*.class
+**/tmp/
+**/generated/
+**/intermediates/
+**/outputs/apk/
+**/outputs/bundle/
+
+# IDE files
+.idea/caches/
+.idea/workspace.xml
+.kotlin/errors/
+.DS_Store
+**/.DS_Store
+
+# Logs
+build_log.txt
+logcat_dump.txt

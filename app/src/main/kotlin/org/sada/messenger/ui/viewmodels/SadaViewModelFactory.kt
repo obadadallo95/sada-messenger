@@ -22,10 +22,10 @@ class SadaViewModelFactory(
     override fun <T : ViewModel> create(modelClass: Class<T>, extras: androidx.lifecycle.viewmodel.CreationExtras): T {
         return when {
             modelClass.isAssignableFrom(HomeViewModel::class.java) -> {
-                HomeViewModel(database, meshEngine) as T
+                HomeViewModel(database, meshEngine, keyManager) as T
             }
             modelClass.isAssignableFrom(ContactsViewModel::class.java) -> {
-                ContactsViewModel(database) as T
+                ContactsViewModel(database, meshEngine) as T
             }
             modelClass.isAssignableFrom(CrisisReportViewModel::class.java) -> {
                 CrisisReportViewModel(videoEngine, audioRecorderManager) as T
@@ -36,6 +36,13 @@ class SadaViewModelFactory(
     }
 
     fun createChatViewModel(chatId: String): ChatViewModel {
-        return ChatViewModel(chatId, database, meshEngine, keyManager, encryptionManager)
+        return ChatViewModel(
+            chatId,
+            database,
+            meshEngine,
+            keyManager,
+            encryptionManager,
+            audioRecorderManager
+        )
     }
 }

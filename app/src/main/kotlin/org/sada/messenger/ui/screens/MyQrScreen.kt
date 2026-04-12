@@ -1,10 +1,12 @@
 package org.sada.messenger.ui.screens
 
+import org.sada.messenger.ui.utils.tr
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -17,7 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import org.sada.messenger.ui.theme.NeonTeal
+import org.sada.messenger.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,10 +34,10 @@ fun MyQrScreen(
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text("معرّفي / My Identity", fontWeight = FontWeight.Bold) },
+                    title = { Text(tr("معرّفي", "My Identity"), fontWeight = FontWeight.Bold) },
                     navigationIcon = {
                         IconButton(onClick = onBack) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = null)
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
@@ -91,7 +93,7 @@ fun MyQrScreen(
                         Spacer(modifier = Modifier.height(8.dp))
                         
                         Text(
-                            text = "هويتك مشفرة بمفتاح فريد / Identity E2EE",
+                            text = tr("هويتك مشفرة بمفتاح فريد", "Your identity is secured with E2EE"),
                             style = MaterialTheme.typography.bodySmall,
                             color = NeonTeal
                         )
@@ -117,7 +119,7 @@ fun MyQrScreen(
                 Spacer(modifier = Modifier.height(48.dp))
                 
                 Text(
-                    text = "اجعل أصدقائك يمسحون هذا الكود لإضافتك عبر الشبكة مباشرة.\nLet your friends scan this code to add you over the mesh.",
+                    text = tr("اجعل أصدقاءك يمسحون هذا الكود لإضافتك عبر الشبكة مباشرة.", "Let your friends scan this code to add you over the mesh."),
                     style = MaterialTheme.typography.bodyMedium,
                     color = Color.White.copy(alpha = 0.6f),
                     textAlign = TextAlign.Center,

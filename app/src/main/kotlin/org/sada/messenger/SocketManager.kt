@@ -1,6 +1,6 @@
 package org.sada.messenger
 
-import android.util.Log
+import org.sada.messenger.security.SecureLogger
 import kotlinx.coroutines.*
 import java.io.*
 import java.nio.ByteBuffer
@@ -15,10 +15,10 @@ import java.util.concurrent.atomic.AtomicReference
  */
 class SocketManager private constructor() {
     companion object {
-        private const val TAG = "SadaSocket"
+        private const val TAG = "Socket"
         private const val PORT = 8888
-        private const val MAX_RETRY_ATTEMPTS = 3
-        private const val RETRY_DELAY_MS = 500L
+        private const val MAX_RETRY_ATTEMPTS = 5
+        private const val RETRY_DELAY_MS = 1000L
         private const val FRAME_HEADER_SIZE_BYTES = 4
         private const val MAX_MESSAGE_SIZE_BYTES = 1024 * 1024 // 1 MB
         
@@ -49,6 +49,11 @@ class SocketManager private constructor() {
     private var isServer = false
     private val currentPeerId = AtomicReference("unknown")
 
+    // Diagnostics tracking
+    private var lastRetryAttempts = 0
+    private var lastConnectDelayMs = 0L
+    private var serverReadyAtMs = 0L
+
     private fun peerTag(): String = "[peer=${currentPeerId.get()}]"
 
     fun setOnMessageReceived(callback: (ByteArray) -> Unit) {
@@ -73,31 +78,29 @@ class SocketManager private constructor() {
 
         serverJob = socketScope.launch {
             try {
-                Log.d(TAG, "${peerTag()} Starting server on port $PORT")
+                SecureLogger.d(TAG, "${peerTag()} Starting server on port $PORT")
 
                 // Keep server listener alive, only close active client connection if needed.
                 closeActiveClientConnection()
                 serverSocket = ServerSocket(PORT)
                 isServer = true
+                serverReadyAtMs = System.currentTimeMillis()
                 
-                Log.d(TAG, "${peerTag()} Server socket created, waiting for clients...")
+                SecureLogger.d(TAG, "${peerTag()} Server socket created, waiting for clients...")
                 notifyConnectionStatus("server_listening", "Server listening on port $PORT")
 
                 while (isActive && serverSocket?.isClosed == false) {
                     val socket = serverSocket?.accept() ?: break
-                    Log.d(
-                        TAG,
-                        "${peerTag()} Client connected: ${socket.remoteSocketAddress}"
-                    )
+                    SecureLogger.d(TAG, "${peerTag()} Client connected: ${socket.remoteSocketAddress}")
                     setupSocket(socket)
                     notifyConnectionStatus("connected", "Client connected")
                 }
             } catch (e: IOException) {
-                Log.e(TAG, "${peerTag()} Server error", e)
+                SecureLogger.e(TAG, "${peerTag()} Server error", e)
                 notifyConnectionStatus("error", "Server error: ${e.message}")
                 closeActiveClientConnection()
             } catch (e: Exception) {
-                Log.e(TAG, "${peerTag()} Unexpected server error", e)
+                SecureLogger.e(TAG, "${peerTag()} Unexpected server error", e)
                 notifyConnectionStatus("error", "Unexpected error: ${e.message}")
                 closeActiveClientConnection()
             }
@@ -117,34 +120,39 @@ class SocketManager private constructor() {
         if (!peerId.isNullOrBlank()) currentPeerId.set(peerId)
 
         return try {
-            Log.d(TAG, "${peerTag()} Attempting to connect to host: $hostAddress:$PORT")
+            SecureLogger.d(TAG, "${peerTag()} Attempting to connect to host: $hostAddress:$PORT")
             closeActiveClientConnection()
 
             isServer = false
             var attempt = 0
+            lastRetryAttempts = 0
             while (attempt < MAX_RETRY_ATTEMPTS) {
                 attempt++
-                Log.d(TAG, "${peerTag()} Connection attempt $attempt/$MAX_RETRY_ATTEMPTS")
+                lastRetryAttempts = attempt
+                SecureLogger.d(TAG, "${peerTag()} Connection attempt $attempt/$MAX_RETRY_ATTEMPTS")
                 try {
                     val socket = Socket()
                     socket.connect(java.net.InetSocketAddress(hostAddress, PORT), 5000)
-                    Log.d(TAG, "${peerTag()} Successfully connected to $hostAddress")
+                    SecureLogger.d(TAG, "${peerTag()} Successfully connected to $hostAddress")
                     setupSocket(socket)
                     notifyConnectionStatus("connected", "Connected to $hostAddress")
                     return true
                 } catch (e: IOException) {
-                    Log.w(TAG, "${peerTag()} Connection attempt $attempt failed: ${e.message}")
+                    SecureLogger.w(TAG, "${peerTag()} Connection attempt $attempt failed: ${e.message}")
                     if (attempt < MAX_RETRY_ATTEMPTS) {
-                        delay(RETRY_DELAY_MS * (1L shl (attempt - 1)))
+                        val delayMs = RETRY_DELAY_MS * (1L shl (attempt - 1))
+                        lastConnectDelayMs = delayMs
+                        SecureLogger.d(TAG, "${peerTag()} Waiting ${delayMs}ms before retry...")
+                        delay(delayMs)
                     } else {
-                        Log.e(TAG, "${peerTag()} Failed to connect after $MAX_RETRY_ATTEMPTS attempts")
+                        SecureLogger.e(TAG, "${peerTag()} Failed to connect after $MAX_RETRY_ATTEMPTS attempts")
                         notifyConnectionStatus("error", "Failed to connect: ${e.message}")
                     }
                 }
             }
             false
         } catch (e: Exception) {
-            Log.e(TAG, "${peerTag()} Unexpected connection error", e)
+            SecureLogger.e(TAG, "${peerTag()} Unexpected connection error", e)
             notifyConnectionStatus("error", "Unexpected error: ${e.message}")
             closeActiveClientConnection()
             false
@@ -161,12 +169,12 @@ class SocketManager private constructor() {
             outputStream = socket.getOutputStream()
             isConnected = true
             
-            Log.d(TAG, "${peerTag()} Socket setup complete, starting read loop")
+            SecureLogger.d(TAG, "${peerTag()} Socket setup complete, starting read loop")
             
             // بدء حلقة القراءة
             startReadLoop()
         } catch (e: Exception) {
-            Log.e(TAG, "${peerTag()} Error setting up socket", e)
+            SecureLogger.e(TAG, "${peerTag()} Error setting up socket", e)
             closeActiveClientConnection()
         }
     }
@@ -182,7 +190,7 @@ class SocketManager private constructor() {
             val receiveBuffer = ByteArrayOutputStream()
             
             try {
-                Log.d(TAG, "${peerTag()} Read loop started")
+                SecureLogger.d(TAG, "${peerTag()} Read loop started")
                 
                 while (isConnected && coroutineContext.isActive) {
                     try {
@@ -190,7 +198,7 @@ class SocketManager private constructor() {
                         
                         if (bytesRead == -1) {
                             // انتهاء الاتصال
-                            Log.d(TAG, "${peerTag()} Peer disconnected (EOF)")
+                            SecureLogger.d(TAG, "${peerTag()} Peer disconnected (EOF)")
                             notifyConnectionStatus("disconnected", "Peer disconnected")
                             break
                         }
@@ -204,20 +212,20 @@ class SocketManager private constructor() {
                             }
                         }
                     } catch (e: SocketException) {
-                        Log.d(TAG, "${peerTag()} Socket exception (likely disconnected): ${e.message}")
+                        SecureLogger.d(TAG, "${peerTag()} Socket exception (likely disconnected): ${e.message}")
                         notifyConnectionStatus("disconnected", "Connection lost")
                         break
                     } catch (e: IOException) {
-                        Log.e(TAG, "${peerTag()} IO error in read loop", e)
+                        SecureLogger.e(TAG, "${peerTag()} IO error in read loop", e)
                         notifyConnectionStatus("error", "IO error: ${e.message}")
                         break
                     }
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "${peerTag()} Unexpected error in read loop", e)
+                SecureLogger.e(TAG, "${peerTag()} Unexpected error in read loop", e)
                 notifyConnectionStatus("error", "Read error: ${e.message}")
             } finally {
-                Log.d(TAG, "${peerTag()} Read loop ended")
+                SecureLogger.d(TAG, "${peerTag()} Read loop ended")
                 closeActiveClientConnection()
             }
         }
@@ -239,7 +247,7 @@ class SocketManager private constructor() {
             ).int
 
             if (messageSize <= 0 || messageSize > MAX_MESSAGE_SIZE_BYTES) {
-                Log.e(TAG, "${peerTag()} Invalid frame size: $messageSize")
+                SecureLogger.e(TAG, "${peerTag()} Invalid frame size: $messageSize")
                 return false
             }
 
@@ -253,7 +261,7 @@ class SocketManager private constructor() {
             val payloadEnd = payloadStart + messageSize
             val messageBytes = data.copyOfRange(payloadStart, payloadEnd)
 
-            Log.d(TAG, "${peerTag()} 📥 [READ] Received frame: $messageSize bytes payload.")
+            SecureLogger.d(TAG, "${peerTag()} 📥 [READ] Received frame: $messageSize bytes payload.")
             onMessageReceived?.invoke(messageBytes)
 
             offset += frameSize
@@ -277,17 +285,17 @@ class SocketManager private constructor() {
     fun write(data: ByteArray): Boolean {
         return try {
             if (!isConnected || outputStream == null) {
-                Log.w(TAG, "${peerTag()} Cannot write: not connected")
+                SecureLogger.w(TAG, "${peerTag()} Cannot write: not connected")
                 return false
             }
 
             if (data.isEmpty()) {
-                Log.w(TAG, "${peerTag()} Cannot write: empty payload")
+                SecureLogger.w(TAG, "${peerTag()} Cannot write: empty payload")
                 return false
             }
 
             if (data.size > MAX_MESSAGE_SIZE_BYTES) {
-                Log.e(TAG, "${peerTag()} Cannot write: payload too large (${data.size} bytes)")
+                SecureLogger.e(TAG, "${peerTag()} Cannot write: payload too large (${data.size} bytes)")
                 return false
             }
 
@@ -301,15 +309,15 @@ class SocketManager private constructor() {
                 outputStream?.flush()
             }
 
-            Log.d(TAG, "${peerTag()} 📤 [WRITE] Sent frame: ${data.size} bytes payload + 4 bytes header. Total: ${framed.size} bytes.")
+            SecureLogger.d(TAG, "${peerTag()} 📤 [WRITE] Sent frame: ${data.size} bytes payload + 4 bytes header. Total: ${framed.size} bytes.")
             true
         } catch (e: IOException) {
-            Log.e(TAG, "${peerTag()} Error writing data", e)
+            SecureLogger.e(TAG, "${peerTag()} Error writing data", e)
             notifyConnectionStatus("error", "Write error: ${e.message}")
             closeActiveClientConnection()
             false
         } catch (e: Exception) {
-            Log.e(TAG, "${peerTag()} Unexpected write error", e)
+            SecureLogger.e(TAG, "${peerTag()} Unexpected write error", e)
             false
         }
     }
@@ -330,7 +338,7 @@ class SocketManager private constructor() {
      * إغلاق جميع الاتصالات
      */
     fun closeConnections() {
-        Log.d(TAG, "${peerTag()} Closing all connections")
+        SecureLogger.d(TAG, "${peerTag()} Closing all connections")
         
         closeActiveClientConnection()
 
@@ -338,11 +346,11 @@ class SocketManager private constructor() {
         try {
             serverSocket?.close()
         } catch (e: Exception) {
-            Log.w(TAG, "${peerTag()} Error closing server socket", e)
+            SecureLogger.w(TAG, "${peerTag()} Error closing server socket", e)
         }
         serverSocket = null
 
-        Log.d(TAG, "${peerTag()} All connections closed")
+        SecureLogger.d(TAG, "${peerTag()} All connections closed")
     }
 
     private fun closeActiveClientConnection() {
@@ -352,17 +360,17 @@ class SocketManager private constructor() {
         try {
             inputStream?.close()
         } catch (e: Exception) {
-            Log.w(TAG, "${peerTag()} Error closing input stream", e)
+            SecureLogger.w(TAG, "${peerTag()} Error closing input stream", e)
         }
         try {
             outputStream?.close()
         } catch (e: Exception) {
-            Log.w(TAG, "${peerTag()} Error closing output stream", e)
+            SecureLogger.w(TAG, "${peerTag()} Error closing output stream", e)
         }
         try {
             clientSocket?.close()
         } catch (e: Exception) {
-            Log.w(TAG, "${peerTag()} Error closing client socket", e)
+            SecureLogger.w(TAG, "${peerTag()} Error closing client socket", e)
         }
 
         inputStream = null
@@ -384,11 +392,19 @@ class SocketManager private constructor() {
         return isConnected && clientSocket?.isConnected == true
     }
 
+    fun getDiagnosticsInfo(): Map<String, Any> {
+        return mapOf(
+            "retryAttempts" to lastRetryAttempts,
+            "lastConnectDelay" to "${lastConnectDelayMs}ms",
+            "serverReadyAt" to serverReadyAtMs
+        )
+    }
+
     /**
      * تنظيف الموارد عند التدمير
      */
     fun destroy() {
-        Log.d(TAG, "${peerTag()} Destroying SocketManager")
+        SecureLogger.d(TAG, "${peerTag()} Destroying SocketManager")
         closeConnections()
         socketScope.cancel()
     }

@@ -42,7 +42,7 @@
 
     <string name="chat_type_message">Type a message...</string>
     <string name="navigation_home">Home</string>
-    <string name="navigation_chat">Chat</string>
+    <string name="navigation_chat">Friends</string>
     <string name="navigation_groups">Groups</string>
     <string name="navigation_add">Add Friend</string>
     <string name="navigation_settings">Settings</string>

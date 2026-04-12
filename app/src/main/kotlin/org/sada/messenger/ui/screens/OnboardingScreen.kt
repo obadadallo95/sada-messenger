@@ -16,7 +16,7 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -37,8 +37,7 @@ import androidx.compose.ui.unit.sp
 import com.airbnb.lottie.compose.*
 import kotlinx.coroutines.launch
 import org.sada.messenger.R
-import org.sada.messenger.ui.theme.NeonTeal
-import org.sada.messenger.ui.theme.CyberBlue
+import org.sada.messenger.ui.theme.*
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -110,7 +109,7 @@ fun OnboardingScreen(onComplete: () -> Unit) {
                         TextButton(onClick = onComplete) {
                             Text(
                                 text = stringResource(R.string.onboarding_skip),
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                                color = ShadowGrey,
                                 fontSize = 16.sp
                             )
                         }
@@ -134,7 +133,7 @@ fun OnboardingScreen(onComplete: () -> Unit) {
                         modifier = Modifier.size(64.dp)
                     ) {
                         Icon(
-                            imageVector = if (isLastPageByState) Icons.Default.Check else Icons.Default.ArrowForward,
+                            imageVector = if (isLastPageByState) Icons.Default.Check else Icons.AutoMirrored.Filled.ArrowForward,
                             contentDescription = null,
                             modifier = Modifier.size(32.dp)
                         )
@@ -146,7 +145,7 @@ fun OnboardingScreen(onComplete: () -> Unit) {
 }
 
 @Composable
-fun MeshBackground() {
+fun MeshBackground(modifier: Modifier = Modifier) {
     val infiniteTransition = rememberInfiniteTransition(label = "mesh")
     val xOffset by infiniteTransition.animateFloat(
         initialValue = 0f,
@@ -167,29 +166,47 @@ fun MeshBackground() {
         label = "y"
     )
 
-    Canvas(modifier = Modifier.fillMaxSize().blur(80.dp).alpha(0.4f)) {
-        val width = size.width
-        val height = size.height
+    val background = MaterialTheme.colorScheme.background
+    val glowA = MaterialTheme.colorScheme.primary.copy(alpha = 0.22f)
+    val glowB = MaterialTheme.colorScheme.secondary.copy(alpha = 0.20f)
 
-        drawCircle(
-            brush = Brush.radialGradient(
-                colors = listOf(Color(0xFF6200EE), Color.Transparent),
-                center = Offset(width * xOffset, height * yOffset),
-                radius = width * 0.8f
-            ),
-            radius = width * 0.8f,
-            center = Offset(width * xOffset, height * yOffset)
-        )
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(background)
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize().blur(80.dp).alpha(0.25f)) {
+            val width = size.width
+            val height = size.height
 
-        drawCircle(
-            brush = Brush.radialGradient(
-                colors = listOf(Color(0xFF03DAC6), Color.Transparent),
-                center = Offset(width * (1f - yOffset), height * xOffset),
-                radius = width * 0.7f
-            ),
-            radius = width * 0.7f,
-            center = Offset(width * (1f - yOffset), height * xOffset)
-        )
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(glowA, Color.Transparent),
+                    center = Offset(width * xOffset, height * yOffset),
+                    radius = width * 0.8f
+                ),
+                radius = width * 0.8f,
+                center = Offset(width * xOffset, height * yOffset)
+            )
+
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(glowB, Color.Transparent),
+                    center = Offset(width * (1f - yOffset), height * xOffset),
+                    radius = width * 0.7f
+                ),
+                radius = width * 0.7f,
+                center = Offset(width * (1f - yOffset), height * xOffset)
+            )
+        }
+    }
+}
+
+@Composable
+fun MeshBackground(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    Box(modifier = modifier.fillMaxSize()) {
+        MeshBackground(modifier = modifier)
+        content()
     }
 }
 
@@ -293,7 +310,7 @@ fun BatteryOptimizationPrompt() {
                     },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.error,
-                        contentColor = Color.White
+                        contentColor = GhostWhite
                     ),
                     modifier = Modifier.fillMaxWidth()
                 ) {

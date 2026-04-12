@@ -40,12 +40,14 @@ class MediaProtocol {
     fun createChunk(
         messageId: String,
         chunkIndex: Int,
+        totalChunks: Int,
         data: ByteArray
     ): JSONObject {
         return JSONObject().apply {
             put("type", TYPE_MEDIA_CHUNK)
             put("messageId", messageId)
             put("chunkIndex", chunkIndex)
+            put("totalChunks", totalChunks)
             put("data", Base64.encodeToString(data, Base64.NO_WRAP))
         }
     }

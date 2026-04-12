@@ -1,5 +1,6 @@
 package org.sada.messenger.ui.screens
 
+import org.sada.messenger.ui.utils.tr
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -28,7 +30,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import org.sada.messenger.ui.viewmodels.CrisisReportStep
 import org.sada.messenger.ui.viewmodels.CrisisReportViewModel
-import org.sada.messenger.ui.theme.NeonTeal
+import org.sada.messenger.ui.theme.*
 import java.io.File
 import java.io.FileOutputStream
 
@@ -64,10 +66,10 @@ fun CrisisReportScreen(
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text("إنشاء تقرير أزمة / Crisis Report", fontWeight = FontWeight.Bold) },
+                    title = { Text(tr("إنشاء تقرير أزمة", "Crisis Report"), fontWeight = FontWeight.Bold) },
                     navigationIcon = {
                         IconButton(onClick = onBack) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
@@ -91,17 +93,21 @@ fun CrisisReportScreen(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         when (currentStep) {
                             CrisisReportStep.SelectImage -> {
-                                StepHeader(number = "1", title = "Choose Evidence / اختر دليلاً")
+                                StepHeader(number = "1", title = tr("اختر دليلاً (اختياري)", "Choose Evidence (Optional)"))
                                 Spacer(modifier = Modifier.height(48.dp))
                                 GlassButton(
                                     onClick = { launcher.launch("image/*") },
                                     icon = Icons.Default.AddPhotoAlternate,
-                                    label = "Pick Image / اختر صورة",
+                                    label = tr("اختر صورة", "Pick Image"),
                                     color = NeonTeal
                                 )
+                                Spacer(modifier = Modifier.height(24.dp))
+                                TextButton(onClick = { viewModel.skipImage() }) {
+                                    Text(tr("تخطى الصورة ←", "Skip Image →"), color = Color.White.copy(alpha = 0.7f))
+                                }
                             }
                             CrisisReportStep.RecordAudio -> {
-                                StepHeader(number = "2", title = "Record Facts / سجل الوقائع")
+                                StepHeader(number = "2", title = tr("سجل الوقائع", "Record Facts"))
                                 Spacer(modifier = Modifier.height(32.dp))
                                 
                                 selectedImage?.let {
@@ -127,12 +133,12 @@ fun CrisisReportScreen(
                                 CircularProgressIndicator(color = NeonTeal)
                                 Spacer(modifier = Modifier.height(24.dp))
                                 Text(
-                                    "Synthesizing Report... / جاري جلب المعلومات...",
+                                    tr("جارٍ إعداد التقرير...", "Synthesizing report..."),
                                     style = MaterialTheme.typography.titleMedium,
                                     color = Color.White
                                 )
                                 Text(
-                                    "نسعى لتأمين البيانات قبل الإرسال\nSecuring data before broadcast",
+                                    tr("نسعى لتأمين البيانات قبل الإرسال", "Securing data before broadcast"),
                                     color = Color.White.copy(alpha = 0.5f),
                                     textAlign = TextAlign.Center,
                                     modifier = Modifier.padding(top = 8.dp)
@@ -141,7 +147,7 @@ fun CrisisReportScreen(
                             is CrisisReportStep.Success -> {
                                 Icon(Icons.Default.Verified, contentDescription = null, tint = NeonTeal, modifier = Modifier.size(80.dp))
                                 Spacer(modifier = Modifier.height(16.dp))
-                                Text("Report Ready! / التقرير جاهز", fontWeight = FontWeight.Bold, fontSize = 22.sp, color = Color.White)
+                                Text(tr("التقرير جاهز", "Report Ready"), fontWeight = FontWeight.Bold, fontSize = 22.sp, color = Color.White)
                                 Spacer(modifier = Modifier.height(48.dp))
                                 Button(
                                     onClick = { onReportGenerated((currentStep as CrisisReportStep.Success).file) },
@@ -149,7 +155,7 @@ fun CrisisReportScreen(
                                     shape = RoundedCornerShape(16.dp),
                                     colors = ButtonDefaults.buttonColors(containerColor = NeonTeal, contentColor = Color.Black)
                                 ) {
-                                    Text("SEND REPORT / إرسال التقرير", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                                    Text(tr("إرسال التقرير", "Send Report"), fontWeight = FontWeight.Bold, fontSize = 18.sp)
                                 }
                             }
                             is CrisisReportStep.Error -> {
@@ -158,7 +164,7 @@ fun CrisisReportScreen(
                                 Text(currentStep.message, color = Color.White, textAlign = TextAlign.Center)
                                 Spacer(modifier = Modifier.height(48.dp))
                                 Button(onClick = { viewModel.reset() }, shape = RoundedCornerShape(12.dp)) {
-                                    Text("Try Again / حاول ثانية")
+                                    Text(tr("حاول ثانية", "Try Again"))
                                 }
                             }
                         }
@@ -219,7 +225,7 @@ fun RecordingControl(isRecording: Boolean, onStart: () -> Unit, onStop: () -> Un
                 }
             }
             Spacer(modifier = Modifier.height(24.dp))
-            Text("RECORDING... / جاري التسجيل...", color = Color.Red, fontWeight = FontWeight.Bold)
+            Text(tr("جاري التسجيل...", "RECORDING..."), color = Color.Red, fontWeight = FontWeight.Bold)
         } else {
             FloatingActionButton(
                 onClick = onStart,
@@ -231,8 +237,8 @@ fun RecordingControl(isRecording: Boolean, onStart: () -> Unit, onStop: () -> Un
                 Icon(Icons.Default.Mic, contentDescription = "Record", modifier = Modifier.size(40.dp))
             }
             Spacer(modifier = Modifier.height(24.dp))
-            Text("اضغط للتحدث ووصف ما حدث", color = Color.White)
-            Text("Tap to describe the facts", color = Color.White.copy(alpha = 0.5f))
+            Text(tr("اضغط للتحدث ووصف ما حدث", "Tap to describe what happened"), color = Color.White)
+            Text(tr("سيتم تحويل الصوت إلى تقرير", "Audio will be converted into a report"), color = Color.White.copy(alpha = 0.5f))
         }
     }
 }
