@@ -1,12 +1,34 @@
-# شروط الاستخدام - تطبيق صدى
-**Terms of Use - Sada Messenger**
+<div align="center">
 
-**آخر تحديث**: 11 أبريل 2026
-**الإصدار**: 2.0
+# 📜 Terms of Use / شروط الاستخدام
+### Sada Messenger — صدى
 
----
+**Last Updated / آخر تحديث**: April 11, 2026 | **Version / الإصدار**: 2.0
 
-## 1. قبول الشروط / Acceptance of Terms
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg?style=for-the-badge)](https://www.gnu.org/licenses/gpl-3.0)
+[![GitHub](https://img.shields.io/badge/GitHub-obadadallo95-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/obadadallo95/sada-messenger)
+[![Email](https://img.shields.io/badge/Contact-legal@sada--messenger.org-D14836?style=for-the-badge&logo=gmail&logoColor=white)](mailto:legal@sada-messenger.org)
+
+> *By using Sada, you agree to protect privacy, respect others, and follow the law.*
+> *باستخدام صدى، فإنك توافق على حماية الخصوصية، احترام الآخرين، والالتزام بالقانون.*
+
+</div>
+
+***
+
+## ⚡ TL;DR — Quick Summary / الملخص السريع
+
+| Topic | Summary / الملخص |
+|---|---|
+| Who can use Sada? | Anyone aged 13+ / أي شخص عمره 13+ |
+| Commercial use? | ✅ Allowed under GPL v3 / مسموح بموجب GPL v3 |
+| Illegal use? | ❌ Strictly prohibited / ممنوع بشدة |
+| Warranty? | ❌ Provided as-is (open source) / كما هو (مفتوح المصدر) |
+| Liability? | ❌ Developer not liable for misuse / المطور غير مسؤول |
+
+***
+
+## 1. ✅ قبول الشروط / Acceptance of Terms
 
 بتحميلك أو تثبيتك أو استخدامك لتطبيق صدى، فإنك توافق على:
 - ✅ هذه الشروط
@@ -20,7 +42,7 @@ By downloading, installing, or using Sada, you agree to:
 
 ---
 
-## 2. وصف الخدمة / Service Description
+## 2. 📱 وصف الخدمة / Service Description
 
 ### 📱 **ما يقدمه صدى / What Sada Provides**
 - مراسلة فورية بدون إنترنت
@@ -37,7 +59,7 @@ By downloading, installing, or using Sada, you agree to:
 
 ---
 
-## 3. الاستخدام المسموح / Permitted Use
+## 3. 🆗 الاستخدام المسموح / Permitted Use
 
 ### ✅ **مسموح / Allowed**
 - التواصل مع الأصدقاء والعائلة
@@ -54,7 +76,7 @@ By downloading, installing, or using Sada, you agree to:
 
 ---
 
-## 4. الحسابات والهوية / Accounts & Identity
+## 4. 🔑 الحسابات والهوية / Accounts & Identity
 
 ### 🔑 **هويتك / Your Identity**
 - لا حسابات تقليدية (no traditional accounts)
@@ -69,7 +91,7 @@ By downloading, installing, or using Sada, you agree to:
 
 ---
 
-## 5. المحتوى / Content
+## 5. 📝 المحتوى / Content
 
 ### 📝 **ملكية المحتوى / Content Ownership**
 - أنت تملك رسائلك
@@ -85,7 +107,7 @@ By downloading, installing, or using Sada, you agree to:
 
 ---
 
-## 6. الضمان والإخلاء من المسؤولية / Warranty & Disclaimer
+## 6. ⚠️ الضمان والإخلاء من المسؤولية / Warranty & Disclaimer
 
 ### ⚠️ **كما هو (AS IS)**
 التطبيق مقدم "كما هو" بدون ضمانات:
@@ -103,13 +125,13 @@ By downloading, installing, or using Sada, you agree to:
 
 ---
 
-## 7. الترخيص والملكية / License & Ownership
+## 7. 📄 الترخيص والملكية / License & Ownership
 
 ### 📄 **الترخيص / License**
-- الكود المصدري: **AGPL-3.0**
+- الكود المصدري: **GPL-3.0**
 - مفتوح المصدر بالكامل
 - يمكن للجميع مراجعة ونسخ وتعديل الكود
-- الشروط تخضع لترخيص AGPL
+- الشروط تخضع لترخيص GPL v3
 
 ### ©️ **العلامات التجارية / Trademarks**
 - "صدى" و"Sada" علامات تجارية محمية
@@ -118,7 +140,7 @@ By downloading, installing, or using Sada, you agree to:
 
 ---
 
-## 8. التعديلات / Modifications
+## 8. 🔄 التعديلات / Modifications
 
 ### 🔄 **تغيير الشروط / Changes to Terms**
 نحتفظ بالحق في تعديل هذه الشروط:
@@ -128,7 +150,7 @@ By downloading, installing, or using Sada, you agree to:
 
 ---
 
-## 9. حل النزاعات / Dispute Resolution
+## 9. ⚖️ حل النزاعات / Dispute Resolution
 
 ### ⚖️ **القانون الساري / Governing Law**
 هذه الشروط تخضع لقوانين:
@@ -138,12 +160,12 @@ By downloading, installing, or using Sada, you agree to:
 ### 🤝 **التسوية الودية / Amicable Resolution**
 نفضل:
 1. التواصل المباشر
-2. الوساطة المجتمعية
-3. التحكيم (Arbitration)
-4. القضاء (الملاذ الأخير)
+2. 🤝 **الوساطة المجتمعية / Community Mediation**
+3. 📝 **التحكيم (Arbitration) / Arbitration**
+4. 🚫 **القضاء (الملاذ الأخير) / Litigation (Last Resort)**
 
 ---
-## 10. التواصل / Contact
+## 10. 📧 التواصل / Contact
 
 ### 📧 **للاستفسارات / For Inquiries**
 - عام: contact@sada-messenger.org
@@ -152,7 +174,7 @@ By downloading, installing, or using Sada, you agree to:
 
 ---
 
-## 11. شكر خاص / Special Thanks
+## 11. 🙏 شكر خاص / Special Thanks
 
 نقدّر:
 - مساهمي الكود المفتوح
@@ -162,7 +184,7 @@ By downloading, installing, or using Sada, you agree to:
 
 ---
 
-## 12. القبول / Agreement
+## 12. ✍️ القبول / Agreement
 
 **باستخدام تطبيق صدى، فإنك تقر بأنك:**
 - ✅ قرأت وفهمت هذه الشروط
@@ -172,10 +194,39 @@ By downloading, installing, or using Sada, you agree to:
 
 ---
 
-**فريق صدى / Sada Team**
-*Connecting People, Protecting Privacy*
+## ⚖️ GPL v3 & Your Rights / حقوقك بموجب GPL v3
+
+Because Sada is licensed under GPL v3, you have the right to:
+
+| Right | Arabic / العربية |
+|---|---|
+| ✅ Use the app for any purpose | ✅ استخدام التطبيق لأي غرض |
+| ✅ Study and modify the source code | ✅ دراسة وتعديل الكود المصدري |
+| ✅ Distribute copies | ✅ توزيع نسخ |
+| ✅ Distribute modified versions (must remain GPL v3) | ✅ توزيع نسخ معدلة (يجب أن تبقى GPL v3) |
+
+You do NOT have the right to:
+
+| Prohibition | Arabic / العربية |
+|---|---|
+| ❌ Re-release under a closed-source license | ❌ إعادة النشر برخصة مغلقة |
+| ❌ Remove copyright notices | ❌ إزالة إشعارات حقوق النشر |
+| ❌ Use the name "Sada" for a competing fork without permission | ❌ استخدام اسم "صدى" لـ Fork منافس بدون إذن |
 
 ---
 
-**ملاحظة**: نسخة مبسطة متاحة للمستخدمين غير التقنيين.
-**Note**: A simplified version is available for non-technical users.
+<div align="center">
+
+**Sada Team / فريق صدى**
+*Connecting People, Protecting Privacy / نربط الناس ونحمي الخصوصية*
+
+---
+
+**[View Source Code](https://github.com/obadadallo95/sada-messenger)** | 
+**[Report Issue](https://github.com/obadadallo95/sada-messenger/issues)** |
+**[Security Contact](mailto:security@sada-messenger.org)**
+
+*Note: A simplified version is available for non-technical users.*
+*ملاحظة: نسخة مبسطة متاحة للمستخدمين غير التقنيين.*
+
+</div>

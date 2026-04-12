@@ -1,10 +1,33 @@
-# سياسة الخصوصية - تطبيق صدى
-**Privacy Policy - Sada Messenger**
+<div align="center">
 
-**آخر تحديث**: 11 أبريل 2026
-**الإصدار**: 2.0
+# 🛡️ Privacy Policy / سياسة الخصوصية
+### Sada Messenger — صدى
 
----
+**Last Updated / آخر تحديث**: April 11, 2026 | **Version / الإصدار**: 2.0
+
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg?style=for-the-badge)](https://www.gnu.org/licenses/gpl-3.0)
+[![GitHub](https://img.shields.io/badge/GitHub-obadadallo95-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/obadadallo95/sada-messenger)
+[![Email](https://img.shields.io/badge/Contact-privacy@sada--messenger.org-D14836?style=for-the-badge&logo=gmail&logoColor=white)](mailto:privacy@sada-messenger.org)
+
+> *Sada collects zero personal data. Everything stays on your device.*
+> *صدى لا يجمع أي بيانات شخصية. كل شيء يبقى على جهازك.*
+
+</div>
+
+***
+
+## ⚡ TL;DR — Quick Summary / الملخص السريع
+
+| What | Our Answer |
+|---|---|
+| Do you collect my data? | ❌ No |
+| Is there a server? | ❌ No |
+| Can you read my messages? | ❌ Impossible — E2E encrypted |
+| Do you share data with anyone? | ❌ Never |
+| Is the app free? | ✅ Yes, open source forever |
+| Where is my data stored? | ✅ Only on your device |
+
+***
 
 ## 1. مقدمة / Introduction
 
@@ -142,7 +165,15 @@ We do NOT collect any personal information:
 
 **Note**: This is an open-source app. You can review the full code on GitHub to verify our privacy and security claims.
 
----
+***
 
-**Sada Team - فريق صدى**
-*Privacy First - الخصوصية أولاً*
+<div align="center">
+
+*This privacy policy is enforced by code, not promises.*
+*سياسة الخصوصية هذه مفروضة بالكود، لا بالوعود.*
+
+**[View Source Code](https://github.com/obadadallo95/sada-messenger)** | 
+**[Report Issue](https://github.com/obadadallo95/sada-messenger/issues)** |
+**[Security Contact](mailto:security@sada-messenger.org)**
+
+</div>
