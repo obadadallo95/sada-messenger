@@ -169,9 +169,10 @@ By downloading, installing, or using Sada, you agree to:
 
 ### 📧 **للاستفسارات / For Inquiries**
 📬 **Contact / التواصل:**
-- GitHub: [github.com/obadadallo95](https://github.com/obadadallo95)
-- Telegram: [@obada_dallo95](https://t.me/obada_dallo95)
-- LinkedIn: [Obada Dallo](https://www.linkedin.com/in/obada-dallo-777a47a9/)
+- 💬 [GitHub Discussions](https://github.com/obadadallo95/sada-messenger/discussions)
+- ✈️ Telegram: [@obada_dallo95](https://t.me/obada_dallo95)
+- 💼 LinkedIn: [Obada Dallo](https://www.linkedin.com/in/obada-dallo-777a47a9/)
+- 🐙 GitHub: [@obadadallo95](https://github.com/obadadallo95)
 
 ---
 
@@ -224,8 +225,8 @@ You do NOT have the right to:
 ---
 
 **[View Source Code](https://github.com/obadadallo95/sada-messenger)** | 
-**[Report Issue](https://github.com/obadadallo95/sada-messenger/issues)** |
-**[Security Contact](https://t.me/obada_dallo95)**
+**[Discussions](https://github.com/obadadallo95/sada-messenger/discussions)** |
+**[Security Contact](https://github.com/obadadallo95/sada-messenger/discussions)**
 
 *Note: A simplified version is available for non-technical users.*
 *ملاحظة: نسخة مبسطة متاحة للمستخدمين غير التقنيين.*
