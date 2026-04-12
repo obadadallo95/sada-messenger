@@ -1,129 +1,189 @@
-# Sada Android Native / صدى (نسخة أندرويد الأصلية)
+<div align="center">
 
+<!-- Large ASCII or Unicode logo using the word SADA / صدى -->
+<h1>
+  📡 SADA · صدى
+</h1>
+<h3>Offline-First Encrypted Mesh Messenger for Android</h3>
+<h3>تطبيق مراسلة شبكي مشفر يعمل بدون إنترنت — أندرويد</h3>
+
+<!-- Badges row 1: Build status, License, Platform -->
 <p align="center">
-  <img src="app/src/main/res/drawable/developer_obada.jpg" width="180" style="border-radius: 50%;" alt="Obada Dallo"/>
+  <a href="https://github.com/obadadallo95/sada-messenger/actions">
+    <img src="https://img.shields.io/github/actions/workflow/status/obadadallo95/sada-messenger/android-ci.yml?style=for-the-badge&label=Build"/>
+  </a>
+  <a href="https://www.gnu.org/licenses/gpl-3.0">
+    <img src="https://img.shields.io/badge/License-GPLv3-blue.svg?style=for-the-badge"/>
+  </a>
+  <a href="#">
+    <img src="https://img.shields.io/badge/Android-35-3DDC84?style=for-the-badge&logo=android&logoColor=white"/>
+  </a>
 </p>
 
-<h3 align="center">Obada Dallo | عبادة دللو</h3>
-<p align="center"><strong>Founder & Lead Developer</strong></p>
-<p align="center"><em>"Building digital shields for a safer internet."</em></p>
+</div>
+
+---
+
+## The Core Idea / الفكرة الجوهرية
+
+In a world where internet infrastructure can fail, be censored, or surveilled — Sada creates its own network. Every device becomes a node, relaying encrypted messages through a decentralized mesh that requires no central servers and no internet connection. Built for journalists, activists, and field teams who need secure communication in the most challenging environments.
+
+في عالم يمكن أن تفشل فيه البنية التحتية للإنترنت، أو تُحجب، أو تُراقب — يصنع صدى شبكته الخاصة. كل جهاز يصبح عقدة، يرحل الرسائل المشفرة عبر شبكة لامركزية لا تحتاج إلى خوادم مركزية ولا إلى اتصال بالإنترنت. مبني للصحفيين والنشطاء والفرق الميدانية الذين يحتاجون إلى تواصل آمن في أصعب الظروف.
+
+---
+
+## How It Works / كيف يعمل
+
+```
+Device A  ──[BLE/LAN]──►  Device B  ──[Store & Forward]──►  Device C
+   🔐 Encrypt               📦 Relay                          🔓 Decrypt
+   ECDH + AES-256-GCM       TTL: 24h                         ECDH + AES-256-GCM
+```
+
+**Store-Carry-Forward**: When Device B receives a message not destined for it, it stores the encrypted packet and carries it until it encounters Device C (the intended recipient), then forwards it. Messages have a 24-hour TTL (Time To Live) to prevent infinite relay loops.
+
+**التخزين-والحمل-والإعادة**: عندما يستلم الجهاز ب رسالة لا تخصه، يخزن الحزمة المشفرة ويحملها حتى يلتقي بالجهاز ج (المستلم المقصود)، ثم يعيد إرسالها. للرسائل مدة صلاحية 24 ساعة لمنع دورات الترحيل اللانهائية.
+
+---
+
+## Features / المميزات
+
+### 🔐 Security & Privacy / الأمن والخصوصية
+
+| Feature | Details | التفاصيل |
+|---|---|---|
+| End-to-End Encryption | ECDH key exchange + AES-256-GCM | تبادل مفاتيح ECDH + تشفير AES-256-GCM |
+| Forward Secrecy | New keys per session | مفاتيح جديدة لكل جلسة |
+| Message Signing | Ed25519 verification | التحقق من التوقيع Ed25519 |
+| Key Storage | Android Keystore (StrongBox/TEE) | مخزن مفاتيح Android (StrongBox/TEE) |
+
+### 📡 Mesh Networking / الشبكة المشبكة
+
+| Feature | Details | التفاصيل |
+|---|---|---|
+| Transport | BLE + LAN/UDP broadcast | Bluetooth + بث LAN/UDP |
+| Routing | DHT-based MessageRouter | راوتر رسائل يعتمد على DHT |
+| Relay | Store-and-Forward (TTL 24h) | التخزين والإعادة (24 ساعة) |
+| Battery | Adaptive BLE scan intervals (5s–60s) | فواصل مسح BLE تكيفية |
+
+### 💬 Chat & Groups / الدردشة والمجموعات
+
+| Feature | Status | الميزة |
+|---|---|---|
+| Reply / Forward / Edit / Pin | ✅ | رد / إعادة / تعديل / تثبيت |
+| Group Admin Roles (Owner/Admin/Member) | ✅ | أدوار المشرفين |
+| Kick / Ban / Slow Mode | ✅ | طرد / حظر / تقييد |
+| Polls | ✅ | استطلاعات |
+| RTL Arabic support | ✅ | دعم العربية RTL |
+
+---
+
+## Tech Stack / التقنيات
 
 <p align="center">
-  <a href="https://github.com/obadadallo95"><img src="https://img.shields.io/badge/GitHub-100000?style=for-the-badge&logo=github&logoColor=white"/></a>
-  <a href="https://www.linkedin.com/in/obada-dallo-777a47a9/"><img src="https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white"/></a>
-  <a href="https://www.facebook.com/obada.dallo33"><img src="https://img.shields.io/badge/Facebook-1877F2?style=for-the-badge&logo=facebook&logoColor=white"/></a>
-  <a href="https://t.me/obada_dallo95"><img src="https://img.shields.io/badge/Telegram-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white"/></a>
-  <a href="mailto:obada.dallo95@gmail.com"><img src="https://img.shields.io/badge/Email-D14836?style=for-the-badge&logo=gmail&logoColor=white"/></a>
-  <br/><br/>
-  <a href="https://www.gnu.org/licenses/gpl-3.0"><img src="https://img.shields.io/badge/License-GPLv3-blue.svg?style=for-the-badge"/></a>
+  <img src="https://img.shields.io/badge/Kotlin-JVM21-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Jetpack_Compose-Material3-4285F4?style=for-the-badge&logo=jetpackcompose&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Room_DB-v18-003B57?style=for-the-badge&logo=sqlite&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Hilt-DI-F6C915?style=for-the-badge&logo=google&logoColor=black"/>
+  <img src="https://img.shields.io/badge/Clean_Architecture-3_Layers-00C853?style=for-the-badge"/>
+  <img src="https://img.shields.io/badge/ZXing-QR_Code-000000?style=for-the-badge"/>
 </p>
 
 ---
 
-Sada is an offline-first DTN mesh messenger for Android (Kotlin + Jetpack Compose).  
-صدى هو تطبيق مراسلة شبكي لا مركزي يعمل بدون إنترنت على أندرويد.
-
-This repository is the **native Android rewrite** of Sada, designed for stronger platform control over networking, battery, permissions, and background execution.  
-هذا المستودع هو إعادة بناء أصلية بـ Kotlin بهدف تحكم أفضل بالشبكة والبطارية والصلاحيات والخلفية.
-
-## What Sada does / ماذا يفعل صدى
-- Works without internet using LAN/mesh discovery and peer-to-peer transport.
-- Uses Store-Carry-Forward relay behavior for delayed delivery.
-- Applies **end-to-end encryption** with ECDH + AES-256-GCM.
-- Keeps mesh core alive via foreground service.
-- Supports **Arabic/English** with RTL/LTR handling.
-- **Chat Features**: Reply, Forward, Edit, Pin messages
-- **Group Management**: Admin roles, Kick/Ban, Restrictions, Polls
-- **Battery Optimized**: Adaptive BLE scanning based on battery level
-- **Security**: Android Keystore, Forward Secrecy, Message Signing
-
-## Documentation Index / فهرس التوثيق
-
-### للمطورين الجدد:
-- **Quick Start** (5 دقائق): [docs/QUICK_START.md](docs/QUICK_START.md)
-- **Project Summary v1.0**: [docs/PROJECT_SUMMARY_v1.0.md](docs/PROJECT_SUMMARY_v1.0.md)
-
-### للفهم العميق:
-- System architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
-- Transport, routing, and handshake: [docs/TRANSPORT_AND_ROUTING.md](docs/TRANSPORT_AND_ROUTING.md)
-- Security & privacy model: [docs/SECURITY_AND_PRIVACY.md](docs/SECURITY_AND_PRIVACY.md)
-- UI screens and feature map: [docs/UI_SCREENS_AND_FLOWS.md](docs/UI_SCREENS_AND_FLOWS.md)
-
-### للتطوير المستقبلي:
-- **خارطة طريق الإصدار 2.0 الكاملة**: [docs/ROADMAP_v2.0.md](docs/ROADMAP_v2.0.md) 🚀
-- **خطة تطوير الدردشة والمجموعات**: [docs/CHAT_AND_GROUPS_ROADMAP.md](docs/CHAT_AND_GROUPS_ROADMAP.md) 🔥 أولوية فورية
-- Service Profile v2.0 Roadmap: [docs/ROADMAP_ServiceProfile_v2.0.md](docs/ROADMAP_ServiceProfile_v2.0.md) ⚠️ مخفي في v1.0
-- Code style + i18n rules: [docs/CODE_STYLE_AND_I18N.md](docs/CODE_STYLE_AND_I18N.md)
-- **حقوق الملكية الفكرية / IP Rights**: [docs/INTELLECTUAL_PROPERTY.md](docs/INTELLECTUAL_PROPERTY.md) ⚖️
-- Delivery checklist: [docs/DELIVERY_CHECKLIST.md](docs/DELIVERY_CHECKLIST.md)
-- Field launch decision: [docs/GO_NO_GO_FIELD_RELEASE.md](docs/GO_NO_GO_FIELD_RELEASE.md)
-
-## Tech Stack / التقنيات
-- **Kotlin** (JVM 21), Android SDK 35
-- **Jetpack Compose** (Material 3) with Glass-morphism UI
-- **Room Database** with 18 Migrations
-- **Coroutines + Flow** for async operations
-- **Hilt** for Dependency Injection
-- **Clean Architecture** (Data/Domain/Presentation)
-- **Android Keystore** for secure key storage
-- **ZXing** (QR Code)
-
-## Build / البناء
+## Quick Start / البدء السريع
 
 ```bash
+# Clone the repository
+# استنساخ المستودع
+git clone https://github.com/obadadallo95/sada-messenger.git
+cd sada-messenger
+
+# Build debug APK
+# بناء APK للتصحيح
 ./gradlew :app:assembleDebug
+
+# Install on connected device
+# التثبيت على الجهاز المتصل
 ./gradlew :app:installDebug
+
+# Run unit tests
+# تشغيل اختبارات الوحدات
 ./gradlew :app:testDebugUnitTest
 ```
 
-## Latest Updates / آخر التحديثات (Apr 2025)
+> **Note / ملاحظة:** Requires JDK 21 and Android SDK 35 — يتطلب JDK 21 و Android SDK 35
+
+---
+
+## Documentation / التوثيق
+
+| Document | Language | Description | الوصف |
+|---|---|---|---|
+| [Quick Start](docs/QUICK_START.md) | EN/AR | Get running in 5 minutes | ابدأ خلال 5 دقائق |
+| [Architecture](docs/ARCHITECTURE.md) | EN | System layers and components | طبقات النظام والمكونات |
+| [Security & Privacy](docs/SECURITY_AND_PRIVACY.md) | EN | Threat model and crypto | نموذج التهديد والتشفير |
+| [Transport & Routing](docs/TRANSPORT_AND_ROUTING.md) | EN | Mesh protocol details | تفاصيل بروتوكول الشبكة المشبكة |
+| [UI Screens & Flows](docs/UI_SCREENS_AND_FLOWS.md) | EN | Screen map | خريطة الشاشات |
+| [Roadmap v2.0](docs/ROADMAP_v2.0.md) | EN/AR | Future features | الميزات المستقبلية |
+| [IP Rights](docs/INTELLECTUAL_PROPERTY.md) | EN/AR | Licensing and ownership | الترخيص والملكية |
+
+---
+
+## Latest Updates / آخر التحديثات (Apr 2026)
 
 ### ✅ Completed 5-Stage Development Plan / اكتمال خطة التطوير الخمس مراحل
 
 **Stage 1: Architecture** ✅
-- Clean Architecture with Data/Domain/Presentation layers
-- Hilt Dependency Injection
-- Use Case pattern for business logic
-- Centralized Navigation with AppNavigator
+- Clean Architecture with Data/Domain/Presentation layers — بنية نظيفة
+- Hilt Dependency Injection — حقن التبعيات
+- Use Case pattern for business logic — نمط Use Case
 
 **Stage 2: Security** ✅
-- Android Keystore integration (StrongBox/TEE)
-- ECDH key exchange with Forward Secrecy
-- AES-256-GCM encryption with random IV
-- Message signing and verification
-- Security Audit Report available
+- Android Keystore integration (StrongBox/TEE) — مخزن مفاتيح Android
+- ECDH key exchange with Forward Secrecy — تبادل مفاتيح ECDH
+- AES-256-GCM encryption with random IV — تشفير AES-256-GCM
 
 **Stage 3: Mesh Networking** ✅
-- Battery-aware BLE scanning (adaptive intervals)
-- Message Router with DHT-based routing
-- Store-and-forward with TTL management
-- Connection resilience and retry logic
+- Battery-aware BLE scanning (adaptive intervals) — مسح BLE مع مراعاة البطارية
+- Message Router with DHT-based routing — راوتر رسائل DHT
+- Store-and-forward with TTL management — تخزين وإعادة مع TTL
 
 **Stage 4: UI/UX** ✅
-- Glass-morphism Design System
-- Message animations and transitions
-- Full RTL (Arabic) support
-- Dark/Light theme with system detection
-- TalkBack accessibility (WCAG compliant)
+- Glass-morphism Design System — تصميم Glass-morphism
+- Full RTL (Arabic) support — دعم كامل للعربية
+- Dark/Light theme with system detection — نمط داكن/فاتح
 
 **Stage 5: Testing & Performance** ✅
-- Unit tests with MockK
-- Performance monitoring
-- Memory leak detection
-- Battery drain tracking
+- Unit tests with MockK — اختبارات وحدات
+- Performance monitoring — مراقبة الأداء
+- Memory leak detection — كشف تسرب الذاكرة
 
-### New Chat & Group Features / ميزات الدردشة والمجموعات الجديدة:
-- **Reply to Message** - الرد على الرسائل
-- **Forward Message** - إعادة إرسال الرسائل
-- **Edit Message** - تعديل الرسائل
-- **Pin Message** - تثبيت الرسائل
-- **Admin Roles** - أدوار المشرفين (Owner, Admin, Member)
-- **Kick/Ban Members** - طرد/حظر الأعضاء
-- **Slow Mode** - تقييد المراسلة
-- **Restrict New Members** - تقييد الأعضاء الجدد
-- **Polls** - الاستطلاعات
+---
 
-## Current Scope / النطاق الحالي
-This codebase focuses on Android-native mesh stability and full feature set while preserving Sada's identity (offline, secure, decentralized communication).
+## Developer / المطور
 
-**Status**: Production-ready with enhanced security and chat features
+<div align="center">
+<br/>
+<img src="app/src/main/res/drawable/developer_obada.jpg" width="100" style="border-radius:50%"/>
+<br/>
+<strong>Obada Dallo · عبادة دللو</strong>
+<br/>
+<em>Founder & Lead Developer — "Building digital shields for a safer internet."</em><br/>
+<em>المؤسس والمطور الرائد — "نبني دروعاً رقمية لإنترنت أكثر أماناً"</em>
+<br/><br/>
+<a href="https://github.com/obadadallo95"><img src="https://img.shields.io/badge/GitHub-100000?style=for-the-badge&logo=github&logoColor=white"/></a>
+<a href="https://www.linkedin.com/in/obada-dallo-777a47a9/"><img src="https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white"/></a>
+<a href="https://www.facebook.com/obada.dallo33"><img src="https://img.shields.io/badge/Facebook-1877F2?style=for-the-badge&logo=facebook&logoColor=white"/></a>
+<a href="https://t.me/obada_dallo95"><img src="https://img.shields.io/badge/Telegram-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white"/></a>
+<a href="mailto:obada.dallo95@gmail.com"><img src="https://img.shields.io/badge/Email-D14836?style=for-the-badge&logo=gmail&logoColor=white"/></a>
+</div>
+
+---
+
+## License / الرخصة
+
+This project is licensed under the **GNU General Public License v3.0**.
+See the [LICENSE](LICENSE) file for details.
+
+هذا المشروع مرخص تحت **رخصة GPL v3** — راجع ملف [LICENSE](LICENSE) للتفاصيل.
