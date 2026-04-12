@@ -417,26 +417,29 @@ private fun ModernQrScannerSheet(
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             if (hasCameraPermission) {
-                AndroidView(
-                    modifier = Modifier.fillMaxSize(),
-                    factory = { ctx ->
-                        DecoratedBarcodeView(ctx).apply {
-                            statusView.text = tr("وجّه الكاميرا إلى QR", "Point camera to QR")
-                            barcodeView.decoderFactory =
-                                com.journeyapps.barcodescanner.DefaultDecoderFactory(listOf(BarcodeFormat.QR_CODE))
-                            decodeContinuous(object : BarcodeCallback {
-                                override fun barcodeResult(result: BarcodeResult?) {
-                                    val value = result?.text ?: return
-                                    if (consumed) return
-                                    consumed = true
-                                    onScanned(value)
-                                }
-                            })
-                            resume()
-                            barcodeViewRef = this
+                // Use key to force AndroidView recreation when permission changes
+                key(hasCameraPermission) {
+                    AndroidView(
+                        modifier = Modifier.fillMaxSize(),
+                        factory = { ctx ->
+                            DecoratedBarcodeView(ctx).apply {
+                                statusView.text = tr("وجّه الكاميرا إلى QR", "Point camera to QR")
+                                barcodeView.decoderFactory =
+                                    com.journeyapps.barcodescanner.DefaultDecoderFactory(listOf(BarcodeFormat.QR_CODE))
+                                decodeContinuous(object : BarcodeCallback {
+                                    override fun barcodeResult(result: BarcodeResult?) {
+                                        val value = result?.text ?: return
+                                        if (consumed) return
+                                        consumed = true
+                                        onScanned(value)
+                                    }
+                                })
+                                resume()
+                                barcodeViewRef = this
+                            }
                         }
-                    }
-                )
+                    )
+                }
             } else {
                 Column(
                     modifier = Modifier
