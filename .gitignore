@@ -24,11 +24,18 @@ key.properties
 **/outputs/bundle/
 
 # IDE files
-.idea/caches/
-.idea/workspace.xml
+.idea/
+*.iml
 .kotlin/errors/
+
+# macOS
 .DS_Store
 **/.DS_Store
+
+# Android Build
+build/
+app/build/
+**/build/
 
 # Logs
 build_log.txt
