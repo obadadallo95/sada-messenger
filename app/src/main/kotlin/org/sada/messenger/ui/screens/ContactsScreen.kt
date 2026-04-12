@@ -417,19 +417,20 @@ private fun ModernQrScannerSheet(
         if (!hasCameraPermission) permissionLauncher.launch(android.Manifest.permission.CAMERA)
     }
 
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = LocalSadaPalette.current.background
-    ) {
+    val palette = LocalSadaPalette.current
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Sada glass background effect
+        MeshBackground()
+
         Box(modifier = Modifier.fillMaxSize()) {
             if (hasCameraPermission) {
-                // Use key to force AndroidView recreation when permission changes
                 key(hasCameraPermission) {
                     AndroidView(
                         modifier = Modifier.fillMaxSize(),
                         factory = { ctx ->
                             DecoratedBarcodeView(ctx).apply {
-                                statusView.text = tr("وجّه الكاميرا إلى QR", "Point camera to QR")
+                                statusView.visibility = android.view.View.GONE // Hide default status
                                 barcodeView.decoderFactory =
                                     com.journeyapps.barcodescanner.DefaultDecoderFactory(listOf(BarcodeFormat.QR_CODE))
                                 decodeContinuous(object : BarcodeCallback {
@@ -447,55 +448,223 @@ private fun ModernQrScannerSheet(
                     )
                 }
             } else {
+                // Permission request UI with Sada styling
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(24.dp),
+                        .padding(32.dp),
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Icon(Icons.Default.CameraAlt, contentDescription = null, tint = Color.White, modifier = Modifier.size(52.dp))
-                    Spacer(modifier = Modifier.height(10.dp))
+                    // Glowing icon
+                    Box(
+                        modifier = Modifier
+                            .size(100.dp)
+                            .clip(CircleShape)
+                            .background(NeonTeal.copy(alpha = 0.1f))
+                            .border(2.dp, NeonTeal.copy(alpha = 0.3f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Default.CameraAlt,
+                            contentDescription = null,
+                            tint = NeonTeal,
+                            modifier = Modifier.size(48.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
                     Text(
-                        text = tr("نحتاج إذن الكاميرا للمسح", "Camera permission is required to scan"),
-                        color = Color.White
+                        text = tr("إذن الكاميرا", "Camera Permission"),
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = palette.textPrimary
                     )
-                    Spacer(modifier = Modifier.height(14.dp))
-                    Button(onClick = { permissionLauncher.launch(android.Manifest.permission.CAMERA) }) {
-                        Text(tr("منح الإذن", "Grant Permission"))
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = tr("نحتاج إذن الكاميرا لمسح QR وإضافة أصدقاء", "Camera permission is required to scan QR and add friends"),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = palette.textSecondary,
+                        textAlign = TextAlign.Center
+                    )
+
+                    Spacer(modifier = Modifier.height(32.dp))
+
+                    Button(
+                        onClick = { permissionLauncher.launch(android.Manifest.permission.CAMERA) },
+                        colors = ButtonDefaults.buttonColors(containerColor = NeonTeal),
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp)
+                    ) {
+                        Text(
+                            tr("منح الإذن", "Grant Permission"),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
+                        )
                     }
                 }
             }
 
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(top = 52.dp)
-                    .background(Color.Black.copy(alpha = 0.45f), RoundedCornerShape(12.dp))
-                    .padding(horizontal = 14.dp, vertical = 10.dp)
-            ) {
-                Text(
-                    text = tr("امسح QR لإضافة صديق", "Scan QR to add friend"),
-                    color = Color.White,
-                    fontWeight = FontWeight.SemiBold
-                )
+            // Scanner overlay with Sada identity
+            if (hasCameraPermission) {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    // Top gradient overlay
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(140.dp)
+                            .align(Alignment.TopCenter)
+                            .background(
+                                Brush.verticalGradient(
+                                    listOf(
+                                        palette.background.copy(alpha = 0.9f),
+                                        palette.background.copy(alpha = 0.5f),
+                                        Color.Transparent
+                                    )
+                                )
+                            )
+                    )
+
+                    // Bottom gradient overlay
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp)
+                            .align(Alignment.BottomCenter)
+                            .background(
+                                Brush.verticalGradient(
+                                    listOf(
+                                        Color.Transparent,
+                                        palette.background.copy(alpha = 0.7f),
+                                        palette.background.copy(alpha = 0.95f)
+                                    )
+                                )
+                            )
+                    )
+
+                    // Scanning frame - neon glow effect
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .size(280.dp)
+                    ) {
+                        // Outer glow
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(RoundedCornerShape(28.dp))
+                                .background(NeonTeal.copy(alpha = 0.08f))
+                                .border(1.dp, NeonTeal.copy(alpha = 0.3f), RoundedCornerShape(28.dp))
+                        )
+
+                        // Inner frame
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(12.dp)
+                                .clip(RoundedCornerShape(20.dp))
+                                .border(2.dp, NeonTeal, RoundedCornerShape(20.dp))
+                        )
+
+                        // Corner accents
+                        val cornerSize = 32.dp
+                        val strokeWidth = 3.dp
+
+                        // Top-left corner
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopStart)
+                                .padding(8.dp)
+                                .size(cornerSize)
+                                .background(Color.Transparent)
+                        ) {
+                            Box(modifier = Modifier.fillMaxWidth().height(strokeWidth).background(NeonTeal))
+                            Box(modifier = Modifier.fillMaxHeight().width(strokeWidth).background(NeonTeal))
+                        }
+
+                        // Top-right corner
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(8.dp)
+                                .size(cornerSize)
+                                .background(Color.Transparent)
+                        ) {
+                            Box(modifier = Modifier.fillMaxWidth().height(strokeWidth).background(NeonTeal))
+                            Box(modifier = Modifier.align(Alignment.TopEnd).fillMaxHeight().width(strokeWidth).background(NeonTeal))
+                        }
+
+                        // Bottom-left corner
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.BottomStart)
+                                .padding(8.dp)
+                                .size(cornerSize)
+                                .background(Color.Transparent)
+                        ) {
+                            Box(modifier = Modifier.align(Alignment.BottomStart).fillMaxWidth().height(strokeWidth).background(NeonTeal))
+                            Box(modifier = Modifier.align(Alignment.BottomStart).fillMaxHeight().width(strokeWidth).background(NeonTeal))
+                        }
+
+                        // Bottom-right corner
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(8.dp)
+                                .size(cornerSize)
+                                .background(Color.Transparent)
+                        ) {
+                            Box(modifier = Modifier.align(Alignment.BottomEnd).fillMaxWidth().height(strokeWidth).background(NeonTeal))
+                            Box(modifier = Modifier.align(Alignment.BottomEnd).fillMaxHeight().width(strokeWidth).background(NeonTeal))
+                        }
+                    }
+
+                    // Title at top
+                    Text(
+                        text = tr("امسح QR لإضافة صديق", "Scan QR to add friend"),
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .padding(top = 80.dp),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+
+                    // Hint at bottom
+                    Text(
+                        text = tr("وجّه الكاميرا ضمن الإطار", "Point camera within frame"),
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = 120.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = NeonTeal,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
             }
 
-            Box(
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .size(250.dp)
-                    .border(2.dp, SadaPrimary, RoundedCornerShape(20.dp))
-            )
-
+            // Back button - Sada styled
             IconButton(
                 onClick = onClose,
                 modifier = Modifier
                     .align(Alignment.TopStart)
                     .padding(16.dp)
-                    .background(Color.Black.copy(alpha = 0.45f), CircleShape)
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(palette.surface.copy(alpha = 0.8f))
+                    .border(1.dp, palette.textSecondary.copy(alpha = 0.2f), CircleShape)
             ) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, tint = LocalSadaPalette.current.textPrimary)
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = null,
+                    tint = palette.textPrimary,
+                    modifier = Modifier.size(24.dp)
+                )
             }
         }
     }
