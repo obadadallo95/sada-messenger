@@ -69,9 +69,11 @@ This repository is the **native Android rewrite** of Sada, designed for stronger
 - **ZXing** (QR Code)
 
 ## Build / البناء
+
 ```bash
 ./gradlew :app:assembleDebug
 ./gradlew :app:installDebug
+./gradlew :app:testDebugUnitTest
 ```
 
 ## Latest Updates / آخر التحديثات (Apr 2025)
@@ -122,6 +124,6 @@ This repository is the **native Android rewrite** of Sada, designed for stronger
 - **Polls** - الاستطلاعات
 
 ## Current Scope / النطاق الحالي
-This codebase focuses on Android-native mesh stability and feature parity with `legacy-flutter/` while preserving Sada's identity (offline, secure, decentralized communication).
+This codebase focuses on Android-native mesh stability and full feature set while preserving Sada's identity (offline, secure, decentralized communication).
 
 **Status**: Production-ready with enhanced security and chat features
