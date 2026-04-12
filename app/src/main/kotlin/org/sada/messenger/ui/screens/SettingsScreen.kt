@@ -64,6 +64,7 @@ fun SettingsScreenGlass(
     onAboutClick: () -> Unit,
     onPrivacyClick: () -> Unit,
     onTermsClick: () -> Unit,
+    onIpClick: () -> Unit,
     displayName: String,
     initialThemeMode: String,
     initialLanguage: String,
@@ -338,6 +339,13 @@ fun SettingsScreenGlass(
                                 color = Color(0xFFFFB74D),
                                 modifier = Modifier.weight(1f),
                                 onClick = onTermsClick
+                            )
+                            AboutQuickChip(
+                                icon = Icons.Default.Copyright,
+                                label = tr("الملكية", "IP Rights"),
+                                color = Color(0xFFA78BFA),
+                                modifier = Modifier.weight(1f),
+                                onClick = onIpClick
                             )
                             AboutQuickChip(
                                 icon = Icons.Default.Share,

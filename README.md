@@ -52,6 +52,7 @@ This repository is the **native Android rewrite** of Sada, designed for stronger
 - **خطة تطوير الدردشة والمجموعات**: [docs/CHAT_AND_GROUPS_ROADMAP.md](docs/CHAT_AND_GROUPS_ROADMAP.md) 🔥 أولوية فورية
 - Service Profile v2.0 Roadmap: [docs/ROADMAP_ServiceProfile_v2.0.md](docs/ROADMAP_ServiceProfile_v2.0.md) ⚠️ مخفي في v1.0
 - Code style + i18n rules: [docs/CODE_STYLE_AND_I18N.md](docs/CODE_STYLE_AND_I18N.md)
+- **حقوق الملكية الفكرية / IP Rights**: [docs/INTELLECTUAL_PROPERTY.md](docs/INTELLECTUAL_PROPERTY.md) ⚖️
 - Delivery checklist: [docs/DELIVERY_CHECKLIST.md](docs/DELIVERY_CHECKLIST.md)
 - Field launch decision: [docs/GO_NO_GO_FIELD_RELEASE.md](docs/GO_NO_GO_FIELD_RELEASE.md)
 

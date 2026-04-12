@@ -370,6 +370,7 @@ class MainActivity : AppCompatActivity() {
                                                 onAboutClick = { navController.navigate("settings/about") },
                                                 onPrivacyClick = { navController.navigate("settings/privacy") },
                                                 onTermsClick = { navController.navigate("settings/terms") },
+                                                onIpClick = { navController.navigate("settings/ip") },
                                                 displayName = userNickname,
                                                 initialThemeMode = prefs.getString("app_theme_mode", "dark") ?: "dark",
                                                 initialLanguage = prefs.getString("app_language", "ar") ?: "ar",
@@ -437,6 +438,14 @@ class MainActivity : AppCompatActivity() {
                                 LegalTextPage(
                                     title = if (isArabic) "شروط الاستخدام" else "Terms of Use",
                                     content = LegalContent.termsOfUse(isArabic),
+                                    onBack = { navController.popBackStack() }
+                                )
+                            }
+                            composable("settings/ip") {
+                                val isArabic = !(prefs.getString("app_language", "ar") ?: "ar").equals("en", ignoreCase = true)
+                                LegalTextPage(
+                                    title = if (isArabic) "حقوق الملكية الفكرية" else "Intellectual Property",
+                                    content = LegalContent.intellectualProperty(isArabic),
                                     onBack = { navController.popBackStack() }
                                 )
                             }
