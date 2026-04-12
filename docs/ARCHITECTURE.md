@@ -121,17 +121,6 @@ Room database with 18 migrations:
 
 Migrations explicitly implemented (1..17 -> 17 -> 18), avoiding destructive resets.
 
-Room database (`AppDatabase`, version 8):
-- `contacts`
-- `chats`
-- `messages` (indexed by `chatId`, `timestamp`)
-- `relay_queue`
-- `group_members`
-- `group_join_requests`
-- `media_chunks`
-
-Migrations are explicitly implemented (1..7 -> 7 and 7 -> 8), avoiding destructive resets for production upgrade paths.
-
 ## 4) Runtime Route Map
 
 Registered routes (NavHost):
