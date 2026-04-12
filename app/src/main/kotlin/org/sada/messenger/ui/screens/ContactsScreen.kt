@@ -40,6 +40,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.WriterException
 import com.google.zxing.qrcode.QRCodeWriter
@@ -245,13 +246,18 @@ fun ContactsScreen(
     }
 
     if (showScanner) {
-        ModernQrScannerSheet(
-            onClose = { showScanner = false },
-            onScanned = { raw ->
-                showScanner = false
-                handleScannedPayload(raw)
-            }
-        )
+        Dialog(
+            onDismissRequest = { showScanner = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            ModernQrScannerSheet(
+                onClose = { showScanner = false },
+                onScanned = { raw ->
+                    showScanner = false
+                    handleScannedPayload(raw)
+                }
+            )
+        }
     }
 }
 
