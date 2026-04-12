@@ -1247,6 +1247,90 @@ fun AboutSadaPage(
                     }
                 }
 
+                // ── FAQ / الأسئلة الشائعة ──
+                item {
+                    AboutSectionCard(
+                        title = if (isArabic) "الأسئلة الشائعة" else "FAQ"
+                    ) {
+                        val faqs = if (isArabic) listOf(
+                            "هل يحتاج صدى إلى إنترنت؟" to
+                                "لا. صدى يعمل بالكامل بدون إنترنت باستخدام Wi-Fi Direct و Bluetooth. الرسائل تنتقل مباشرة بين الأجهزة.",
+                            "كيف يتم تأمين رسائلي؟" to
+                                "جميع الرسائل مشفرة من طرف إلى طرف (E2EE) باستخدام مكتبة Libsodium. حتى الأجهزة الوسيطة لا تستطيع قراءة محتوى الرسائل.",
+                            "هل يمكنني استخدام صدى للأغراض التجارية؟" to
+                                "نعم! صدى مرخص تحت GPL v3، مما يسمح بالاستخدام التجاري شرط أن تبقى أي تعديلات مفتوحة المصدر.",
+                            "ماذا يحدث إذا فقدت مفتاحي الخاص؟" to
+                                "المفتاح الخاص محفوظ محلياً على جهازك. إذا فقدت الجهاز أو حذفت التطبيق، لا يمكن استعادة المحادثات السابقة.",
+                            "كيف يمكنني الإبلاغ عن مشكلة أمنية؟" to
+                                "يمكنك فتح نقاش على GitHub Discussions أو التواصل عبر Telegram: @obada_dallo95",
+                            "هل صدى مجاني؟" to
+                                "نعم، صدى مجاني ومفتوح المصدر بالكامل. لا إعلانات، لا اشتراكات، لا تتبع."
+                        ) else listOf(
+                            "Does Sada need internet?" to
+                                "No. Sada works completely offline using Wi-Fi Direct and Bluetooth. Messages travel directly between devices.",
+                            "How are my messages secured?" to
+                                "All messages are end-to-end encrypted (E2EE) using the Libsodium library. Even relay devices cannot read message content.",
+                            "Can I use Sada for commercial purposes?" to
+                                "Yes! Sada is licensed under GPL v3, which allows commercial use as long as any modifications remain open source.",
+                            "What happens if I lose my private key?" to
+                                "Your private key is stored locally on your device. If you lose the device or uninstall the app, previous conversations cannot be recovered.",
+                            "How do I report a security issue?" to
+                                "You can open a discussion on GitHub Discussions or contact via Telegram: @obada_dallo95",
+                            "Is Sada free?" to
+                                "Yes, Sada is completely free and open source. No ads, no subscriptions, no tracking."
+                        )
+
+                        faqs.forEachIndexed { index, (question, answer) ->
+                            var expanded by remember { mutableStateOf(false) }
+
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .clickable { expanded = !expanded }
+                                    .padding(vertical = 8.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        text = question,
+                                        color = LocalSadaPalette.current.textPrimary,
+                                        fontWeight = FontWeight.SemiBold,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    Icon(
+                                        imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                        contentDescription = null,
+                                        tint = LocalSadaPalette.current.textSecondary,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+
+                                androidx.compose.animation.AnimatedVisibility(visible = expanded) {
+                                    Text(
+                                        text = answer,
+                                        color = LocalSadaPalette.current.textSecondary,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        lineHeight = 20.sp,
+                                        modifier = Modifier.padding(top = 8.dp, start = 4.dp, end = 4.dp)
+                                    )
+                                }
+
+                                if (index < faqs.lastIndex) {
+                                    HorizontalDivider(
+                                        modifier = Modifier.padding(top = 8.dp),
+                                        color = LocalSadaPalette.current.textSecondary.copy(0.08f)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
                 item { Spacer(Modifier.height(32.dp)) }
             }
         }
