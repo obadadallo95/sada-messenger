@@ -1,0 +1,23 @@
+/// ملف الثوابت العامة للتطبيق
+/// يحتوي على القيم الثابتة المستخدمة في جميع أنحاء التطبيق
+class AppConstants {
+  AppConstants._();
+
+  // مفاتيح SharedPreferences
+  static const String keyThemeMode = 'theme_mode';
+  static const String keyLocale = 'locale';
+
+  // قيم الوضع الافتراضي
+  static const String defaultLocale = 'en';
+  static const String defaultThemeMode = 'dark';
+
+  // ==================== Relay / DTN Constants ====================
+
+  /// الحد الأقصى لعدد الحزم المخزنة في Relay Queue لكل جهاز.
+  /// هذا حد عددي مبدئي لمنع امتلاء التخزين (يمكن ضبطه لاحقاً أو استبداله بحساب حجمي بالـ MB).
+  static int relayQueueMaxCount = 5000;
+
+  /// الحد الأقصى لحجم التخزين المسموح به لـ Relay Queue (بالبايت).
+  /// 100 MB كحد أقصى لمنع استهلاك مساحة الجهاز.
+  static int relayQueueMaxBytes = 100 * 1024 * 1024; // 100 MB
+}

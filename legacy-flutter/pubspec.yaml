@@ -1,0 +1,166 @@
+name: sada
+description: "Foundation Layer for Sada App"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.10.4
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # State Management
+  flutter_riverpod: ^2.6.1
+  riverpod_annotation: ^2.6.1
+  
+  # Navigation
+  go_router: ^17.1.0
+  
+  # Theming
+  flex_color_scheme: ^8.4.0
+  google_fonts: ^6.2.1
+  
+  # Responsiveness
+  flutter_screenutil: ^5.9.3
+  
+  # Localization
+  intl: ^0.20.2
+  
+  # Storage
+  shared_preferences: ^2.3.3
+  
+  # Database
+  drift: ^2.18.0
+  sqlite3_flutter_libs: ^0.5.20
+  path: ^1.9.0
+  
+  # Logging
+  logger: ^2.4.0
+  
+  # Icons
+  cupertino_icons: ^1.0.8
+  font_awesome_flutter: ^10.7.0
+  
+  # UI Components
+  smooth_page_indicator: ^2.0.1
+  animate_do: ^4.2.0
+  flutter_animate: ^4.5.0
+  showcaseview: ^5.0.1
+  
+  # QR Code & Scanner
+  qr_flutter: ^4.1.0
+  mobile_scanner: ^7.1.4
+  permission_handler: ^12.0.1
+  share_plus: ^12.0.1
+  
+  # Notifications
+  flutter_local_notifications: ^20.0.0
+  timezone: ^0.10.1
+  flash: ^3.0.0
+  
+  # Background Service
+  flutter_background_service: ^5.0.5
+  flutter_background_service_android: ^6.0.0
+  android_alarm_manager_plus: ^5.0.0
+  
+  # App Info & Links
+  package_info_plus: ^9.0.0
+  url_launcher: ^6.3.1
+  path_provider: ^2.1.4
+  flutter_markdown: ^0.6.18
+  
+  # Security & Authentication
+  device_info_plus: ^12.3.0
+  flutter_secure_storage: ^10.0.0
+  crypto: ^3.0.7
+  uuid: ^4.5.1
+  local_auth: ^3.0.0
+  
+  # Cryptography
+  sodium_libs: ^2.0.0
+  
+  # Image Handling
+  image_picker: ^1.1.2
+  flutter_image_compress: ^2.3.0
+  cached_network_image: ^3.4.1
+  lottie: ^3.3.2
+  nearby_connections: ^4.3.0
+  wakelock_plus: ^1.4.0
+
+  # Voice Messaging
+  record: ^6.2.0
+  audioplayers: ^6.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  
+  # Testing
+  mocktail: ^1.0.0
+  integration_test:
+    sdk: flutter
+  
+  # Code Generation
+  build_runner: ^2.4.0
+  drift_dev: ^2.18.0
+  riverpod_generator: ^2.6.4
+  freezed: ^2.5.8
+  json_serializable: ^6.9.5
+  
+  # Launcher Icons
+  flutter_launcher_icons: ^0.14.4
+  # Native Splash Screen
+  flutter_native_splash: ^2.4.1
+
+
+flutter:
+  uses-material-design: true
+  
+  generate: true
+
+  # Assets
+  assets:
+    - assets/images/
+    - assets/json/
+
+# Flutter Launcher Icons Configuration
+# Cyber-Stealth Aesthetic: Deep Midnight Blue background
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/logo.png"
+  min_sdk_android: 23
+  # Adaptive Icon Configuration (Android 8.0+)
+  # Background color: Deep Midnight Blue (#050A14)
+  adaptive_icon_background: "#050A14"
+  adaptive_icon_foreground: "assets/images/logo.png"
+  # Remove alpha channel for iOS (required)
+  remove_alpha_ios: true
+  # Generate adaptive icon for Android
+  adaptive_icon: true
+
+# Flutter Native Splash Screen Configuration
+# Cyber-Stealth Aesthetic: Seamless startup experience
+flutter_native_splash:
+  # Main configuration
+  color: "#050A14"  # Deep Midnight Blue
+  image: "assets/images/logo.png"
+  
+  # Android specific
+  android: true
+  android_12:
+    image: "assets/images/logo.png"
+    color: "#050A14"  # Deep Midnight Blue background for Android 12+
+  android_gravity: center
+  
+  # iOS specific
+  ios: true
+  ios_content_mode: center
+  
+  # Fullscreen mode
+  fullscreen: true
