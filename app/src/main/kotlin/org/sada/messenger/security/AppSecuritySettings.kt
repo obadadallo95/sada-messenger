@@ -22,29 +22,40 @@ class AppSecuritySettings(context: Context) {
     private val secureRandom = SecureRandom()
 
     private val securePrefs = try {
-        EncryptedSharedPreferences.create(
-            context,
-            PREFS_NAME,
-            MasterKey.Builder(context).setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build(),
-            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-        )
+        createSecurePrefs(context)
     } catch (e: Exception) {
-        // Corrupted on reinstall - clear and reinitialize
-        val prefsFile = java.io.File(context.filesDir.parent + "/shared_prefs/${PREFS_NAME}.xml")
-        prefsFile.delete()
+        wipeSecureStorage(context)
         try {
+            createSecurePrefs(context)
+        } catch (e2: Exception) {
+            context.getSharedPreferences(PREFS_NAME + "_fallback", Context.MODE_PRIVATE)
+        }
+    }
+
+    private fun createSecurePrefs(ctx: Context) = EncryptedSharedPreferences.create(
+        ctx,
+        PREFS_NAME,
+        MasterKey.Builder(ctx).setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build(),
+        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+    )
+
+    private fun wipeSecureStorage(ctx: Context) {
+        try {
+            ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit().clear().apply()
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+                ctx.deleteSharedPreferences(PREFS_NAME)
+            }
             val ks = java.security.KeyStore.getInstance("AndroidKeyStore")
             ks.load(null)
-            if (ks.containsAlias("_androidx_security_master_key_")) ks.deleteEntry("_androidx_security_master_key_")
+            val aliases = ks.aliases()
+            while (aliases.hasMoreElements()) {
+                val alias = aliases.nextElement()
+                if (alias.contains("androidx_security") || alias.contains(PREFS_NAME)) {
+                    ks.deleteEntry(alias)
+                }
+            }
         } catch (_: Exception) {}
-        EncryptedSharedPreferences.create(
-            context,
-            PREFS_NAME,
-            MasterKey.Builder(context).setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build(),
-            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-        )
     }
 
     fun isAppLockEnabled(): Boolean = securePrefs.getBoolean(KEY_APP_LOCK_ENABLED, false)

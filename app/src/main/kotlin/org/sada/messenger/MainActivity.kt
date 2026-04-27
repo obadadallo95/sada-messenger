@@ -35,13 +35,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import androidx.navigation.compose.*
-import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.compose.rememberNavController
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
-import org.sada.messenger.ui.theme.SadaTheme
-import org.sada.messenger.ui.theme.SadaThemeMode
+import androidx.compose.ui.platform.LocalContext
+import androidx.work.*
+import org.sada.messenger.core.workers.CleanupWorker
+import org.sada.messenger.ui.theme.*
 import org.sada.messenger.data.db.AppDatabase
 import org.sada.messenger.security.KeyManager
 import org.sada.messenger.security.EncryptionManager
@@ -119,6 +125,7 @@ class MainActivity : AppCompatActivity() {
     private val lastConnectAttemptAt = mutableMapOf<String, Long>()
     private var myPeerId: String = ""
     private var isAppUnlocked by mutableStateOf(true)
+    private var showPermissionRationale by mutableStateOf(false)
     @Volatile
     private var isBiometricPromptShowing = false
     private val notificationPermissionLauncher = registerForActivityResult(
@@ -257,8 +264,7 @@ class MainActivity : AppCompatActivity() {
         myPeerId = keyManager.getPublicKeyBase64()
         if (isRegistered) {
             MeshForegroundService.start(this)
-            requestEssentialPermissionsIfNeeded()
-
+            checkAndShowRationaleIfNeeded()
         }
 
         val savedThemeMode = prefs.getString("app_theme_mode", "dark").orEmpty().toThemeMode()
@@ -339,7 +345,8 @@ class MainActivity : AppCompatActivity() {
                                                 onDeleteChat = { chatId -> homeViewModel.removeConversation(chatId) },
                                                 onSettingsClick = { scope.launch { pagerState.animateScrollToPage(4) } },
                                                 onCreateGroupClick = { navController.navigate("create_group") },
-                                                onDiagnosticsClick = { navController.navigate("diagnostics") }
+                                                onDiagnosticsClick = { navController.navigate("diagnostics") },
+                                                onRequestPermissions = { requestMeshPermissionsIfNeeded() }
                                             )
                                             1 -> AddedContactsScreen(
                                                 viewModel = contactsViewModel,
@@ -374,7 +381,6 @@ class MainActivity : AppCompatActivity() {
                                                 displayName = userNickname,
                                                 initialThemeMode = prefs.getString("app_theme_mode", "dark") ?: "dark",
                                                 initialLanguage = prefs.getString("app_language", "ar") ?: "ar",
-                                                initialPowerMode = prefs.getString("power_mode", "balanced") ?: "balanced",
                                                 initialStatusText = currentStatus.statusText,
                                                 initialStatusExpiresAtMs = currentStatus.expiresAtMs,
                                                 onPublishStatus = { statusText, expiresAtMs ->
@@ -397,9 +403,6 @@ class MainActivity : AppCompatActivity() {
                                                     prefs.edit().putString("app_language", language).apply()
                                                     applySavedLocale(language)
                                                     recreate()
-                                                },
-                                                onPowerModeChanged = { powerMode ->
-                                                    prefs.edit().putString("power_mode", powerMode).apply()
                                                 }
                                             )
                                         }
@@ -551,6 +554,15 @@ class MainActivity : AppCompatActivity() {
                                 onUnlockClick = { promptBiometricUnlock() }
                             )
                         }
+
+                        if (showPermissionRationale) {
+                            PermissionRationaleDialog(
+                                onConfirm = {
+                                    showPermissionRationale = false
+                                    requestEssentialPermissionsIfNeeded()
+                                }
+                            )
+                        }
                     }
                 }
             }
@@ -607,6 +619,17 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun checkAndShowRationaleIfNeeded() {
+        val required = collectEssentialRuntimePermissions()
+        val missing = required.filter { permission ->
+            ContextCompat.checkSelfPermission(this, permission) !=
+                android.content.pm.PackageManager.PERMISSION_GRANTED
+        }
+        if (missing.isNotEmpty()) {
+            showPermissionRationale = true
+        }
+    }
+
     private fun requestEssentialPermissionsOnFirstInstall() {
         val prefs = getSharedPreferences("sada_app_state", Context.MODE_PRIVATE)
         val prompted = prefs.getBoolean("essential_permissions_prompted_v1", false)
@@ -614,7 +637,7 @@ class MainActivity : AppCompatActivity() {
             return
         }
         prefs.edit().putBoolean("essential_permissions_prompted_v1", true).apply()
-        requestEssentialPermissionsIfNeeded()
+        checkAndShowRationaleIfNeeded()
     }
 
     private fun requestEssentialPermissionsIfNeeded() {
@@ -645,6 +668,87 @@ class MainActivity : AppCompatActivity() {
             required += Manifest.permission.BLUETOOTH_ADVERTISE
         }
         return required
+    }
+
+    @Composable
+    private fun PermissionRationaleDialog(onConfirm: () -> Unit) {
+        AlertDialog(
+            onDismissRequest = { /* Force user to interact */ },
+            title = {
+                Text(
+                    stringResource(R.string.perm_rationale_title),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 20.sp
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Text(
+                        stringResource(R.string.perm_rationale_desc),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                    )
+                    
+                    HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
+                    
+                    PermissionItem(
+                        icon = Icons.Default.CellTower,
+                        title = stringResource(R.string.perm_nearby_title),
+                        desc = stringResource(R.string.perm_nearby_desc)
+                    )
+                    PermissionItem(
+                        icon = Icons.Default.QrCodeScanner,
+                        title = stringResource(R.string.perm_camera_title),
+                        desc = stringResource(R.string.perm_camera_desc)
+                    )
+                    PermissionItem(
+                        icon = Icons.Default.Mic,
+                        title = stringResource(R.string.perm_mic_title),
+                        desc = stringResource(R.string.perm_mic_desc)
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = onConfirm,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(stringResource(R.string.perm_button_grant), fontWeight = FontWeight.Bold)
+                }
+            },
+            containerColor = LocalSadaPalette.current.surface,
+            shape = RoundedCornerShape(24.dp)
+        )
+    }
+
+    @Composable
+    private fun PermissionItem(
+        icon: androidx.compose.ui.graphics.vector.ImageVector,
+        title: String,
+        desc: String
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.Top
+        ) {
+            Icon(
+                icon,
+                contentDescription = null,
+                tint = NeonTeal,
+                modifier = Modifier.size(24.dp).padding(top = 2.dp)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Column {
+                Text(title, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                Text(
+                    desc,
+                    fontSize = 12.sp,
+                    lineHeight = 18.sp,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
+            }
+        }
     }
 
     private fun openAppPermissionSettings() {

@@ -46,7 +46,9 @@ class GroupProtocol(
         groupId: String,
         groupName: String,
         encryptedGroupKey: String,
-        senderNickname: String
+        senderNickname: String,
+        senderRole: String = "admin",
+        version: Int = 1
     ): JSONObject {
         return JSONObject().apply {
             put("type", TYPE_GROUP_INVITE)
@@ -54,6 +56,9 @@ class GroupProtocol(
             put("groupName", groupName)
             put("encryptedGroupKey", encryptedGroupKey)  // ENCRYPTED, not plaintext
             put("senderNickname", senderNickname)
+            put("senderRole", senderRole)
+            put("version", version)
+            put("timestamp", Date().time)
         }
     }
 
@@ -97,12 +102,16 @@ class GroupProtocol(
      */
     fun createRemoveMemberPayload(
         groupId: String,
-        removedPeerId: String
+        removedPeerId: String,
+        senderRole: String = "admin",
+        version: Int = 1
     ): JSONObject {
         return JSONObject().apply {
             put("type", TYPE_GROUP_REMOVE)
             put("groupId", groupId)
             put("removedPeerId", removedPeerId)
+            put("senderRole", senderRole)
+            put("version", version)
             put("timestamp", Date().time)
         }
     }

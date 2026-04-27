@@ -1,0 +1,51 @@
+{
+  "project": "Sada - Mesh Messaging App",
+  "description": "Peer-to-peer messaging app with mesh networking over BLE/Wi-Fi Direct",
+  "language": "Kotlin",
+  "framework": "Android (Jetpack Compose)",
+  "enabled_skills": [
+    "android-jetpack-compose-expert",
+    "kotlin-coroutines-expert",
+    "database-design",
+    "security",
+    "security-audit",
+    "backend-security-coder",
+    "frontend-security-coder",
+    "api-design-principles",
+    "architecture-patterns",
+    "clean-code",
+    "code-review-excellence",
+    "testing-patterns",
+    "e2e-testing-patterns",
+    "performance-optimizer",
+    "i18n-localization",
+    "error-handling-patterns",
+    "ui-ux-designer",
+    "mobile-design"
+  ],
+  "priority_skills": {
+    "mesh_networking": [
+      "p2p-networking",
+      "bluetooth-low-energy",
+      "wifi-direct",
+      "offline-first"
+    ],
+    "security": [
+      "end-to-end-encryption",
+      "secure-messaging",
+      "key-management",
+      "cryptography"
+    ],
+    "android": [
+      "android-jetpack-compose-expert",
+      "kotlin-coroutines-expert",
+      "room-database"
+    ],
+    "chat_features": [
+      "chat-ui-patterns",
+      "message-bubbles",
+      "voice-messaging"
+    ]
+  },
+  "notes": "This project uses custom mesh networking implementation, not standard P2P libraries"
+}

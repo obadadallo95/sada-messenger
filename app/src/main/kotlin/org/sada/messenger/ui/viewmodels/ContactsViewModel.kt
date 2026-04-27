@@ -143,6 +143,16 @@ class ContactsViewModel(
                 )
             }
 
+            // ربط الـ QR بطلب الإضافة: إرسال طلب اتصال للطرف الآخر
+            // Link QR to connection request: send request to the other party
+            if (!isPublicChannel) {
+                meshEngine.sendConnectionRequest(
+                    peerId = normalizedKey,
+                    peerName = normalizedName,
+                    publicKey = normalizedKey
+                )
+            }
+
             // Remove stale pending requests for this peer after QR trust is established.
             database.connectionRequestDao().deleteByPeerIdOrPublicKey(
                 peerId = normalizedKey,
@@ -162,6 +172,14 @@ class ContactsViewModel(
     fun blockContact(contactId: String) {
         viewModelScope.launch {
             database.contactDao().setBlocked(contactId, true)
+            // Also delete the chat content if needed, or just keep it blocked.
+        }
+    }
+
+    fun deleteChat(chatId: String) {
+        viewModelScope.launch {
+            database.chatDao().deleteChatById(chatId)
+            database.messageDao().deleteMessagesByChatId(chatId)
         }
     }
 

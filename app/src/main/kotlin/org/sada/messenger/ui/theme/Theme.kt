@@ -23,7 +23,7 @@ data class SadaColorPalette(
 )
 
 fun darkSadaPalette() = SadaColorPalette(
-    background    = Color(0xFF0A0A0F),
+    background    = Color(0xFF000000),
     surface       = Color(0xFF13131A),
     surfaceVariant= Color(0xFF1C1C28),
     textPrimary   = Color(0xFFFFFFFF),

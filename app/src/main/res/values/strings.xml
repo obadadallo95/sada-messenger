@@ -35,7 +35,14 @@
     <string name="fab_safe_notes">Safe Notes</string>
     <string name="fab_create_group">Create Group</string>
 
-    <string name="sos_title">Emergency SOS</string>
+    <string name="sos_notif_title">Emergency (SOS)</string>
+    <string name="missing_person_notif_title">🚨 Missing Person Alert</string>
+    <string name="missing_person_label">Missing Person Alert</string>
+    <string name="missing_person_name">Name</string>
+    <string name="missing_person_desc">Description</string>
+    <string name="missing_person_last_seen">Last Seen</string>
+    <string name="missing_person_broadcast_sent">Missing person alert broadcasted successfully</string>
+    <string name="sos_title">Emergency Alert (SOS)</string>
     <string name="sos_message">Are you sure you want to broadcast an SOS to all nearby devices? Your location will be included.</string>
     <string name="sos_send">Send SOS</string>
     <string name="sos_cancel">Cancel</string>
@@ -57,4 +64,32 @@
     <string name="lora_status">LoRa: %1$s</string>
     <string name="lora_connected">Connected</string>
     <string name="lora_disconnected">Disconnected</string>
+    
+    <!-- Permissions Rationale -->
+    <string name="perm_rationale_title">Why these permissions?</string>
+    <string name="perm_rationale_desc">Sada works entirely without internet, and to achieve this, we need technical permissions. We guarantee total privacy: no tracking, no central servers, and no access to your personal data.</string>
+    <string name="perm_nearby_title">Nearby Devices &amp; WiFi</string>
+    <string name="perm_nearby_desc">Required to find nearby phones to exchange messages. Android might technically request \"Location\" to enable WiFi, but we never use GPS to track you.</string>
+    <string name="perm_camera_title">Camera</string>
+    <string name="perm_camera_desc">Only used to scan your friends\' QR codes to add them safely.</string>
+    <string name="perm_mic_title">Microphone</string>
+    <string name="perm_mic_desc">Only used to record and send voice messages within chats.</string>
+    <string name="perm_notifications_title">Notifications</string>
+    <string name="perm_notifications_desc">To let you know when new messages arrive in the background.</string>
+    <string name="perm_button_grant">I Understand, Let\'s Start</string>
+
+    <!-- Home Banner -->
+    <string name="banner_permissions_missing">Mesh operates in limited mode</string>
+    <string name="banner_permissions_desc">Please grant required permissions to ensure message delivery from distant nodes.</string>
+    <string name="banner_permissions_button">Grant Permissions</string>
+    
+    <!-- Quick Help -->
+    <string name="help_title">Quick Help</string>
+    <string name="help_q1">Why isn\'t the message sending?</string>
+    <string name="help_a1">Sada depends on distance. Try getting closer to your friend or go to an open area/balcony to strengthen the signal.</string>
+    <string name="help_q2">What does the red color mean?</string>
+    <string name="help_a2">The flashing red color indicates an SOS distress signal. Someone nearby needs immediate help.</string>
+    <string name="help_q3">How do I know if I\'m connected?</string>
+    <string name="help_a3">Check the number next to the \"Neighbors\" icon at the top. Higher numbers mean a stronger network and faster message delivery.</string>
+    <string name="help_close">Got it</string>
 </resources>

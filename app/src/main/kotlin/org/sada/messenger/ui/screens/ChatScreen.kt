@@ -22,6 +22,8 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -42,6 +44,7 @@ import org.sada.messenger.managers.MediaManager
 import org.sada.messenger.ui.theme.*
 import org.sada.messenger.ui.components.*
 import org.sada.messenger.ui.utils.tr
+import kotlin.random.Random
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -66,6 +69,10 @@ fun ChatScreen(
     val isImeOpen = WindowInsets.ime.getBottom(density) > 0
     var showClearChatConfirm by remember { mutableStateOf(false) }
     var showDeleteMessagesConfirm by remember { mutableStateOf(false) }
+    var showBlockConfirm by remember { mutableStateOf(false) }
+    var showDeleteChatConfirm by remember { mutableStateOf(false) }
+    var showMenu by remember { mutableStateOf(false) }
+    var showHelpSheet by remember { mutableStateOf(false) }
 
     LaunchedEffect(messages.size, isImeOpen) {
         if (isImeOpen && messages.isNotEmpty()) {
@@ -130,8 +137,41 @@ fun ChatScreen(
                                 }
                             },
                             actions = {
-                                IconButton(onClick = { showClearChatConfirm = true }) {
-                                    Icon(Icons.Default.DeleteSweep, contentDescription = "Clear", tint = LocalSadaPalette.current.textSecondary)
+                                IconButton(onClick = { showHelpSheet = true }) {
+                                    Icon(Icons.Default.HelpOutline, contentDescription = "Help", tint = LocalSadaPalette.current.textSecondary)
+                                }
+                                IconButton(onClick = { showMenu = true }) {
+                                    Icon(Icons.Default.MoreVert, contentDescription = "More", tint = LocalSadaPalette.current.textSecondary)
+                                }
+                                DropdownMenu(
+                                    expanded = showMenu,
+                                    onDismissRequest = { showMenu = false },
+                                    modifier = Modifier.background(LocalSadaPalette.current.surface)
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text(tr("مسح المحادثة", "Clear Chat"), color = LocalSadaPalette.current.textPrimary) },
+                                        onClick = {
+                                            showMenu = false
+                                            showClearChatConfirm = true
+                                        },
+                                        leadingIcon = { Icon(Icons.Default.DeleteSweep, contentDescription = null, tint = LocalSadaPalette.current.textSecondary) }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text(tr("حظر المستخدم", "Block User"), color = ErrorRed) },
+                                        onClick = {
+                                            showMenu = false
+                                            showBlockConfirm = true
+                                        },
+                                        leadingIcon = { Icon(Icons.Default.Block, contentDescription = null, tint = ErrorRed) }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text(tr("حذف المحادثة", "Delete Chat"), color = ErrorRed) },
+                                        onClick = {
+                                            showMenu = false
+                                            showDeleteChatConfirm = true
+                                        },
+                                        leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = ErrorRed) }
+                                    )
                                 }
                             },
                             colors = TopAppBarDefaults.topAppBarColors(
@@ -278,6 +318,58 @@ fun ChatScreen(
             )
         }
 
+        if (showBlockConfirm) {
+            GlassAlertDialog(
+                onDismissRequest = { showBlockConfirm = false },
+                title = tr("حظر المستخدم", "Block User"),
+                text = tr("هل أنت متأكد من حظر هذا المستخدم؟ لن تتمكن من استلام رسائل منه.", "Are you sure you want to block this user? You won't receive messages from them."),
+                confirmButton = {
+                    GlassButton(
+                        onClick = {
+                            viewModel.blockContact()
+                            showBlockConfirm = false
+                            onBackClick()
+                        }
+                    ) {
+                        Text(tr("حظر", "Block"))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showBlockConfirm = false }) {
+                        Text(tr("إلغاء", "Cancel"))
+                    }
+                }
+            )
+        }
+
+        if (showDeleteChatConfirm) {
+            GlassAlertDialog(
+                onDismissRequest = { showDeleteChatConfirm = false },
+                title = tr("حذف المحادثة", "Delete Chat"),
+                text = tr("هل أنت متأكد من حذف هذه المحادثة وجميع رسائلها؟", "Are you sure you want to delete this chat and all its messages?"),
+                confirmButton = {
+                    GlassButton(
+                        onClick = {
+                            viewModel.deleteChat()
+                            showDeleteChatConfirm = false
+                            onBackClick()
+                        }
+                    ) {
+                        Text(tr("حذف", "Delete"))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDeleteChatConfirm = false }) {
+                        Text(tr("إلغاء", "Cancel"))
+                    }
+                }
+            )
+        }
+
+        if (showHelpSheet) {
+            QuickHelpBottomSheet(onDismiss = { showHelpSheet = false })
+        }
+
         if (showAttachmentMenu) {
             AttachmentBottomSheetGlass(
                 onDismiss = { showAttachmentMenu = false },
@@ -334,11 +426,24 @@ fun GlassMessageBubble(
                     Spacer(modifier = Modifier.height(4.dp))
                 }
                 
-                Text(
-                    text = message.content,
-                    color = LocalSadaPalette.current.textPrimary,
-                    fontSize = 15.sp
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (message.type == "voice" || message.isVoice) {
+                        VoiceMessageBubbleContent(message)
+                    } else {
+                        Text(
+                            text = message.content,
+                            color = LocalSadaPalette.current.textPrimary,
+                            fontSize = 15.sp
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Icon(
+                        Icons.Default.Lock,
+                        contentDescription = "E2EE",
+                        tint = LocalSadaPalette.current.textSecondary.copy(alpha = 0.3f),
+                        modifier = Modifier.size(10.dp)
+                    )
+                }
                 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -572,6 +677,53 @@ fun AttachmentBottomSheetGlass(
                 text = tr("لا يوجد خيارات إرفاق", "No attachment options"),
                 color = LocalSadaPalette.current.textSecondary,
                 style = MaterialTheme.typography.bodyMedium
+            )
+        }
+    }
+}
+
+@Composable
+fun VoiceMessageBubbleContent(message: MessageEntity) {
+    val duration = message.voiceDurationMs?.let { it / 1000 } ?: 0
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        IconButton(onClick = { /* Play logic */ }, modifier = Modifier.size(32.dp)) {
+            Icon(Icons.Default.PlayArrow, contentDescription = "Play", tint = NeonTeal)
+        }
+        Spacer(modifier = Modifier.width(8.dp))
+        VoiceWaveform(
+            modifier = Modifier.width(120.dp).height(24.dp),
+            isAnimating = false
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = String.format("%02d:%02d", duration / 60, duration % 60),
+            color = LocalSadaPalette.current.textSecondary,
+            fontSize = 11.sp
+        )
+    }
+}
+
+@Composable
+fun VoiceWaveform(modifier: Modifier, isAnimating: Boolean) {
+    Canvas(modifier = modifier) {
+        val count = 20
+        val gap = 4.dp.toPx()
+        val barWidth = (size.width - (count - 1) * gap) / count
+        
+        for (i in 0 until count) {
+            val h = if (isAnimating) {
+                (0.2f + Random.nextFloat() * 0.8f) * size.height
+            } else {
+                // Static wave simulation
+                val sinVal = kotlin.math.sin(i.toFloat() * 0.5f).coerceIn(0f, 1f)
+                (0.3f + 0.7f * sinVal) * size.height
+            }
+            
+            drawRoundRect(
+                color = NeonTeal.copy(alpha = if (isAnimating) 1f else 0.5f),
+                topLeft = Offset(i * (barWidth + gap), (size.height - h) / 2),
+                size = androidx.compose.ui.geometry.Size(barWidth, h),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(barWidth / 2)
             )
         }
     }

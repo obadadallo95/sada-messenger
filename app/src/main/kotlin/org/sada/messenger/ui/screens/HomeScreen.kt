@@ -54,7 +54,8 @@ fun HomeScreen(
     onDeleteChat: (String) -> Unit,
     onSettingsClick: () -> Unit,
     onCreateGroupClick: () -> Unit,
-    onDiagnosticsClick: () -> Unit
+    onDiagnosticsClick: () -> Unit,
+    onRequestPermissions: () -> Unit
 ) {
     val context = LocalContext.current
     val chats by viewModel.chats.collectAsState()
@@ -65,12 +66,31 @@ fun HomeScreen(
     var pendingDeleteChat by remember { mutableStateOf<ChatEntity?>(null) }
     var showSosConfirm by remember { mutableStateOf(false) }
     var showBatteryDialog by remember { mutableStateOf(false) }
+    var showHelpSheet by remember { mutableStateOf(false) }
     var batterySnapshot by remember { mutableStateOf(readBatterySnapshot(context)) }
+    
+    val requiredPermissions = remember {
+        mutableListOf<String>().apply {
+            add(android.Manifest.permission.ACCESS_FINE_LOCATION)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                add(android.Manifest.permission.NEARBY_WIFI_DEVICES)
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                add(android.Manifest.permission.BLUETOOTH_SCAN)
+            }
+        }
+    }
+    
+    var missingPermissions by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         while (true) {
+            missingPermissions = requiredPermissions.any { perm ->
+                androidx.core.content.ContextCompat.checkSelfPermission(context, perm) != 
+                    android.content.pm.PackageManager.PERMISSION_GRANTED
+            }
             batterySnapshot = readBatterySnapshot(context)
-            delay(30_000L)
+            delay(15_000L)
         }
     }
 
@@ -144,8 +164,25 @@ fun HomeScreen(
                                 fontWeight = FontWeight.Bold
                             )
                         }
+                        IconButton(onClick = { showHelpSheet = true }) {
+                            Icon(Icons.Default.HelpOutline, contentDescription = "Help", tint = LocalSadaPalette.current.textSecondary)
+                        }
                         IconButton(onClick = { showSosConfirm = true }) {
-                            Icon(Icons.Default.Warning, contentDescription = "SOS", tint = Color.Red)
+                            Surface(
+                                shape = CircleShape,
+                                color = Color.Red.copy(alpha = 0.15f),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, Color.Red.copy(alpha = 0.4f)),
+                                modifier = Modifier.size(36.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        Icons.Default.Warning, 
+                                        contentDescription = "SOS", 
+                                        tint = Color.Red,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
@@ -167,6 +204,11 @@ fun HomeScreen(
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                item {
+                    if (missingPermissions) {
+                        PermissionsBanner(onGrant = onRequestPermissions)
+                    }
+                }
                 item {
                     MeshSnapshotCard(
                         networkConnected = networkConnected,
@@ -258,6 +300,10 @@ fun HomeScreen(
                 containerColor = LocalSadaPalette.current.surface,
                 shape = RoundedCornerShape(18.dp)
             )
+        }
+
+        if (showHelpSheet) {
+            QuickHelpBottomSheet(onDismiss = { showHelpSheet = false })
         }
 
         if (showSosConfirm) {
@@ -679,11 +725,24 @@ fun GlassChatTile(
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
-                            if (chat.isGroup) Icons.Default.Groups else Icons.Default.Person,
+                            if (chat.isGroup) Icons.Default.Security else Icons.Default.Person,
                             contentDescription = null,
                             tint = if (chat.isGroup) CyberBlue else NeonTeal,
-                            modifier = Modifier.size(28.dp)
+                            modifier = Modifier.size(if (chat.isGroup) 24.dp else 28.dp)
                         )
+                        if (chat.isGroup) {
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.BottomEnd)
+                                    .offset(x = 4.dp, y = 4.dp)
+                                    .size(16.dp)
+                                    .background(CyberBlue, CircleShape)
+                                    .border(1.dp, Color.Black, CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Default.Groups, contentDescription = null, tint = Color.White, modifier = Modifier.size(10.dp))
+                            }
+                        }
                     }
                 }
             },
@@ -716,5 +775,58 @@ fun GlassChatTile(
             },
             colors = ListItemDefaults.colors(containerColor = Color.Transparent)
         )
+    }
+}
+
+@Composable
+fun PermissionsBanner(onGrant: () -> Unit) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 8.dp),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.15f),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.3f))
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Default.SecurityUpdateWarning,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = stringResource(R.string.banner_permissions_missing),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.error,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = stringResource(R.string.banner_permissions_desc),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Button(
+                onClick = onGrant,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error,
+                    contentColor = Color.White
+                ),
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(10.dp),
+                contentPadding = PaddingValues(vertical = 8.dp)
+            ) {
+                Text(
+                    stringResource(R.string.banner_permissions_button),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp
+                )
+            }
+        }
     }
 }

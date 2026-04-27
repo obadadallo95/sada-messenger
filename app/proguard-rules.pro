@@ -2,21 +2,17 @@
 # You can control the set of applied configuration files using the
 # proguardFiles setting in build.gradle.
 
-# Flutter wrapper
--keep class io.flutter.app.** { *; }
--keep class io.flutter.plugin.** { *; }
--keep class io.flutter.util.** { *; }
--keep class io.flutter.view.** { *; }
--keep class io.flutter.** { *; }
--keep class io.flutter.plugins.** { *; }
+# Keep only classes accessed via reflection or JNI
+-keep class org.sada.messenger.data.entities.** { *; }
+-keep class org.sada.messenger.data.db.** { *; }
+-keep class org.sada.messenger.data.models.** { *; }
+-keep class org.sada.messenger.network.MeshMessage { *; }
+-keep class org.sada.messenger.core.services.MeshForegroundService { *; }
 
-# Keep native bridge classes
--keep class org.sada.messenger.** { *; }
-
-# Keep sodium_libs native bindings
--keep class com.warrenth.sodium.** { *; }
--keep class com.warrenth.sodium_libs.** { *; }
--keep class com.warrenth.** { *; }
+# Keep libsodium native bindings
+-keep class com.goterl.lazysodium.** { *; }
+-keep class com.sun.jna.** { *; }
+-keep class net.java.dev.jna.** { *; }
 
 # Keep JNI methods
 -keepclasseswithmembernames class * {

@@ -18,7 +18,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -34,8 +33,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
@@ -68,14 +65,12 @@ fun SettingsScreenGlass(
     displayName: String,
     initialThemeMode: String,
     initialLanguage: String,
-    initialPowerMode: String,
     initialStatusText: String,
     initialStatusExpiresAtMs: Long,
     onPublishStatus: (String, Long) -> Unit,
     onClearStatus: () -> Unit,
     onThemeChanged: (String) -> Unit,
-    onLanguageChanged: (String) -> Unit,
-    onPowerModeChanged: (String) -> Unit
+    onLanguageChanged: (String) -> Unit
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -89,14 +84,9 @@ fun SettingsScreenGlass(
     }
     var themeMode by remember { mutableStateOf(initialThemeMode.lowercase()) }
     var language by remember { mutableStateOf(initialLanguage.lowercase()) }
-    var powerMode by remember { mutableStateOf(initialPowerMode.lowercase()) }
     var appLockEnabled by remember { mutableStateOf(securitySettings.isAppLockEnabled()) }
     var currentStatusText by remember { mutableStateOf(initialStatusText) }
     var currentStatusExpiresAtMs by remember { mutableStateOf(initialStatusExpiresAtMs) }
-
-    var showPinDialog by remember { mutableStateOf(false) }
-    var pinInput by remember { mutableStateOf("") }
-    var autoEnableLockAfterPin by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize()) {
     MeshBackground()
@@ -220,18 +210,6 @@ fun SettingsScreenGlass(
                         )
                         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = LocalSadaPalette.current.textSecondary.copy(alpha = 0.12f))
                         SettingsTile(
-                            icon = Icons.Default.VpnKey,
-                            title = tr("تغيير الرمز", "Master PIN"),
-                            subtitle = if (securitySettings.hasMasterPin()) tr("تم التعيين", "Set") else tr("غير معيّن", "Not set"),
-                            iconColor = Color(0xFFFFC107),
-                            enabled = true,
-                            onClick = {
-                                autoEnableLockAfterPin = false
-                                showPinDialog = true
-                            }
-                        )
-                        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = LocalSadaPalette.current.textSecondary.copy(alpha = 0.12f))
-                        SettingsTile(
                             icon = Icons.Default.Block,
                             title = tr("المحظورون", "Blocked Contacts"),
                             subtitle = tr("إدارة الجهات المحظورة", "Manage blocked users"),
@@ -245,24 +223,6 @@ fun SettingsScreenGlass(
                 // Performance & Network
                 item {
                     SettingsGroup(title = tr("الشبكة والطاقة", "Mesh & Power")) {
-                        CompactChoiceRow(
-                            icon = Icons.Default.BatteryChargingFull,
-                            title = tr("استهلاك الطاقة", "Power Mode"),
-                            iconColor = Color.Cyan,
-                            options = listOf(
-                                "high_performance" to tr("عالٍ", "High"),
-                                "balanced" to tr("متوازن", "Bal"),
-                                "low_power" to tr("توفير", "Low")
-                            ),
-                            selected = powerMode
-                        ) { selected ->
-                            powerMode = selected
-                            onPowerModeChanged(selected)
-                            scope.launch {
-                                snackbarHostState.showSnackbar(tr("تم حفظ وضع الطاقة", "Power mode saved"))
-                            }
-                        }
-                        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = LocalSadaPalette.current.textSecondary.copy(alpha = 0.12f))
                         SettingsTile(
                             icon = Icons.Default.BatterySaver,
                             title = tr("إعدادات البطارية", "Battery Optimization"),
@@ -389,59 +349,6 @@ fun SettingsScreenGlass(
                 
                 item { Spacer(modifier = Modifier.height(32.dp)) }
             }
-        }
-
-        if (showPinDialog) {
-            AlertDialog(
-                onDismissRequest = {
-                    showPinDialog = false
-                    pinInput = ""
-                    autoEnableLockAfterPin = false
-                },
-                title = { Text(tr("ضبط الرمز السري", "Set Master PIN")) },
-                text = {
-                    OutlinedTextField(
-                        value = pinInput,
-                        onValueChange = { value ->
-                            pinInput = value.filter { it.isDigit() }.take(6)
-                        },
-                        singleLine = true,
-                        label = { Text(tr("6 أرقام", "6 digits")) },
-                        visualTransformation = PasswordVisualTransformation(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword)
-                    )
-                },
-                confirmButton = {
-                    TextButton(onClick = {
-                        if (!securitySettings.isValidPin(pinInput)) {
-                            scope.launch { snackbarHostState.showSnackbar(tr("الرمز يجب أن يكون 6 أرقام", "PIN must be 6 digits")) }
-                            return@TextButton
-                        }
-                        val saved = securitySettings.setMasterPin(pinInput)
-                        if (saved) {
-                            if (autoEnableLockAfterPin) {
-                                appLockEnabled = true
-                                securitySettings.setAppLockEnabled(true)
-                            }
-                            showPinDialog = false
-                            pinInput = ""
-                            autoEnableLockAfterPin = false
-                            scope.launch { snackbarHostState.showSnackbar(tr("تم حفظ الرمز السري", "Master PIN saved")) }
-                        } else {
-                            scope.launch { snackbarHostState.showSnackbar(tr("فشل حفظ الرمز السري", "Failed to save Master PIN")) }
-                        }
-                    }) {
-                        Text(tr("حفظ", "Save"))
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = {
-                        showPinDialog = false
-                        pinInput = ""
-                        autoEnableLockAfterPin = false
-                    }) { Text(tr("إلغاء", "Cancel")) }
-                }
-            )
         }
 
     }
@@ -1371,34 +1278,57 @@ fun LegalTextPage(
     content: String,
     onBack: () -> Unit
 ) {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(title, fontWeight = FontWeight.ExtraBold) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
+    Box(modifier = Modifier.fillMaxSize()) {
+        MeshBackground()
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { Text(title, fontWeight = FontWeight.ExtraBold, color = LocalSadaPalette.current.textPrimary) },
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = LocalSadaPalette.current.textPrimary)
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = LocalSadaPalette.current.background.copy(alpha = 0.85f))
+                )
+            },
+            containerColor = Color.Transparent
+        ) { padding ->
+            LazyColumn(
+                modifier = Modifier.fillMaxSize().padding(padding),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(LocalSadaPalette.current.surface.copy(alpha = 0.9f))
+                            .border(
+                                1.dp,
+                                Brush.linearGradient(listOf(NeonTeal.copy(0.3f), CyberBlue.copy(0.15f), Color.Transparent)),
+                                RoundedCornerShape(20.dp)
+                            )
+                            .padding(20.dp)
+                    ) {
+                        SelectionContainer {
+                            Text(
+                                text = content,
+                                color = LocalSadaPalette.current.textPrimary.copy(alpha = 0.95f),
+                                style = MaterialTheme.typography.bodyMedium,
+                                lineHeight = 24.sp
+                            )
+                        }
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
-            )
-        },
-        containerColor = Color.Transparent
-    ) { padding ->
-        SelectionContainer {
-            Text(
-                text = content,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .padding(horizontal = 16.dp, vertical = 12.dp)
-                    .verticalScroll(rememberScrollState()),
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.92f),
-                lineHeight = 22.sp
-            )
+                }
+                
+                item { Spacer(Modifier.height(24.dp)) }
+            }
         }
     }
 }
+
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable

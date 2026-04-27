@@ -23,7 +23,8 @@ data class MeshMessage(
     val trace: List<String> = emptyList(),
     val timestamp: Date = Date(),
     val type: String? = null,
-    val metadata: Map<String, Any>? = null
+    val metadata: Map<String, Any>? = null,
+    val remainingTtlMs: Long? = null // Relative TTL for clock-skew resilience
 ) {
     companion object {
         const val TYPE_CONTACT_EXCHANGE = "CONTACT_EXCHANGE"
@@ -31,6 +32,7 @@ data class MeshMessage(
         const val TYPE_VOICE = "VOICE"
         const val TYPE_CONNECTION_REQUEST = "CONNECTION_REQUEST"
         const val TYPE_CONNECTION_ACCEPT = "CONNECTION_ACCEPT"
+        const val TYPE_STATUS_UPDATE = "STATUS_UPDATE"
 
         fun sha256(input: String): String {
             val digest = MessageDigest.getInstance("SHA-256")
@@ -92,7 +94,8 @@ data class MeshMessage(
                 trace = traceList,
                 timestamp = date,
                 type = json.optString("type", null),
-                metadata = if (metadataMap.isEmpty()) null else metadataMap
+                metadata = if (metadataMap.isEmpty()) null else metadataMap,
+                remainingTtlMs = if (json.has("remainingTtlMs")) json.getLong("remainingTtlMs") else null
             )
         }
 
@@ -121,6 +124,9 @@ data class MeshMessage(
         if (metadata != null) {
             json.put("metadata", JSONObject(metadata))
         }
+        if (remainingTtlMs != null) {
+            json.put("remainingTtlMs", remainingTtlMs)
+        }
         return json
     }
 
@@ -140,7 +146,14 @@ data class MeshMessage(
         if (trace.contains(sha256(myDeviceId))) return false
 
         val ageMs = System.currentTimeMillis() - timestamp.time
-        if (ageMs > 24 * 60 * 60 * 1000) return false // 24 hours
+        
+        // If remainingTtlMs is provided, use it as the primary expiration source
+        if (remainingTtlMs != null) {
+            if (remainingTtlMs <= 0) return false
+        } else {
+            // Fallback to absolute timestamp if remainingTtlMs is missing
+            if (ageMs > 24 * 60 * 60 * 1000) return false // 24 hours
+        }
 
         return true
     }

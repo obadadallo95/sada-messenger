@@ -112,6 +112,12 @@ interface ChatDao {
 
     @Query("SELECT * FROM messages WHERE chatId = :chatId ORDER BY timestamp DESC LIMIT 1")
     suspend fun getLatestMessage(chatId: String): MessageEntity?
+
+    @Query("SELECT groupKey FROM chats WHERE id = :chatId")
+    suspend fun getGroupKey(chatId: String): String?
+
+    @Query("UPDATE chats SET status = :status WHERE id = :chatId")
+    suspend fun updateChatStatus(chatId: String, status: String)
 }
 
 @Dao
@@ -155,6 +161,9 @@ interface MessageDao {
     @Query("DELETE FROM messages WHERE id IN (:messageIds)")
     suspend fun deleteMessagesByIds(messageIds: List<String>)
 
+    @Query("DELETE FROM messages WHERE chatId = :chatId")
+    suspend fun deleteMessagesByChatId(chatId: String)
+
     @Query(
         """
         SELECT COUNT(*) FROM messages
@@ -176,6 +185,28 @@ interface MessageDao {
     @Query("SELECT * FROM messages WHERE chatId = :chatId AND isPinned = 1 ORDER BY pinnedAt DESC LIMIT 1")
     suspend fun getLatestPinnedMessage(chatId: String): MessageEntity?
 
+    @Query("SELECT * FROM messages WHERE chatId = :chatId ORDER BY timestamp DESC LIMIT :limit")
+    suspend fun getLatestMessagesForChat(chatId: String, limit: Int): List<MessageEntity>
+
+    @Query("SELECT * FROM messages WHERE content = :content AND timestamp = :timestamp LIMIT 1")
+    suspend fun getMessageByContentAndTimestamp(content: String, timestamp: Long): MessageEntity?
+    
+    @Query("UPDATE messages SET isRead = 1 WHERE chatId = :chatId AND isRead = 0")
+    suspend fun markMessagesAsRead(chatId: String)
+
+    /**
+     * Delete old messages, but SPARE:
+     * 1. SOS messages (90 day limit)
+     * 2. Missing Person broadcasts (90 day limit)
+     * 3. Pinned messages (Forever)
+     * 4. UNREAD messages (Forever - until read)
+     */
+    @Query("DELETE FROM messages WHERE timestamp < :cutoffDate " +
+           "AND type NOT IN ('sos', 'missing_person') " +
+           "AND isPinned = 0 " +
+           "AND (isRead = 1 OR isFromMe = 1)")
+    suspend fun purgeOldMessages(cutoffDate: Date)
+
     @Query("SELECT COUNT(*) FROM messages WHERE chatId = :chatId AND isPinned = 1")
     suspend fun getPinnedMessageCount(chatId: String): Int
 
@@ -189,8 +220,8 @@ interface RelayQueueDao {
     @Query("SELECT * FROM relay_queue WHERE expiresAt > :now")
     suspend fun getActiveRelays(now: Date): List<RelayQueueEntity>
     
-    @Query("SELECT * FROM relay_queue WHERE expiresAt > :now ORDER BY expiresAt ASC")
-    suspend fun getActiveRelaysOrderedByExpiry(now: Date): List<RelayQueueEntity>
+    @Query("SELECT * FROM relay_queue WHERE expiresAt > :now ORDER BY priority ASC, expiresAt ASC")
+    suspend fun getActiveRelaysOrderedByPriority(now: Date): List<RelayQueueEntity>
 
     @Query("SELECT * FROM relay_queue WHERE messageId = :messageId LIMIT 1")
     suspend fun getByMessageId(messageId: String): RelayQueueEntity?
@@ -231,7 +262,7 @@ interface RelayQueueDao {
     @Query("SELECT COUNT(*) FROM relay_queue")
     fun observeTotalCount(): Flow<Int>
 
-    @Query("SELECT * FROM relay_queue WHERE expiresAt > :now ORDER BY expiresAt ASC")
+    @Query("SELECT * FROM relay_queue WHERE expiresAt > :now ORDER BY priority ASC, expiresAt ASC")
     suspend fun getAllPending(now: Date = Date()): List<RelayQueueEntity>
 }
 
@@ -464,7 +495,7 @@ interface PollDao {
         SeenMessageEntity::class,
         ConnectionRequestEntity::class
     ],
-    version = 18,
+    version = 21,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -508,6 +539,11 @@ abstract class AppDatabase : RoomDatabase() {
         }
         private val MIGRATION_9_10 = object : Migration(9, 10) {
             override fun migrate(database: SupportSQLiteDatabase) = migrateToV10(database)
+        }
+        private val MIGRATION_19_20 = object : Migration(19, 20) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("ALTER TABLE messages ADD COLUMN isRead INTEGER NOT NULL DEFAULT 0")
+            }
         }
         private val MIGRATION_10_11 = object : Migration(10, 11) {
             override fun migrate(database: SupportSQLiteDatabase) {
@@ -608,6 +644,17 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_18_19 = object : Migration(18, 19) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                ensureColumn(database, "relay_queue", "priority", "INTEGER NOT NULL DEFAULT 2")
+            }
+        }
+        private val MIGRATION_20_21 = object : Migration(20, 21) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                ensureColumn(database, "chats", "status", "TEXT NOT NULL DEFAULT 'active'")
+            }
+        }
+
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
@@ -636,7 +683,10 @@ abstract class AppDatabase : RoomDatabase() {
                     MIGRATION_15_16,
                     MIGRATION_16_17,
                     MIGRATION_17_18,
-                )
+                    MIGRATION_18_19,
+                    MIGRATION_19_20,
+                    MIGRATION_20_21
+                ).fallbackToDestructiveMigration()
                 .build()
                 INSTANCE = instance
                 instance

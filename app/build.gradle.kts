@@ -33,6 +33,9 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+        ndk {
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64")
+        }
     }
 
     signingConfigs {
@@ -83,6 +86,9 @@ android {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
+        jniLibs {
+            useLegacyPackaging = true
+        }
     }
 }
 
@@ -118,7 +124,7 @@ dependencies {
     // Security & Encryption
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
     implementation("androidx.biometric:biometric:1.1.0")
-    implementation("com.goterl:lazysodium-android:5.2.0") {
+    implementation("com.goterl:lazysodium-android:5.1.0") {
         exclude(group = "net.java.dev.jna", module = "jna")
     }
     implementation("net.java.dev.jna:jna:5.14.0@aar")
@@ -140,6 +146,9 @@ dependencies {
 
     // Nearby Connections (Bluetooth/Wi-Fi Direct fallback transport)
     implementation("com.google.android.gms:play-services-nearby:18.7.0")
+
+    // WorkManager
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
 
     // USB Serial (LoRa Integration)
     implementation("com.github.mik3y:usb-serial-for-android:3.7.0")

@@ -595,10 +595,24 @@ class ChatViewModel(
         }
     }
 
+    fun blockContact() {
+        viewModelScope.launch {
+            database.contactDao().setBlocked(chatId, true)
+        }
+    }
+
+    fun deleteChat() {
+        viewModelScope.launch {
+            database.chatDao().deleteChatById(chatId)
+            database.messageDao().deleteMessagesByChatId(chatId)
+        }
+    }
+
     private suspend fun markChatAsRead() {
         val chat = database.chatDao().getChatById(chatId)
         if (chat != null && chat.unreadCount > 0) {
             database.chatDao().insertChat(chat.copy(unreadCount = 0))
+            database.messageDao().markMessagesAsRead(chatId)
         }
     }
 

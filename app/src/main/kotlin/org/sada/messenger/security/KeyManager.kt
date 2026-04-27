@@ -33,36 +33,53 @@ class KeyManager(private val context: Context) {
         .build()
 
     private val securePrefs = try {
-        EncryptedSharedPreferences.create(
-            context,
-            PREFS_NAME,
-            masterKey,
-            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-        )
+        createSecurePrefs(context)
     } catch (e: Exception) {
-        Log.e(TAG, "EncryptedSharedPreferences corrupted (AEADBadTagException), clearing and reinitializing...", e)
-        // Delete corrupted file and reinitialize with fresh keys
-        val prefsFile = java.io.File(context.filesDir.parent + "/shared_prefs/${PREFS_NAME}.xml")
-        prefsFile.delete()
-        // Also delete the master key from Android Keystore to avoid future conflicts
+        Log.e(TAG, "EncryptedSharedPreferences corrupted, wiping secure storage...", e)
+        wipeSecureStorage(context)
         try {
+            createSecurePrefs(context)
+        } catch (e2: Exception) {
+            Log.e(TAG, "Failed to recover secure storage, falling back to plain SharedPreferences (NOT RECOMMENDED FOR PRODUCTION)", e2)
+            context.getSharedPreferences(PREFS_NAME + "_fallback", Context.MODE_PRIVATE)
+        }
+    }
+
+    private fun createSecurePrefs(ctx: Context) = EncryptedSharedPreferences.create(
+        ctx,
+        PREFS_NAME,
+        MasterKey.Builder(ctx).setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build(),
+        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+    )
+
+    private fun wipeSecureStorage(ctx: Context) {
+        try {
+            // 1. Clear the data
+            ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit().clear().apply()
+            
+            // 2. Delete the file
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+                ctx.deleteSharedPreferences(PREFS_NAME)
+            } else {
+                val prefsFile = java.io.File(ctx.filesDir.parent + "/shared_prefs/${PREFS_NAME}.xml")
+                if (prefsFile.exists()) prefsFile.delete()
+            }
+
+            // 3. Delete Keystore entries
             val ks = java.security.KeyStore.getInstance("AndroidKeyStore")
             ks.load(null)
-            if (ks.containsAlias("_androidx_security_master_key_")) {
-                ks.deleteEntry("_androidx_security_master_key_")
+            val aliases = ks.aliases()
+            while (aliases.hasMoreElements()) {
+                val alias = aliases.nextElement()
+                if (alias.contains("androidx_security") || alias.contains(PREFS_NAME)) {
+                    ks.deleteEntry(alias)
+                    Log.d(TAG, "Deleted Keystore alias: $alias")
+                }
             }
-        } catch (_: Exception) {}
-        val newMasterKey = MasterKey.Builder(context)
-            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-            .build()
-        EncryptedSharedPreferences.create(
-            context,
-            PREFS_NAME,
-            newMasterKey,
-            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-        )
+        } catch (e: Exception) {
+            Log.e(TAG, "Error during secure storage wipe", e)
+        }
     }
 
     private var cachedKeyPair: KeyPair? = null

@@ -38,13 +38,14 @@ import com.airbnb.lottie.compose.*
 import kotlinx.coroutines.launch
 import org.sada.messenger.R
 import org.sada.messenger.ui.theme.*
+import org.sada.messenger.ui.utils.tr
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun OnboardingScreen(onComplete: () -> Unit) {
     val scope = rememberCoroutineScope()
-    val pagerState = rememberPagerState(pageCount = { 3 })
-    val isLastPageByState = pagerState.currentPage == 2
+    val pagerState = rememberPagerState(pageCount = { 4 })
+    val isLastPageByState = pagerState.currentPage == 3
 
     Box(modifier = Modifier.fillMaxSize()) {
         // Mesh Aesthetic Background
@@ -74,7 +75,7 @@ fun OnboardingScreen(onComplete: () -> Unit) {
                         .fillMaxWidth(),
                     horizontalArrangement = Arrangement.Start
                 ) {
-                    repeat(3) { iteration ->
+                    repeat(4) { iteration ->
                         val isSelected = pagerState.currentPage == iteration
                         val width by animateDpAsState(if (isSelected) 24.dp else 8.dp, label = "dot")
                         val color = if (isSelected) 
@@ -215,18 +216,21 @@ fun OnboardingPage(page: Int) {
     val title = when (page) {
         0 -> stringResource(R.string.onboarding_title_1)
         1 -> stringResource(R.string.onboarding_title_2)
-        else -> stringResource(R.string.onboarding_title_3)
+        2 -> stringResource(R.string.onboarding_title_3)
+        else -> tr("كيف تضيف رفقاتك؟", "How to add friends?")
     }
     val description = when (page) {
         0 -> stringResource(R.string.onboarding_desc_1)
         1 -> stringResource(R.string.onboarding_desc_2)
-        else -> stringResource(R.string.onboarding_desc_3)
+        2 -> stringResource(R.string.onboarding_desc_3)
+        else -> tr("ببساطة، خلّي رفيقك يفتح 'كود الـ QR' من موبايله، وأنت امسحه بكاميرا موبايلك. هيك بتضيفوا بعض فوراً وبأمان.", "Simply let your friend open their QR code, and you scan it with your camera. You'll be connected instantly and securely.")
     }
     
     val lottieRes = when (page) {
         0 -> R.raw.global_network
-        1 -> R.raw.global_network // Reusing or could find another
-        else -> R.raw.data_security
+        1 -> R.raw.global_network 
+        2 -> R.raw.data_security
+        else -> R.raw.data_security // Should find a QR one, but data security fits the "safe add"
     }
 
     val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(lottieRes))

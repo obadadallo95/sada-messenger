@@ -5,10 +5,10 @@
     <string name="onboarding_done">ابدأ الآن</string>
 
     <string name="onboarding_title_1">تواصل بلا حدود</string>
-    <string name="onboarding_desc_1">صدى يعمل حتى عند انقطاع الإنترنت. شبكتك هي الناس من حولك.</string>
+    <string name="onboarding_desc_1">صدى بيشتغل حتى لو انقطعت الكهرباء والإنترنت. شبكتك هي الناس اللي حولك.</string>
 
-    <string name="onboarding_title_2">شبكة البشر (Mesh)</string>
-    <string name="onboarding_desc_2">رسائلك تقفز من هاتف لآخر عبر WiFi و Bluetooth حتى تصل لصديقك البعيد.</string>
+    <string name="onboarding_title_2">شبكة الناس</string>
+    <string name="onboarding_desc_2">رسائلك بتنتقل من موبايل لموبايل عبر "جيرانك" بالشبكة حتى توصل لوجهتها بدون إنترنت.</string>
 
     <string name="onboarding_title_3">أمان وتشفير تام</string>
     <string name="onboarding_desc_3">لا خوادم مركزية. رسائلك مشفرة ولا يمكن لأحد قراءتها غيرك أنت والمستلم.</string>
@@ -23,22 +23,28 @@
     <string name="register_button">بدء الاستخدام</string>
     <string name="register_generating_keys">جارٍ تشفير مفاتيحك الخاصة...</string>
 
-    <string name="home_title">رسائل صدى / Sada</string>
-    <string name="home_empty_chats">لا توجد محادثات نشطة حالياً.\nابحث عن عقد قريبة للبدء.</string>
-    <string name="mesh_status_active">الشبكة نشطة / Mesh Active</string>
-    <string name="mesh_status_scanning">جارٍ البحث...</string>
-    <string name="mesh_status_offline">غير متصل</string>
-    <string name="mesh_relaying_packets">📦 أنت تحمل %1$d حزمة مشفرة من الشبكة</string>
-    <string name="mesh_no_packets">📦 لا تحمل حالياً أي حزم مرحّلة</string>
+    <string name="sos_notif_title">حالة طوارئ (SOS)</string>
+    <string name="missing_person_notif_title">🚨 بلاغ عن مفقود</string>
+    <string name="missing_person_label">بلاغ عن مفقود</string>
+    <string name="missing_person_name">الاسم</string>
+    <string name="missing_person_desc">الوصف</string>
+    <string name="missing_person_last_seen">آخر ظهور</string>
+    <string name="missing_person_broadcast_sent">تم إرسال بلاغ المفقود بنجاح</string>
+    <string name="home_empty_chats">لسه ما في محادثات..\nدور على رفقاتك القريبين لتبلشوا حكي.</string>
+    <string name="mesh_status_active">الشبكة شغالة / Mesh Active</string>
+    <string name="mesh_status_scanning">عم نبحث عن جيران...</string>
+    <string name="mesh_status_offline">ما في شبكة</string>
+    <string name="mesh_relaying_packets">📦 أنت "ساعي" حالياً لـ %1$d رسالة مشفرة</string>
+    <string name="mesh_no_packets">📦 ما في رسائل عم تمر من خلالك حالياً</string>
 
     <string name="fab_scan_qr">مسح الكود</string>
     <string name="fab_safe_notes">ملاحظاتي الآمنة</string>
     <string name="fab_create_group">إنشاء قناة/مجموعة</string>
 
-    <string name="sos_title">بث طوارئ / Emergency SOS</string>
-    <string name="sos_message">هل أنت متأكد من رغبتك في إرسال نداء استغاثة لجميع الأجهزة القريبة؟ سيتم تضمين موقعك الحالي.</string>
-    <string name="sos_send">إرسال نداء الاستغاثة</string>
-    <string name="sos_cancel">إلغاء</string>
+    <string name="sos_title">طلب استغاثة / SOS</string>
+    <string name="sos_message">رح نبعث نداء استغاثة فوري لكل الموبايلات اللي حولك مع موقعك. متأكد إنك بدك تكمل؟</string>
+    <string name="sos_send">إرسال الاستغاثة فوراً</string>
+    <string name="sos_cancel">تراجع</string>
     <string name="navigation_home">الرئيسية</string>
     <string name="navigation_chat">قائمة الأصدقاء</string>
     <string name="navigation_groups">المجموعات</string>
@@ -50,5 +56,33 @@
     <string name="groups_empty">لا توجد مجموعات قريبة حالياً</string>
     <string name="groups_create_button">إنشاء مجتمع</string>
     <string name="groups_join">انضمام</string>
-    <string name="groups_peers_nearby">%1$d نظماء قريبون</string>
+    <string name="groups_peers_nearby">%1$d جيران قريبين</string>
+
+    <!-- Permissions Rationale -->
+    <string name="perm_rationale_title">لماذا نحتاج هذه الصلاحيات؟</string>
+    <string name="perm_rationale_desc">تطبيق صدى يعمل بالكامل بدون إنترنت، ولتحقيق ذلك نحتاج لبعض الصلاحيات التقنية. نحن نضمن لك الخصوصية التامة: لا تتبع، لا خوادم مركزية، ولا وصول لبياناتك الشخصية.</string>
+    <string name="perm_nearby_title">اكتشاف الجيران</string>
+    <string name="perm_nearby_desc">مهم لنقدر نلاقي الموبايلات اللي جنبك ونتبادل الرسائل معها. أندرويد بيطلب "الموقع" تقنياً لنقدر نفتح الواي فاي، بس نحنا ما بنعرف وينك ولا بنراقبك أبداً.</string>
+    <string name="perm_camera_title">الكاميرا</string>
+    <string name="perm_camera_desc">تستخدم فقط لمسح كود الـ QR الخاص بأصدقائك لإضافتهم بأمان.</string>
+    <string name="perm_mic_title">الميكروفون</string>
+    <string name="perm_mic_desc">يستخدم فقط لتسجيل وإرسال الرسائل الصوتية داخل المحادثات.</string>
+    <string name="perm_notifications_title">الإشعارات</string>
+    <string name="perm_notifications_desc">لإخبارك بوجود رسائل جديدة وصلت لجهازك في الخلفية.</string>
+    <string name="perm_button_grant">أوافق، دعنا نبدأ</string>
+
+    <!-- Home Banner -->
+    <string name="banner_permissions_missing">الشبكة تعمل بنطاق محدود</string>
+    <string name="banner_permissions_desc">يرجى منح الصلاحيات المطلوبة لضمان وصول الرسائل من الأجهزة البعيدة.</string>
+    <string name="banner_permissions_button">منح الصلاحيات</string>
+    
+    <!-- Quick Help -->
+    <string name="help_title">مساعدة سريعة</string>
+    <string name="help_q1">ليش ما عم توصل الرسالة؟</string>
+    <string name="help_a1">صدى بيعتمد على المسافة. جرب تقرب من رفيقك أو تطلع عالبلكون (بمكان مكشوف) لتقوى الإشارة.</string>
+    <string name="help_q2">شو يعني اللون الأحمر؟</string>
+    <string name="help_a2">اللون الأحمر الوميض يعني نداء استغاثة (SOS). حدا قريب منك محتاج مساعدة فورية.</string>
+    <string name="help_q3">كيف بعرف إني واصل؟</string>
+    <string name="help_a3">شوف الرقم اللي جنب أيقونة "الجيران" فوق. كل ما زاد الرقم، زادت قوة شبكتك وسرعة وصول الرسائل.</string>
+    <string name="help_close">فهمت</string>
 </resources>

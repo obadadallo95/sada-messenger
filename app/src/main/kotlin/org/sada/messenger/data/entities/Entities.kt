@@ -48,7 +48,8 @@ data class ChatEntity(
     // Group restriction settings
     val slowModeSeconds: Int = 0, // 0 = disabled, otherwise seconds between messages
     val restrictNewMembers: Boolean = false, // New members can only read, not send
-    val requireAdminApproval: Boolean = false // Require admin approval for messages
+    val requireAdminApproval: Boolean = false, // Require admin approval for messages
+    val status: String = "active" // active | archived | removed
 )
 
 @Entity(
@@ -91,7 +92,8 @@ data class MessageEntity(
     val mediaLocalPath: String? = null,
     val mediaDuration: Int? = null, // seconds
     val isVoice: Boolean = false, // Voice message flag
-    val voiceDurationMs: Long? = null // Voice message duration in milliseconds
+    val voiceDurationMs: Long? = null, // Voice message duration in milliseconds
+    val isRead: Boolean = false // Flag for storage cleanup
 )
 
 @Entity(
@@ -112,7 +114,8 @@ data class RelayQueueEntity(
     val messageId: String,
     val recipientHash: String, // SHA256 of recipient ID for Blind Relay
     val payload: String,
-    val expiresAt: Date
+    val expiresAt: Date,
+    val priority: Int = 2 // 0: Critical (SOS), 1: High, 2: Normal
 )
 
 @Entity(

@@ -19,6 +19,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
@@ -110,6 +112,11 @@ fun MeshDiagnosticsScreen(
                 UdpDiagnosticsCard(udpDiag.value)
             }
 
+            item {
+                DiagSectionHeader(tr("رادار الجيران", "Neighbor Radar"))
+                SignalRadarView(diagnostics.value)
+            }
+            
             item {
                 DiagSectionHeader(tr("جسر الهواء (True P2P)", "Air-Bridge (True P2P)"))
                 AirBridgeDiagnosticsCard(diagnostics.value)
@@ -308,6 +315,78 @@ fun PeerCard(peerId: String) {
                 color = Color.White,
                 fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
                 fontSize = 12.sp
+            )
+        }
+    }
+}
+
+@Composable
+fun SignalRadarView(diag: Map<String, Any>) {
+    val rssiMap = diag["service_ble_discoveredPeersRssi"] as? Map<String, Int> ?: emptyMap()
+    
+    DiagnosticCard {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                tr("قوة إشارة جيرانك", "Nearby Neighbor Signal Strength"),
+                color = Color.White.copy(alpha = 0.7f),
+                fontSize = 12.sp,
+                modifier = Modifier.padding(bottom = 12.dp)
+            )
+            
+            if (rssiMap.isEmpty()) {
+                Text(
+                    tr("لا يوجد جيران قريبون للمسح", "No neighbors nearby to scan"),
+                    color = Color.Gray,
+                    fontSize = 14.sp,
+                    modifier = Modifier.padding(vertical = 20.dp)
+                )
+            } else {
+                rssiMap.forEach { (peerId, rssi) ->
+                    val signalPercent = ((rssi + 100).coerceIn(0, 60) / 60f)
+                    val signalColor = when {
+                        rssi > -60 -> Color.Green
+                        rssi > -80 -> Color.Yellow
+                        else -> Color.Red
+                    }
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            peerId.take(8),
+                            color = NeonTeal,
+                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                            fontSize = 12.sp,
+                            modifier = Modifier.width(80.dp)
+                        )
+                        
+                        LinearProgressIndicator(
+                            progress = { signalPercent },
+                            modifier = Modifier.weight(1f).height(8.dp).clip(RoundedCornerShape(4.dp)),
+                            color = signalColor,
+                            trackColor = Color.White.copy(alpha = 0.1f)
+                        )
+                        
+                        Spacer(modifier = Modifier.width(8.dp))
+                        
+                        Text(
+                            "$rssi dBm",
+                            color = Color.White,
+                            fontSize = 12.sp,
+                            modifier = Modifier.width(60.dp),
+                            textAlign = TextAlign.End
+                        )
+                    }
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                tr("تحرك ببطء لتحسين قوة الإشارة", "Move slowly to improve signal strength"),
+                color = NeonTeal.copy(alpha = 0.6f),
+                fontSize = 10.sp,
+                textAlign = TextAlign.Center
             )
         }
     }

@@ -57,7 +57,7 @@ class BleMeshManager(
     private val _isLowPowerMode = MutableStateFlow(false)
     val isLowPowerMode: StateFlow<Boolean> = _isLowPowerMode.asStateFlow()
 
-    private val discoveredPeers = mutableSetOf<String>()
+    private val discoveredPeers = mutableMapOf<String, Int>() // PeerId -> Last RSSI
     private var onPeerDiscovered: ((String, Int) -> Unit)? = null
     private var lastDiscoveredPeerId: String? = null
     
@@ -248,7 +248,10 @@ class BleMeshManager(
                 if (serviceData != null) {
                     val discoveredPeerId = String(serviceData, Charsets.UTF_8)
                     if (discoveredPeerId != localPeerId.take(BLE_PEER_ID_LENGTH)) {
-                        if (discoveredPeers.add(discoveredPeerId)) {
+                        val isNew = !discoveredPeers.containsKey(discoveredPeerId)
+                        discoveredPeers[discoveredPeerId] = it.rssi
+                        
+                        if (isNew) {
                             Log.i(TAG, "Discovered new Sada BLE peer: $discoveredPeerId (RSSI: ${it.rssi})")
                             lastDiscoveredPeerId = discoveredPeerId
                             recordPeerDiscovery() // Reset power management timers
@@ -286,6 +289,7 @@ class BleMeshManager(
             "isAdaptiveCycling" to isAdaptiveCycling,
             "consecutiveEmptyCycles" to consecutiveEmptyCycles,
             "discoveredPeersCount" to discoveredPeers.size,
+            "discoveredPeersRssi" to discoveredPeers.toMap(),
             "peerIdLength" to BLE_PEER_ID_LENGTH,
             "lastDiscoveredId" to (lastDiscoveredPeerId ?: ""),
             "cycleActiveMs" to CYCLE_ACTIVE_MS,

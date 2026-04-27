@@ -215,17 +215,23 @@ class MeshForegroundService : Service() {
     }
 
     private fun startMeshCore() {
-        if (paused) return
+        if (paused) {
+            Log.d(TAG, "startMeshCore: paused, skipping")
+            return
+        }
         val prefs = getSharedPreferences("sada_app_state", Context.MODE_PRIVATE)
         val nickname = prefs.getString("user_nickname", null)
         if (nickname.isNullOrBlank()) {
-            Log.i(TAG, "Mesh service not started: user not registered yet")
+            Log.w(TAG, "Mesh core initialization aborted: 'user_nickname' is missing from SharedPreferences. User might not be registered.")
             paused = true
             updateForegroundNotification()
             return
         }
 
+        Log.i(TAG, "Starting Mesh Core for user: $nickname")
         myPeerId = keyManager.getPublicKeyBase64()
+        Log.d(TAG, "Local Peer ID (Public Key): $myPeerId")
+        
         socketManager.startServer()
 
         val started = udpBroadcastManager.startListening()

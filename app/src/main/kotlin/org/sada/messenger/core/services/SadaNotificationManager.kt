@@ -11,6 +11,9 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import android.media.AudioAttributes
+import android.media.RingtoneManager
+import android.net.Uri
 import org.sada.messenger.MainActivity
 import org.sada.messenger.R
 
@@ -55,6 +58,35 @@ class SadaNotificationManager(private val context: Context) {
         NotificationManagerCompat.from(context).notify(("msg_$chatId").hashCode(), notification)
     }
 
+    fun showMissingPersonNotification(body: String) {
+        if (!hasNotificationPermission()) return
+        ensureChannels()
+
+        val intent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            context,
+            "missing".hashCode(),
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val notification = NotificationCompat.Builder(context, SOS_CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.stat_sys_warning)
+            .setContentTitle(context.getString(R.string.missing_person_notif_title))
+            .setContentText(body)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+            .setPriority(NotificationCompat.PRIORITY_MAX)
+            .setAutoCancel(true)
+            .setContentIntent(pendingIntent)
+            .setCategory(NotificationCompat.CATEGORY_ALARM)
+            .setVibrate(longArrayOf(0, 500, 200, 500))
+            .build()
+
+        NotificationManagerCompat.from(context).notify("missing_alert".hashCode(), notification)
+    }
+
     fun showSosNotification(body: String) {
         if (!hasNotificationPermission()) return
         ensureChannels()
@@ -78,6 +110,7 @@ class SadaNotificationManager(private val context: Context) {
             .setAutoCancel(true)
             .setContentIntent(pendingIntent)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
+            .setVibrate(longArrayOf(0, 1000, 500, 1000, 500, 1000)) // Strong SOS vibration
             .build()
 
         NotificationManagerCompat.from(context).notify("sos_alert".hashCode(), notification)
@@ -104,6 +137,17 @@ class SadaNotificationManager(private val context: Context) {
         ).apply {
             description = "Emergency SOS alerts"
             setShowBadge(true)
+            enableLights(true)
+            lightColor = android.graphics.Color.RED
+            enableVibration(true)
+            vibrationPattern = longArrayOf(0, 1000, 500, 1000)
+            
+            // Set distinct alarm sound
+            val audioAttributes = AudioAttributes.Builder()
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .setUsage(AudioAttributes.USAGE_ALARM)
+                .build()
+            setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM), audioAttributes)
         }
 
         manager.createNotificationChannel(messagesChannel)
