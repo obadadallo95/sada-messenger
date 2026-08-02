@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import org.sada.messenger.SocketManager
+import org.sada.messenger.runtime.LifecycleJobSet
 import java.net.InetAddress
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -42,8 +43,12 @@ class WifiDirectManager(
     private val wifiP2pManager: WifiP2pManager? = context.getSystemService(Context.WIFI_P2P_SERVICE) as? WifiP2pManager
     private val channel: WifiP2pManager.Channel? = wifiP2pManager?.initialize(context, Looper.getMainLooper(), null)
     private val connectionScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val connectionJobs = LifecycleJobSet()
+    private var pendingClientConnectionJob: Job? = null
 
     private val isDiscovering = AtomicBoolean(false)
+    @Volatile
+    private var started = false
     private val _isConnected = MutableStateFlow(false)
     val isConnected: StateFlow<Boolean> = _isConnected.asStateFlow()
 
@@ -56,6 +61,7 @@ class WifiDirectManager(
 
     private val receiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
+            if (!started) return
             when (intent.action) {
                 WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION -> {
                     val state = intent.getIntExtra(WifiP2pManager.EXTRA_WIFI_STATE, -1)
@@ -70,6 +76,7 @@ class WifiDirectManager(
                     if (hasPermissions()) {
                         @SuppressLint("MissingPermission")
                         wifiP2pManager?.requestPeers(channel) { peers ->
+                            if (!started) return@requestPeers
                             val deviceList = peers.deviceList
                             Log.d(TAG, "Discovered ${deviceList.size} Wi-Fi Direct peers")
                             if (deviceList.isNotEmpty() && _isConnected.value == false) {
@@ -90,6 +97,7 @@ class WifiDirectManager(
                         // CRITICAL: Always use requestConnectionInfo() to determine actual role
                         // Never assume role based on what we requested
                         wifiP2pManager?.requestConnectionInfo(channel) { info ->
+                            if (!started) return@requestConnectionInfo
                             _connectionInfo.value = info
                             handleConnection(info)
                         }
@@ -117,6 +125,7 @@ class WifiDirectManager(
 
     fun start() {
         if (!hasPermissions() || wifiP2pManager == null || channel == null) return
+        started = true
         if (isReceiverRegistered.compareAndSet(false, true)) {
             Log.i(TAG, "Registering Wi-Fi Direct BroadcastReceiver")
             context.registerReceiver(receiver, IntentFilter().apply {
@@ -128,7 +137,10 @@ class WifiDirectManager(
         }
     }
 
-    fun stop() {
+    suspend fun stop() {
+        started = false
+        connectionJobs.cancelAndJoinAll()
+        pendingClientConnectionJob = null
         if (isReceiverRegistered.compareAndSet(true, false)) {
             Log.i(TAG, "Unregistering Wi-Fi Direct BroadcastReceiver")
             try {
@@ -143,6 +155,7 @@ class WifiDirectManager(
 
     fun startDiscovery() {
         start() // Ensure receiver is registered
+        if (!started) return
         if (!hasPermissions() || wifiP2pManager == null || channel == null) return
 
         // Pre-flight cleanup: ensure clean radio state before discovery
@@ -235,6 +248,7 @@ class WifiDirectManager(
      */
     fun createGroup() {
         start() // Ensure receiver is registered
+        if (!started) return
         if (!hasPermissions() || wifiP2pManager == null || channel == null) return
 
         // Pre-flight cleanup: kill ghost groups before creating a new one
@@ -256,6 +270,7 @@ class WifiDirectManager(
      * Attempts to connect to a specific discovered Wi-Fi Direct peer.
      */
     fun connectToPeer(device: WifiP2pDevice) {
+        if (!started) return
         if (!hasPermissions() || wifiP2pManager == null) return
         val config = WifiP2pConfig().apply {
             deviceAddress = device.deviceAddress
@@ -274,6 +289,8 @@ class WifiDirectManager(
     }
     
     fun disconnect() {
+        pendingClientConnectionJob?.cancel()
+        pendingClientConnectionJob = null
         wifiP2pManager?.removeGroup(channel, object : WifiP2pManager.ActionListener {
             override fun onSuccess() {
                 _isConnected.value = false
@@ -291,6 +308,7 @@ class WifiDirectManager(
      * never from what we originally requested. This prevents Ghost Group desync.
      */
     private fun handleConnection(info: WifiP2pInfo) {
+        if (!started) return
         _isConnected.value = true
         
         Log.i(TAG, "=== Wi-Fi Direct Connection Established ===")
@@ -308,13 +326,18 @@ class WifiDirectManager(
             val ownerAddress = info.groupOwnerAddress
             val ownerIp = ownerAddress?.hostAddress ?: return
             Log.i(TAG, "I am the ACTUAL Client -> Waiting ${CLIENT_CONNECT_DELAY_MS}ms for GO to start ServerSocket...")
-            connectionScope.launch {
+            pendingClientConnectionJob?.cancel()
+            pendingClientConnectionJob = connectionJobs.track(connectionScope.launch {
                 delay(CLIENT_CONNECT_DELAY_MS)
+                ensureActive()
+                if (!started) return@launch
                 Log.i(TAG, "Delay complete -> Connecting socket to Group Owner at $ownerIp:$SADA_P2P_PORT")
-                socketManager.connectToHost(ownerIp)
+                socketManager.connectToHostAndWait(ownerIp, null)
+                ensureActive()
+                if (!started) return@launch
                 clientConnectedAtMs = System.currentTimeMillis()
                 onGroupOwnerConnected?.invoke(ownerAddress)
-            }
+            })
         } else {
             Log.w(TAG, "Connection callback but groupFormed is false - ignoring")
         }

@@ -125,6 +125,7 @@ class SocketManager private constructor() {
         if (!peerId.isNullOrBlank()) currentPeerId.set(peerId)
 
         return try {
+            currentCoroutineContext().ensureActive()
             SecureLogger.d(TAG, "${peerTag()} Attempting to connect to host: $hostAddress:$PORT")
             closeActiveClientConnection()
 
@@ -137,7 +138,13 @@ class SocketManager private constructor() {
                 SecureLogger.d(TAG, "${peerTag()} Connection attempt $attempt/$MAX_RETRY_ATTEMPTS")
                 try {
                     val socket = Socket()
-                    socket.connect(java.net.InetSocketAddress(hostAddress, PORT), 5000)
+                    try {
+                        socket.connect(java.net.InetSocketAddress(hostAddress, PORT), 5000)
+                        currentCoroutineContext().ensureActive()
+                    } catch (e: CancellationException) {
+                        runCatching { socket.close() }
+                        throw e
+                    }
                     SecureLogger.d(TAG, "${peerTag()} Successfully connected to $hostAddress")
                     setupSocket(socket)
                     notifyConnectionStatus("connected", "Connected to $hostAddress")
@@ -156,6 +163,9 @@ class SocketManager private constructor() {
                 }
             }
             false
+        } catch (e: CancellationException) {
+            closeActiveClientConnection()
+            throw e
         } catch (e: Exception) {
             SecureLogger.e(TAG, "${peerTag()} Unexpected connection error", e)
             notifyConnectionStatus("error", "Unexpected error: ${e.message}")

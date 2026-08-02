@@ -24,6 +24,7 @@ import org.sada.messenger.network.direct.BleMeshManager
 import org.sada.messenger.network.direct.WifiDirectManager
 import org.sada.messenger.security.KeyManager
 import org.sada.messenger.runtime.MeshRuntime
+import org.sada.messenger.runtime.LifecycleJobSet
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -32,6 +33,12 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 
@@ -62,6 +69,7 @@ class MeshForegroundService : Service() {
         private var running = false
         @Volatile
         private var diagnosticsSnapshot: Map<String, Any> = emptyMap()
+        private val shutdownScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
         fun isRunning(): Boolean = running
         fun getDiagnosticsSnapshot(): Map<String, Any> = diagnosticsSnapshot
@@ -85,7 +93,10 @@ class MeshForegroundService : Service() {
         }
     }
 
-    private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val serviceJob = SupervisorJob()
+    private val serviceScope = CoroutineScope(Dispatchers.IO + serviceJob)
+    private val lifecycleMutex = Mutex()
+    private val connectionJobs = LifecycleJobSet()
     private lateinit var runtime: MeshRuntime
     private lateinit var socketManager: SocketManager
     private lateinit var udpBroadcastManager: UdpBroadcastManager
@@ -103,6 +114,7 @@ class MeshForegroundService : Service() {
     private val knownPeerIps = ConcurrentHashMap<String, String>() // peerId -> ip
     private val lanDeferredReasons = ConcurrentHashMap<String, String>()
     private var myPeerId: String = ""
+    @Volatile
     private var paused = false
     private var connectedPeersCount = 0
     private var relayQueueActiveCount = 0
@@ -146,13 +158,13 @@ class MeshForegroundService : Service() {
             }
             ACTION_PAUSE -> {
                 paused = true
-                stopMeshCore()
+                requestMeshStop()
                 updateForegroundNotification()
                 return START_STICKY
             }
             ACTION_RESUME -> {
                 paused = false
-                startMeshCore()
+                requestMeshStart()
                 updateForegroundNotification()
                 return START_STICKY
             }
@@ -161,7 +173,7 @@ class MeshForegroundService : Service() {
         startForeground(NOTIFICATION_ID, buildForegroundNotification())
         if (!running) {
             running = true
-            startMeshCore()
+            requestMeshStart()
             startStatusMonitor()
         } else {
             updateForegroundNotification()
@@ -190,13 +202,32 @@ class MeshForegroundService : Service() {
 
     override fun onDestroy() {
         running = false
-        statusMonitorJob?.cancel()
+        val ownedServiceJob = serviceJob
+        val ownedRuntime = runtime
+        ownedServiceJob.cancel()
         statusMonitorJob = null
-        stopMeshCore()
+        discoveryJob = null
+        shutdownScope.launch {
+            runCatching { ownedRuntime.stop() }
+                .onFailure { Log.e(TAG, "Runtime shutdown failed", it) }
+            ownedServiceJob.join()
+        }
         super.onDestroy()
     }
 
-    private fun startMeshCore() {
+    private fun requestMeshStart() {
+        serviceScope.launch {
+            lifecycleMutex.withLock { startMeshCore() }
+        }
+    }
+
+    private fun requestMeshStop() {
+        serviceScope.launch {
+            lifecycleMutex.withLock { stopMeshCore() }
+        }
+    }
+
+    private suspend fun startMeshCore() {
         if (paused) {
             Log.d(TAG, "startMeshCore: paused, skipping")
             return
@@ -214,20 +245,14 @@ class MeshForegroundService : Service() {
         myPeerId = keyManager.getPublicKeyBase64()
         Log.d(TAG, "Local Peer ID (Public Key): $myPeerId")
 
-        runtime.start(::handleUdpDiscoveryPacket)
-
-        val started = udpBroadcastManager.startListening()
-        if (!started) {
-            Log.e(TAG, "UDP listener failed to start")
+        try {
+            runtime.start(::handleUdpDiscoveryPacket)
+        } catch (error: Throwable) {
+            Log.e(TAG, "Mesh runtime failed to start", error)
             return
         }
 
-        // Start Air-Bridge (BLE + Wi-Fi Direct only, no Nearby Connections)
-        bleMeshManager.startAdvertising()
-        bleMeshManager.startScanning()
-        wifiDirectManager.start()
-
-        discoveryJob?.cancel()
+        discoveryJob?.cancelAndJoin()
         discoveryJob = serviceScope.launch {
             while (isActive) {
                 updateDiscoveryMode()
@@ -242,9 +267,10 @@ class MeshForegroundService : Service() {
         updateForegroundNotification()
     }
 
-    private fun stopMeshCore() {
-        discoveryJob?.cancel()
+    private suspend fun stopMeshCore() {
+        discoveryJob?.cancelAndJoin()
         discoveryJob = null
+        connectionJobs.cancelAndJoinAll()
         runtime.stop()
         connectedPeersCount = 0
         updateDiagnosticsSnapshot()
@@ -257,18 +283,7 @@ class MeshForegroundService : Service() {
             var lastPaused = paused
             while (isActive) {
                 if (!paused) {
-                    socketManager.startServer()
-                    // Ensure True P2P Air-Bridge managers are running
-                    if (bleMeshManager.getDiagnostics()["isAdvertising"] == false) {
-                        bleMeshManager.startAdvertising()
-                    }
-                    if (bleMeshManager.getDiagnostics()["isScanning"] == false) {
-                        bleMeshManager.startScanning()
-                    }
-                    if ((udpBroadcastManager.getDiagnostics()["running"] as? Boolean) != true) {
-                        udpBroadcastManager.startListening()
-                    }
-                    maybeReconnectKnownPeers()
+                    if (runtime.isStarted) maybeReconnectKnownPeers()
                 }
                 val currentConnected = if (socketManager.isSocketConnected()) 1 else 0
                 if (currentConnected != lastConnected || lastPaused != paused) {
@@ -338,10 +353,11 @@ class MeshForegroundService : Service() {
         lastConnectAttemptAt[attemptKey] = now
         if (socketManager.isSocketConnected()) return
 
-        serviceScope.launch {
+        val connectionJob = serviceScope.launch {
             try {
                 socketManager.setCurrentPeerId(peerId)
                 val connected = socketManager.connectToHostAndWait(senderIp, peerId)
+                currentCoroutineContext().ensureActive()
                 Log.d(
                     TAG,
                     "UDP connect attempt[$reason]: peer=${peerId.take(12)} ip=$senderIp connected=$connected"
@@ -353,12 +369,15 @@ class MeshForegroundService : Service() {
                     discoveryMode = DiscoveryMode.BACKOFF
                 }
                 updateForegroundNotification()
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Log.e(TAG, "Failed connecting discovered peer $peerId@$senderIp [$reason]", e)
                 backoffUntilMs = System.currentTimeMillis() + 15000L
                 discoveryMode = DiscoveryMode.BACKOFF
             }
         }
+        connectionJobs.track(connectionJob)
     }
 
     private fun maybeReconnectKnownPeers() {

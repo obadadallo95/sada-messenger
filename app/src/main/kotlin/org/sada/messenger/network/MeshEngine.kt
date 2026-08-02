@@ -36,6 +36,7 @@ import org.sada.messenger.network.direct.WifiDirectManager
 import java.util.*
 import org.sada.messenger.utils.DateUtils
 import org.sada.messenger.ui.utils.tr
+import org.sada.messenger.runtime.RestartableCoroutineGeneration
 import java.io.FileOutputStream
 import java.io.File
 import android.util.Base64
@@ -68,7 +69,8 @@ class MeshEngine(
         .getString("user_nickname", "User") ?: "User"
     
     private val processedMessageIds = LinkedHashSet<String>()
-    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val lifecycleGeneration = RestartableCoroutineGeneration(Dispatchers.IO)
+    private val scope: CoroutineScope get() = lifecycleGeneration.scope
     private val _transportError = MutableStateFlow<String?>(null)
     val transportError: StateFlow<String?> = _transportError.asStateFlow()
     private val _transportConnected = MutableStateFlow(false)
@@ -84,6 +86,7 @@ class MeshEngine(
     private val peerHandshakeReason = mutableMapOf<String, String>()
     private var relayPumpJob: Job? = null
     private var gossipJob: Job? = null
+    @Volatile
     private var started = false
     var socketCallbackRegistrationCount: Int = 0
         private set
@@ -147,6 +150,7 @@ class MeshEngine(
     @Synchronized
     fun start() {
         if (started) return
+        lifecycleGeneration.start()
         started = true
         setupSocketCallbacks()
         setupLoraCallbacks()
@@ -156,19 +160,28 @@ class MeshEngine(
         startPeriodicGossip()
     }
 
-    @Synchronized
-    fun stop() {
-        if (!started) return
+    suspend fun stop() {
         started = false
-        relayPumpJob?.cancel()
-        relayPumpJob = null
-        gossipJob?.cancel()
-        gossipJob = null
-        socketManager.clearCallbacks()
-        loraInterface?.clearOnDataReceived()
-        bleMeshManager.clearOnPeerDiscoveredListener()
-        wifiDirectManager.clearConnectionCallbacks()
-        _connectedPeers.value = emptyList()
+        var failure: Throwable? = null
+        fun detach(step: () -> Unit) {
+            try {
+                step()
+            } catch (error: Throwable) {
+                if (failure == null) failure = error else failure?.addSuppressed(error)
+            }
+        }
+        try {
+            detach { socketManager.clearCallbacks() }
+            detach { loraInterface?.clearOnDataReceived() }
+            detach { bleMeshManager.clearOnPeerDiscoveredListener() }
+            detach { wifiDirectManager.clearConnectionCallbacks() }
+        } finally {
+            lifecycleGeneration.stop()
+            relayPumpJob = null
+            gossipJob = null
+            _connectedPeers.value = emptyList()
+        }
+        failure?.let { throw it }
     }
 
     private fun setupP2pManagers() {
@@ -1499,6 +1512,7 @@ class MeshEngine(
     }
 
     private suspend fun sendRawText(text: String) {
+        if (!started) return
         val payload = text.toByteArray(Charsets.UTF_8)
         val framed = ByteArray(payload.size + 1)
         framed[0] = 0x00.toByte() // Text Frame
@@ -1508,6 +1522,8 @@ class MeshEngine(
         recordDataSent(framed.size)
         
         withContext(Dispatchers.IO) {
+            ensureActive()
+            if (!started) return@withContext
             val selectedTransport = activeTransportProvider()
             val sent = transportSend(framed)
             if (!sent) {

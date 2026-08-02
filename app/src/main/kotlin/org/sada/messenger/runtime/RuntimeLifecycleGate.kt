@@ -1,7 +1,13 @@
 package org.sada.messenger.runtime
 
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+
 /** Small testable state machine that makes runtime start/stop idempotent. */
 internal class RuntimeLifecycleGate {
+    private val mutex = Mutex()
+
+    @Volatile
     var isStarted: Boolean = false
         private set
     var startCount: Int = 0
@@ -9,21 +15,19 @@ internal class RuntimeLifecycleGate {
     var stopCount: Int = 0
         private set
 
-    @Synchronized
-    fun start(onStart: () -> Unit): Boolean {
-        if (isStarted) return false
+    suspend fun start(onStart: suspend () -> Unit): Boolean = mutex.withLock {
+        if (isStarted) return@withLock false
         onStart()
         isStarted = true
         startCount++
-        return true
+        true
     }
 
-    @Synchronized
-    fun stop(onStop: () -> Unit): Boolean {
-        if (!isStarted) return false
-        isStarted = false
+    suspend fun stop(onStop: suspend () -> Unit): Boolean = mutex.withLock {
+        if (!isStarted) return@withLock false
         onStop()
+        isStarted = false
         stopCount++
-        return true
+        true
     }
 }

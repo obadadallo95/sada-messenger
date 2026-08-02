@@ -11,6 +11,8 @@ import org.sada.messenger.network.direct.WifiDirectManager
 import org.sada.messenger.network.lora.LoraSerialManager
 import org.sada.messenger.security.EncryptionManager
 import org.sada.messenger.security.KeyManager
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 
 /** Single process graph. MeshForegroundService is its only lifecycle caller. */
 class MeshRuntime(context: Context) : MeshRuntimeController {
@@ -45,26 +47,56 @@ class MeshRuntime(context: Context) : MeshRuntimeController {
 
     override val isStarted: Boolean get() = lifecycleGate.isStarted
 
-    fun start(onUdpPacketReceived: (String, String) -> Unit) {
+    suspend fun start(onUdpPacketReceived: (String, String) -> Unit) {
         lifecycleGate.start {
-            udpBroadcastManager.setOnPacketReceived(onUdpPacketReceived)
-            udpCallbackRegistrations++
-            meshEngine.start()
-            socketManager.startServer()
-            loraManager.start()
+            try {
+                udpBroadcastManager.setOnPacketReceived(onUdpPacketReceived)
+                udpCallbackRegistrations++
+                meshEngine.start()
+                socketManager.startServer()
+                loraManager.start()
+                check(udpBroadcastManager.startListening()) { "UDP listener failed to start" }
+                bleMeshManager.startAdvertising()
+                bleMeshManager.startScanning()
+                wifiDirectManager.start()
+            } catch (error: Throwable) {
+                withContext(NonCancellable) {
+                    runCatching { meshEngine.stop() }
+                    udpBroadcastManager.clearOnPacketReceived()
+                    runCatching { udpBroadcastManager.stop() }
+                    runCatching { bleMeshManager.stopAdvertising() }
+                    runCatching { bleMeshManager.stopScanning() }
+                    runCatching { wifiDirectManager.stop() }
+                    runCatching { loraManager.stop() }
+                    runCatching { socketManager.closeConnections() }
+                }
+                throw error
+            }
         }
     }
 
-    fun stop() {
+    suspend fun stop() {
         lifecycleGate.stop {
-            meshEngine.stop()
-            udpBroadcastManager.clearOnPacketReceived()
-            udpBroadcastManager.stop()
-            bleMeshManager.stopAdvertising()
-            bleMeshManager.stopScanning()
-            wifiDirectManager.stop()
-            loraManager.stop()
-            socketManager.closeConnections()
+            withContext(NonCancellable) {
+                var failure: Throwable? = null
+                suspend fun cleanup(step: suspend () -> Unit) {
+                    try {
+                        step()
+                    } catch (error: Throwable) {
+                        if (failure == null) failure = error else failure?.addSuppressed(error)
+                    }
+                }
+                cleanup { meshEngine.stop() }
+                cleanup { udpBroadcastManager.clearOnPacketReceived() }
+                cleanup { udpBroadcastManager.stop() }
+                cleanup { bleMeshManager.stopAdaptiveCycling() }
+                cleanup { bleMeshManager.stopAdvertising() }
+                cleanup { bleMeshManager.stopScanning() }
+                cleanup { wifiDirectManager.stop() }
+                cleanup { loraManager.stop() }
+                cleanup { socketManager.closeConnections() }
+                failure?.let { throw it }
+            }
         }
     }
 
