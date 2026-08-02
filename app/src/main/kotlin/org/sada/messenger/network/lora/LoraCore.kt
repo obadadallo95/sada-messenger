@@ -13,6 +13,7 @@ interface LoraInterface {
     fun stop()
     fun sendData(data: ByteArray)
     fun setOnDataReceived(callback: (data: ByteArray, rssi: Int?, snr: Double?) -> Unit)
+    fun clearOnDataReceived()
 }
 
 /**

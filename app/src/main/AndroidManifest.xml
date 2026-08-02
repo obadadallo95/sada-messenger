@@ -54,7 +54,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
 
-    <application android:label="Sada" android:icon="@mipmap/ic_launcher" android:enableOnBackInvokedCallback="true" android:networkSecurityConfig="@xml/network_security_config" android:supportsRtl="true">
+    <application android:name=".SadaApplication" android:label="Sada" android:icon="@mipmap/ic_launcher" android:enableOnBackInvokedCallback="true" android:networkSecurityConfig="@xml/network_security_config" android:supportsRtl="true">
 
         <activity android:name=".MainActivity" android:exported="true" android:launchMode="singleTop" android:screenOrientation="portrait" android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode" android:hardwareAccelerated="true" android:windowSoftInputMode="adjustResize" android:theme="@style/Theme.AppCompat.DayNight.NoActionBar">
             <intent-filter>

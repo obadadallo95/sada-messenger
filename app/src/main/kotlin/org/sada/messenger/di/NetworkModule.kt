@@ -7,6 +7,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import org.sada.messenger.SocketManager
+import org.sada.messenger.SadaApplication
 import org.sada.messenger.data.db.AppDatabase
 import org.sada.messenger.network.MeshEngine
 import org.sada.messenger.security.EncryptionManager
@@ -42,12 +43,8 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideMeshEngine(
-        @ApplicationContext context: Context,
-        socketManager: SocketManager,
-        database: AppDatabase,
-        keyManager: KeyManager,
-        encryptionManager: EncryptionManager
+        @ApplicationContext context: Context
     ): MeshEngine {
-        return MeshEngine(context, socketManager, database, keyManager, encryptionManager)
+        return (context.applicationContext as SadaApplication).meshRuntime.meshEngine
     }
 }

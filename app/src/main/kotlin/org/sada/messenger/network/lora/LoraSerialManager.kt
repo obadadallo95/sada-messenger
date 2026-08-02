@@ -211,6 +211,10 @@ class LoraSerialManager(private val context: Context) : LoraInterface {
     override fun setOnDataReceived(callback: (data: ByteArray, rssi: Int?, snr: Double?) -> Unit) {
         this.onDataReceived = callback
     }
+
+    override fun clearOnDataReceived() {
+        onDataReceived = null
+    }
     
     /**
      * Get diagnostics for the LoRa connection

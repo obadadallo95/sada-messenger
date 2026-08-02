@@ -108,6 +108,11 @@ class WifiDirectManager(
         onPeerConnected = onPeer
     }
 
+    fun clearConnectionCallbacks() {
+        onGroupOwnerConnected = null
+        onPeerConnected = null
+    }
+
     private val isReceiverRegistered = AtomicBoolean(false)
 
     fun start() {

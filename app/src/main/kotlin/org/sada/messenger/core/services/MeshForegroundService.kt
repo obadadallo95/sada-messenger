@@ -16,12 +16,14 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import org.sada.messenger.SocketManager
+import org.sada.messenger.SadaApplication
 import org.sada.messenger.data.db.AppDatabase
 import org.sada.messenger.managers.UdpBroadcastManager
 
 import org.sada.messenger.network.direct.BleMeshManager
 import org.sada.messenger.network.direct.WifiDirectManager
 import org.sada.messenger.security.KeyManager
+import org.sada.messenger.runtime.MeshRuntime
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -84,7 +86,8 @@ class MeshForegroundService : Service() {
     }
 
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
-    private val socketManager = SocketManager.getInstance()
+    private lateinit var runtime: MeshRuntime
+    private lateinit var socketManager: SocketManager
     private lateinit var udpBroadcastManager: UdpBroadcastManager
 
     private lateinit var bleMeshManager: BleMeshManager
@@ -123,33 +126,13 @@ class MeshForegroundService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        udpBroadcastManager = UdpBroadcastManager.getInstance(this)
-        keyManager = KeyManager(this)
-        database = AppDatabase.getDatabase(this)
-        val myId = keyManager.getPublicKeyBase64()
-
-        bleMeshManager = BleMeshManager(this, myId)
-        wifiDirectManager = WifiDirectManager(this, socketManager)
-
-        bleMeshManager.setOnPeerDiscoveredListener { peerId, rssi ->
-            Log.i(TAG, "Air-Bridge: BLE peer $peerId detected, checking Wi-Fi Direct...")
-            if (!wifiDirectManager.isConnected.value) {
-                if (myId < peerId) {
-                    wifiDirectManager.createGroup()
-                } else {
-                    wifiDirectManager.startDiscovery()
-                }
-            }
-        }
-
-        wifiDirectManager.setConnectionCallbacks(
-            onOwner = { inetAddress -> 
-                Log.i(TAG, "Air-Bridge connected to Wi-Fi Direct Group Owner at ${inetAddress.hostAddress}")
-            },
-            onPeer = {
-                Log.i(TAG, "Air-Bridge Wi-Fi Direct Peer connected to my Hosted Group")
-            }
-        )
+        runtime = (application as SadaApplication).meshRuntime
+        socketManager = runtime.socketManager
+        udpBroadcastManager = runtime.udpBroadcastManager
+        keyManager = runtime.keyManager
+        database = runtime.database
+        bleMeshManager = runtime.bleMeshManager
+        wifiDirectManager = runtime.wifiDirectManager
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -210,7 +193,6 @@ class MeshForegroundService : Service() {
         statusMonitorJob?.cancel()
         statusMonitorJob = null
         stopMeshCore()
-        socketManager.closeConnections()
         super.onDestroy()
     }
 
@@ -231,8 +213,8 @@ class MeshForegroundService : Service() {
         Log.i(TAG, "Starting Mesh Core for user: $nickname")
         myPeerId = keyManager.getPublicKeyBase64()
         Log.d(TAG, "Local Peer ID (Public Key): $myPeerId")
-        
-        socketManager.startServer()
+
+        runtime.start()
 
         val started = udpBroadcastManager.startListening()
         if (!started) {
@@ -267,17 +249,7 @@ class MeshForegroundService : Service() {
     private fun stopMeshCore() {
         discoveryJob?.cancel()
         discoveryJob = null
-        try {
-            udpBroadcastManager.stop()
-        } catch (e: Exception) {
-            Log.w(TAG, "Error stopping UDP manager", e)
-        }
-
-        runCatching { bleMeshManager.stopAdvertising() }
-        runCatching { bleMeshManager.stopScanning() }
-        runCatching { wifiDirectManager.stopDiscovery() }
-        runCatching { wifiDirectManager.disconnect() }
-        socketManager.closeConnections()
+        runtime.stop()
         connectedPeersCount = 0
         updateDiagnosticsSnapshot()
     }

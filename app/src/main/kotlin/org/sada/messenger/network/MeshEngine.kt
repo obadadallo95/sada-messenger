@@ -52,6 +52,8 @@ class MeshEngine(
     private val keyManager: KeyManager,
     private val encryptionManager: EncryptionManager,
     private val loraInterface: LoraInterface? = null,
+    val bleMeshManager: BleMeshManager = BleMeshManager(context, keyManager.getPublicKeyBase64()),
+    val wifiDirectManager: WifiDirectManager = WifiDirectManager(context, socketManager),
     private val transportSend: (ByteArray) -> Boolean = { false },
     private val transportIsConnected: () -> Boolean = { false },
     private val activeTransportProvider: () -> String = { "NONE" }
@@ -72,14 +74,6 @@ class MeshEngine(
     private val _transportConnected = MutableStateFlow(false)
     val transportConnected: StateFlow<Boolean> = _transportConnected.asStateFlow()
 
-    val bleMeshManager: BleMeshManager by lazy {
-        BleMeshManager(context, keyManager.getPublicKeyBase64())
-    }
-
-    val wifiDirectManager: WifiDirectManager by lazy {
-        WifiDirectManager(context, socketManager)
-    }
-
     private var handshakeAttempts = 0
     private var handshakeAcks = 0
     private var handshakeTimeouts = 0
@@ -89,6 +83,8 @@ class MeshEngine(
     private val peerHandshakeState = mutableMapOf<String, String>()
     private val peerHandshakeReason = mutableMapOf<String, String>()
     private var relayPumpJob: Job? = null
+    private var gossipJob: Job? = null
+    private var started = false
     private var relayQueueActiveCount = 0
     private var relayFlushedCount = 0L
     private var ackCleanupCount = 0L
@@ -146,13 +142,31 @@ class MeshEngine(
     private val peerBloomFilters = mutableMapOf<String, BloomFilter>()
     private val mediaHeaderCache = mutableMapOf<String, JSONObject>()
 
-    init {
+    @Synchronized
+    fun start() {
+        if (started) return
+        started = true
         setupSocketCallbacks()
         setupLoraCallbacks()
         setupP2pManagers()
         refreshTransportConnected()
         startRelayPump()
         startPeriodicGossip()
+    }
+
+    @Synchronized
+    fun stop() {
+        if (!started) return
+        started = false
+        relayPumpJob?.cancel()
+        relayPumpJob = null
+        gossipJob?.cancel()
+        gossipJob = null
+        socketManager.clearCallbacks()
+        loraInterface?.clearOnDataReceived()
+        bleMeshManager.clearOnPeerDiscoveredListener()
+        wifiDirectManager.clearConnectionCallbacks()
+        _connectedPeers.value = emptyList()
     }
 
     private fun setupP2pManagers() {
@@ -274,7 +288,8 @@ class MeshEngine(
      * Critical for mobile scenarios where devices move in and out of range.
      */
     private fun startPeriodicGossip() {
-        scope.launch {
+        gossipJob?.cancel()
+        gossipJob = scope.launch {
             while (isActive) {
                 delay(GOSSIP_INTERVAL_MS)
                 try {

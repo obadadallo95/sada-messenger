@@ -64,6 +64,10 @@ class UdpBroadcastManager private constructor(private val context: Context) {
         onPacketReceived = callback
     }
 
+    fun clearOnPacketReceived() {
+        onPacketReceived = null
+    }
+
     fun startListening(): Boolean {
         if (isRunning) return true
 

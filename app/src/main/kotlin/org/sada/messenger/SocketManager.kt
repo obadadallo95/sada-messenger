@@ -64,6 +64,11 @@ class SocketManager private constructor() {
         onConnectionStatusChanged = callback
     }
 
+    fun clearCallbacks() {
+        onMessageReceived = null
+        onConnectionStatusChanged = null
+    }
+
     fun setCurrentPeerId(peerId: String?) {
         if (!peerId.isNullOrBlank()) {
             currentPeerId.set(peerId)

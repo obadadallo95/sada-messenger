@@ -71,6 +71,10 @@ class BleMeshManager(
         onPeerDiscovered = listener
     }
 
+    fun clearOnPeerDiscoveredListener() {
+        onPeerDiscovered = null
+    }
+
     fun startAdvertising() {
         if (!hasPermissions() || bluetoothAdapter?.isEnabled != true) {
             Log.e(TAG, "Cannot start BLE Advertising: Missing permissions or Bluetooth disabled.")
