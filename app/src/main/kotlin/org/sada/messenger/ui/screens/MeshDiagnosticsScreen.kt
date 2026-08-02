@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import org.sada.messenger.network.MeshEngine
+import org.sada.messenger.runtime.MeshRuntimeController
 import org.sada.messenger.ui.theme.*
 import org.sada.messenger.ui.utils.tr
 import androidx.activity.compose.BackHandler
@@ -32,11 +33,11 @@ import androidx.activity.compose.BackHandler
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MeshDiagnosticsScreen(
-    meshEngine: MeshEngine,
+    meshRuntime: MeshRuntimeController,
     udpDiagnostics: () -> Map<String, Any>,
     onBack: () -> Unit
 ) {
-    val diagnostics = remember { mutableStateOf(meshEngine.getDiagnostics()) }
+    val diagnostics = remember { mutableStateOf(meshRuntime.diagnostics()) }
     val udpDiag = remember { mutableStateOf(udpDiagnostics()) }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -50,7 +51,7 @@ fun MeshDiagnosticsScreen(
     // Refresh diagnostics periodically
     LaunchedEffect(Unit) {
         while(true) {
-            diagnostics.value = meshEngine.getDiagnostics()
+            diagnostics.value = meshRuntime.diagnostics()
             udpDiag.value = udpDiagnostics()
             kotlinx.coroutines.delay(2000)
         }

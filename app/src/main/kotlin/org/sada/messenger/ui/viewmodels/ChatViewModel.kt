@@ -15,6 +15,7 @@ import org.sada.messenger.data.entities.ContactEntity
 import org.sada.messenger.data.entities.GroupMemberEntity
 import org.sada.messenger.data.models.MeshMessage
 import org.sada.messenger.network.MeshEngine
+import org.sada.messenger.runtime.MeshRuntimeController
 import org.sada.messenger.security.EncryptionManager
 import org.sada.messenger.security.KeyManager
 import java.util.*
@@ -23,11 +24,12 @@ import java.io.File
 class ChatViewModel(
     private val chatId: String,
     private val database: AppDatabase,
-    private val meshEngine: MeshEngine,
+    private val meshRuntime: MeshRuntimeController,
     private val keyManager: KeyManager,
     private val encryptionManager: EncryptionManager,
     private val audioRecorderManager: AudioRecorderManager
 ) : ViewModel() {
+    private val meshEngine: MeshEngine get() = meshRuntime.meshEngine
     private val tag = "ChatViewModel"
 
     private val _isVoiceRecording = MutableStateFlow(false)

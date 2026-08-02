@@ -14,11 +14,13 @@ import org.sada.messenger.data.db.AppDatabase
 import org.sada.messenger.data.entities.ChatEntity
 import org.sada.messenger.data.entities.ContactEntity
 import java.util.Date
+import org.sada.messenger.runtime.MeshRuntimeController
 
 class ContactsViewModel(
     private val database: AppDatabase,
-    private val meshEngine: org.sada.messenger.network.MeshEngine
+    private val meshRuntime: MeshRuntimeController
 ) : ViewModel() {
+    private val meshEngine get() = meshRuntime.meshEngine
     companion object {
         // Discovery contacts are ephemeral UI entities unless the user verifies via QR.
         private const val DISCOVERY_PENDING_TTL_MS = 90_000L

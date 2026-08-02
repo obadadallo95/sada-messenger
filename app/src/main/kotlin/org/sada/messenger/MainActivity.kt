@@ -81,6 +81,7 @@ import org.sada.messenger.managers.UdpBroadcastManager
 import org.sada.messenger.managers.VideoEngine
 import org.sada.messenger.managers.AudioRecorderManager
 import org.sada.messenger.core.services.MeshForegroundService
+import org.sada.messenger.runtime.MeshRuntimeController
 import org.sada.messenger.ui.screens.GroupsScreen
 import org.sada.messenger.ui.navigation.SadaBottomBar
 import org.sada.messenger.ui.navigation.MainTabsHost
@@ -104,25 +105,16 @@ class MainActivity : AppCompatActivity() {
     private val EXIT_CONFIRMATION_WINDOW_MS = 2000L
     private val TCP_PORT = 8888
     
-    private lateinit var wifiP2pManager: WifiP2pManager
-    private lateinit var channel: WifiP2pManager.Channel
-    private val socketManager = SocketManager.getInstance()
-    private lateinit var udpBroadcastManager: UdpBroadcastManager
-    
+    private val meshRuntime by lazy { (application as SadaApplication).meshRuntime }
+
     private lateinit var database: AppDatabase
     private lateinit var keyManager: KeyManager
     private lateinit var encryptionManager: EncryptionManager
     private lateinit var appSecuritySettings: AppSecuritySettings
-    private lateinit var meshEngine: MeshEngine
-
-    private lateinit var transportManager: TransportManager
     private lateinit var videoEngine: VideoEngine
     private lateinit var audioRecorderManager: AudioRecorderManager
     private lateinit var viewModelFactory: SadaViewModelFactory
 
-    private val peersList = mutableStateListOf<WifiP2pDevice>()
-    private var discoveryJob: Job? = null
-    private val lastConnectAttemptAt = mutableMapOf<String, Long>()
     private var myPeerId: String = ""
     private var isAppUnlocked by mutableStateOf(true)
     private var showPermissionRationale by mutableStateOf(false)
@@ -180,24 +172,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private val wifiP2pReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-            val action = intent?.action ?: return
-            when (action) {
-                WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION -> {
-                    val state = intent.getIntExtra(WifiP2pManager.EXTRA_WIFI_STATE, -1)
-                    Log.d(TAG, "WiFi P2P State: $state")
-                }
-                WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION -> {
-                    wifiP2pManager.requestPeers(channel) { peers ->
-                        peersList.clear()
-                        peersList.addAll(peers.deviceList)
-                    }
-                }
-            }
-        }
-    }
-
     override fun attachBaseContext(newBase: Context) {
         val localized = withLocalizedContext(newBase)
         super.attachBaseContext(localized)
@@ -206,56 +180,24 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        database = AppDatabase.getDatabase(this)
-        keyManager = KeyManager(this)
-        encryptionManager = EncryptionManager(keyManager)
+        database = meshRuntime.database
+        keyManager = meshRuntime.keyManager
+        encryptionManager = meshRuntime.encryptionManager
         appSecuritySettings = AppSecuritySettings(this)
         isAppUnlocked = savedInstanceState?.getBoolean("is_app_unlocked")
             ?: !appSecuritySettings.isAppLockEnabled()
         
-        // Initialize Wi-Fi P2P Manager for peer discovery
-        wifiP2pManager = getSystemService(Context.WIFI_P2P_SERVICE) as WifiP2pManager
-        channel = wifiP2pManager.initialize(this, mainLooper, null)
-        
-        udpBroadcastManager = UdpBroadcastManager.getInstance(this)
-        
-        val loraManager = LoraSerialManager(this)
-        val wifiDirectMgr = WifiDirectManager(this, socketManager)
-        transportManager = TransportManager(this, socketManager, wifiDirectMgr)
-        meshEngine = MeshEngine(
-            context = this,
-            socketManager = socketManager,
-            database = database,
-            keyManager = keyManager,
-            encryptionManager = encryptionManager,
-            loraInterface = loraManager,
-            transportSend = { bytes -> transportManager.sendFramed(bytes) },
-            transportIsConnected = { transportManager.isConnected() },
-            activeTransportProvider = { transportManager.activeTransportLabel() }
-        )
-
         videoEngine = VideoEngine(this)
         audioRecorderManager = AudioRecorderManager(this)
-        socketManager.startServer()
-        loraManager.start()
         
         viewModelFactory = SadaViewModelFactory(
             database, 
-            meshEngine, 
+            meshRuntime,
             keyManager, 
             encryptionManager,
             videoEngine,
             audioRecorderManager
         )
-
-        // Register Wi-Fi P2P receiver for peer discovery
-        val intentFilter = IntentFilter().apply {
-            addAction(WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION)
-            addAction(WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION)
-            addAction(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION)
-            addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION)
-        }
-        registerReceiver(wifiP2pReceiver, intentFilter)
 
         // Local State for Onboarding/Registration
         val prefs = getSharedPreferences("sada_app_state", Context.MODE_PRIVATE)
@@ -387,7 +329,7 @@ class MainActivity : AppCompatActivity() {
                                                     userStatusStore.save(statusText, expiresAtMs)
                                                     lifecycleScope.launch(Dispatchers.IO) {
                                                         runCatching {
-                                                            meshEngine.publishStatusToVerifiedContacts(
+                                                            meshRuntime.meshEngine.publishStatusToVerifiedContacts(
                                                                 statusText = statusText,
                                                                 expiresAt = java.util.Date(expiresAtMs)
                                                             )
@@ -520,12 +462,11 @@ class MainActivity : AppCompatActivity() {
                             }
                             composable("diagnostics") {
                                 MeshDiagnosticsScreen(
-                                    meshEngine = meshEngine,
+                                    meshRuntime = meshRuntime,
                                     udpDiagnostics = {
                                         val merged = mutableMapOf<String, Any>()
-                                        merged.putAll(udpBroadcastManager.getDiagnostics())
-
-                                        merged.putAll(transportManager.getDiagnostics().mapKeys { "transport_${it.key}" })
+                                        merged.putAll(meshRuntime.udpBroadcastManager.getDiagnostics())
+                                        merged.putAll(meshRuntime.transportManager.getDiagnostics().mapKeys { "transport_${it.key}" })
                                         merged.putAll(MeshForegroundService.getDiagnosticsSnapshot().mapKeys { "service_${it.key}" })
                                         merged
                                     },
@@ -849,19 +790,6 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        discoveryJob?.cancel()
-
-        // Unregister Wi-Fi P2P receiver
-        try {
-            unregisterReceiver(wifiP2pReceiver)
-        } catch (e: IllegalArgumentException) {
-            // Receiver was not registered
-        }
-        
-        if (!MeshForegroundService.isRunning()) {
-            socketManager.destroy()
-            udpBroadcastManager.destroy()
-        }
     }
 
     override fun onStart() {
@@ -879,65 +807,6 @@ class MainActivity : AppCompatActivity() {
         if (isChangingConfigurations) return
         if (appSecuritySettings.isAppLockEnabled()) {
             isAppUnlocked = false
-        }
-    }
-
-    private fun startUdpDiscovery() {
-        val started = udpBroadcastManager.startListening()
-        if (!started) {
-            Log.e(TAG, "UDP discovery failed to start")
-            return
-        }
-
-        udpBroadcastManager.setOnPacketReceived { payload, senderIp ->
-            handleUdpDiscoveryPacket(payload, senderIp)
-        }
-
-        discoveryJob?.cancel()
-        discoveryJob = lifecycleScope.launch(Dispatchers.IO) {
-            while (isActive) {
-                val packet = "$DISCOVERY_PREFIX|$DISCOVERY_VERSION|$myPeerId|$TCP_PORT"
-                udpBroadcastManager.sendBroadcast(packet)
-                delay(DISCOVERY_INTERVAL_MS)
-            }
-        }
-
-        Log.d(TAG, "UDP discovery started for peer: ${myPeerId.take(12)}...")
-    }
-
-    private fun handleUdpDiscoveryPacket(payload: String, senderIp: String) {
-        val parts = payload.split("|")
-        if (parts.size < 4) return
-        if (parts[0] != DISCOVERY_PREFIX) return
-
-        val peerId = parts[2].trim()
-        if (peerId.isBlank() || peerId == myPeerId) return
-
-        // Deterministic role rule: smaller ID waits inbound as server.
-        val iAmServerPreferred = myPeerId < peerId
-        if (iAmServerPreferred) {
-            return
-        }
-
-        val attemptKey = "$peerId@$senderIp"
-        val now = System.currentTimeMillis()
-        val last = lastConnectAttemptAt[attemptKey] ?: 0L
-        if (now - last < CONNECT_RETRY_COOLDOWN_MS) return
-        lastConnectAttemptAt[attemptKey] = now
-
-        if (socketManager.isSocketConnected()) return
-
-        lifecycleScope.launch(Dispatchers.IO) {
-            try {
-                socketManager.setCurrentPeerId(peerId)
-                val connected = socketManager.connectToHostAndWait(senderIp, peerId)
-                Log.d(
-                    TAG,
-                    "UDP discovered peer connect result: peer=${peerId.take(12)} ip=$senderIp connected=$connected"
-                )
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed connecting discovered peer $peerId@$senderIp", e)
-            }
         }
     }
 

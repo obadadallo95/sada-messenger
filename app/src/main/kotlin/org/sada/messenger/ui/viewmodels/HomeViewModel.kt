@@ -16,6 +16,7 @@ import org.sada.messenger.data.entities.ContactEntity
 import org.sada.messenger.data.entities.GroupMemberEntity
 import org.sada.messenger.data.entities.GroupJoinRequestEntity
 import org.sada.messenger.network.MeshEngine
+import org.sada.messenger.runtime.MeshRuntimeController
 import org.sada.messenger.security.KeyManager
 import java.util.*
 
@@ -43,9 +44,10 @@ data class ServiceDirectoryItem(
 
 class HomeViewModel(
     private val database: AppDatabase,
-    private val meshEngine: MeshEngine,
+    private val meshRuntime: MeshRuntimeController,
     private val keyManager: KeyManager
 ) : ViewModel() {
+    private val meshEngine: MeshEngine get() = meshRuntime.meshEngine
     private val TAG = "HomeViewModel"
     private val myPeerId: String = keyManager.getPublicKeyBase64()
 
