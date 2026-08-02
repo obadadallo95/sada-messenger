@@ -52,8 +52,8 @@ class MeshEngine(
     private val keyManager: KeyManager,
     private val encryptionManager: EncryptionManager,
     private val loraInterface: LoraInterface? = null,
-    val bleMeshManager: BleMeshManager = BleMeshManager(context, keyManager.getPublicKeyBase64()),
-    val wifiDirectManager: WifiDirectManager = WifiDirectManager(context, socketManager),
+    val bleMeshManager: BleMeshManager,
+    val wifiDirectManager: WifiDirectManager,
     private val transportSend: (ByteArray) -> Boolean = { false },
     private val transportIsConnected: () -> Boolean = { false },
     private val activeTransportProvider: () -> String = { "NONE" }
@@ -85,6 +85,8 @@ class MeshEngine(
     private var relayPumpJob: Job? = null
     private var gossipJob: Job? = null
     private var started = false
+    var socketCallbackRegistrationCount: Int = 0
+        private set
     private var relayQueueActiveCount = 0
     private var relayFlushedCount = 0L
     private var ackCleanupCount = 0L
@@ -219,6 +221,7 @@ class MeshEngine(
     }
 
     private fun setupSocketCallbacks() {
+        socketCallbackRegistrationCount++
         socketManager.setOnMessageReceived { bytes ->
             transportReceivedLan++
             handleIncomingData(bytes)

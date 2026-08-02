@@ -75,4 +75,14 @@ class MeshRuntime(context: Context) : MeshRuntimeController {
         "runtimeStopCount" to lifecycleGate.stopCount,
         "udpCallbackRegistrations" to udpCallbackRegistrations
     )
+
+    override fun ownershipSnapshot() = MeshRuntimeOwnershipSnapshot(
+        meshEngineInstances = 1,
+        wifiDirectManagerInstances = 1,
+        bleMeshManagerInstances = 1,
+        udpCallbackRegistrations = udpCallbackRegistrations,
+        socketCallbackRegistrations = meshEngine.socketCallbackRegistrationCount,
+        startCount = lifecycleGate.startCount,
+        stopCount = lifecycleGate.stopCount
+    )
 }

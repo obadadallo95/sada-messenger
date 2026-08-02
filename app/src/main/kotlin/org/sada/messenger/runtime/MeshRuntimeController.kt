@@ -11,6 +11,7 @@ interface MeshRuntimeController {
     val isStarted: Boolean
 
     fun diagnostics(): Map<String, Any>
+    fun ownershipSnapshot(): MeshRuntimeOwnershipSnapshot
 }
 
 /** Construction counters exposed for lifecycle tests and diagnostics. */
