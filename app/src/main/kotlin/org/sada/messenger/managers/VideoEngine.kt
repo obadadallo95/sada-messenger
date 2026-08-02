@@ -5,6 +5,7 @@ import android.net.Uri
 import android.util.Log
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.transformer.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -19,6 +20,7 @@ import java.util.concurrent.TimeUnit
 class VideoEngine(private val context: Context) {
     private val TAG = "VideoEngine"
 
+    @UnstableApi
     suspend fun createCrisisReport(
         imagePath: String,
         audioPath: String,

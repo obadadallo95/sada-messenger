@@ -1,5 +1,11 @@
 <resources>
     <string name="app_name">صدى / Sada</string>
+    <string name="home_title">مراسلة صدى</string>
+    <string name="chat_type_message">اكتب رسالة...</string>
+    <string name="nav_contacts">جهات الاتصال</string>
+    <string name="lora_status">LoRa: %1$s</string>
+    <string name="lora_connected">متصل</string>
+    <string name="lora_disconnected">غير متصل</string>
     <string name="onboarding_skip">تخطي</string>
     <string name="onboarding_next">التالي</string>
     <string name="onboarding_done">ابدأ الآن</string>

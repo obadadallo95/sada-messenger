@@ -2,6 +2,7 @@ package org.sada.messenger.ui.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.media3.common.util.UnstableApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -57,6 +58,7 @@ class CrisisReportViewModel(
         generateReport()
     }
 
+    @androidx.annotation.OptIn(markerClass = [UnstableApi::class])
     private fun generateReport() {
         val image = _selectedImage.value
         val audio = recordedAudioFile

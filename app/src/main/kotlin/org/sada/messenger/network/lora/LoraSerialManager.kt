@@ -75,7 +75,12 @@ class LoraSerialManager(private val context: Context) : LoraInterface {
         val port = driver.ports[0]
         try {
             port.open(connection)
-            port.setParameters(115200, 8, UsbSerialPort.DATABITS_8, UsbSerialPort.STOPBITS_1)
+            port.setParameters(
+                115200,
+                UsbSerialPort.DATABITS_8,
+                UsbSerialPort.STOPBITS_1,
+                UsbSerialPort.PARITY_NONE
+            )
             serialPort = port
             
             ioManager = SerialInputOutputManager(port, object : SerialInputOutputManager.Listener {
