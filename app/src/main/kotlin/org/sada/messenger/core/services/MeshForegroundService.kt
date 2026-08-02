@@ -214,7 +214,7 @@ class MeshForegroundService : Service() {
         myPeerId = keyManager.getPublicKeyBase64()
         Log.d(TAG, "Local Peer ID (Public Key): $myPeerId")
 
-        runtime.start()
+        runtime.start(::handleUdpDiscoveryPacket)
 
         val started = udpBroadcastManager.startListening()
         if (!started) {
@@ -226,10 +226,6 @@ class MeshForegroundService : Service() {
         bleMeshManager.startAdvertising()
         bleMeshManager.startScanning()
         wifiDirectManager.start()
-
-        udpBroadcastManager.setOnPacketReceived { payload, senderIp ->
-            handleUdpDiscoveryPacket(payload, senderIp)
-        }
 
         discoveryJob?.cancel()
         discoveryJob = serviceScope.launch {

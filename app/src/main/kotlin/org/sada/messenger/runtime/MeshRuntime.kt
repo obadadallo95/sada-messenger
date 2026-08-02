@@ -40,35 +40,39 @@ class MeshRuntime(context: Context) : MeshRuntimeController {
         activeTransportProvider = { transportManager.activeTransportLabel() }
     )
 
-    @Volatile
-    override var isStarted: Boolean = false
-        private set
+    private val lifecycleGate = RuntimeLifecycleGate()
+    private var udpCallbackRegistrations = 0
 
-    @Synchronized
-    fun start() {
-        if (isStarted) return
-        meshEngine.start()
-        socketManager.startServer()
-        loraManager.start()
-        isStarted = true
+    override val isStarted: Boolean get() = lifecycleGate.isStarted
+
+    fun start(onUdpPacketReceived: (String, String) -> Unit) {
+        lifecycleGate.start {
+            udpBroadcastManager.setOnPacketReceived(onUdpPacketReceived)
+            udpCallbackRegistrations++
+            meshEngine.start()
+            socketManager.startServer()
+            loraManager.start()
+        }
     }
 
-    @Synchronized
     fun stop() {
-        if (!isStarted) return
-        isStarted = false
-        meshEngine.stop()
-        udpBroadcastManager.clearOnPacketReceived()
-        udpBroadcastManager.stop()
-        bleMeshManager.stopAdvertising()
-        bleMeshManager.stopScanning()
-        wifiDirectManager.stop()
-        loraManager.stop()
-        socketManager.closeConnections()
+        lifecycleGate.stop {
+            meshEngine.stop()
+            udpBroadcastManager.clearOnPacketReceived()
+            udpBroadcastManager.stop()
+            bleMeshManager.stopAdvertising()
+            bleMeshManager.stopScanning()
+            wifiDirectManager.stop()
+            loraManager.stop()
+            socketManager.closeConnections()
+        }
     }
 
     override fun diagnostics(): Map<String, Any> = meshEngine.getDiagnostics() + mapOf(
         "runtimeStarted" to isStarted,
-        "runtimeOwner" to "MeshForegroundService"
+        "runtimeOwner" to "MeshForegroundService",
+        "runtimeStartCount" to lifecycleGate.startCount,
+        "runtimeStopCount" to lifecycleGate.stopCount,
+        "udpCallbackRegistrations" to udpCallbackRegistrations
     )
 }
