@@ -139,6 +139,7 @@ class WifiDirectManager(
 
     suspend fun stop() {
         started = false
+        socketManager.cancelPendingConnect()
         connectionJobs.cancelAndJoinAll()
         pendingClientConnectionJob = null
         if (isReceiverRegistered.compareAndSet(true, false)) {

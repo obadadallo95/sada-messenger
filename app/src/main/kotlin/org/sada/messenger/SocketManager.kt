@@ -34,6 +34,8 @@ class SocketManager private constructor() {
 
     private var serverSocket: ServerSocket? = null
     private var clientSocket: Socket? = null
+    @Volatile
+    private var pendingConnectSocket: Socket? = null
     private var inputStream: InputStream? = null
     private var outputStream: OutputStream? = null
     
@@ -139,11 +141,14 @@ class SocketManager private constructor() {
                 try {
                     val socket = Socket()
                     try {
+                        pendingConnectSocket = socket
                         socket.connect(java.net.InetSocketAddress(hostAddress, PORT), 5000)
                         currentCoroutineContext().ensureActive()
                     } catch (e: CancellationException) {
                         runCatching { socket.close() }
                         throw e
+                    } finally {
+                        if (pendingConnectSocket === socket) pendingConnectSocket = null
                     }
                     SecureLogger.d(TAG, "${peerTag()} Successfully connected to $hostAddress")
                     setupSocket(socket)
@@ -354,7 +359,8 @@ class SocketManager private constructor() {
      */
     fun closeConnections() {
         SecureLogger.d(TAG, "${peerTag()} Closing all connections")
-        
+
+        cancelPendingConnect()
         closeActiveClientConnection()
 
         serverJob?.cancel()
@@ -366,6 +372,12 @@ class SocketManager private constructor() {
         serverSocket = null
 
         SecureLogger.d(TAG, "${peerTag()} All connections closed")
+    }
+
+    fun cancelPendingConnect() {
+        val pending = pendingConnectSocket
+        pendingConnectSocket = null
+        runCatching { pending?.close() }
     }
 
     private fun closeActiveClientConnection() {

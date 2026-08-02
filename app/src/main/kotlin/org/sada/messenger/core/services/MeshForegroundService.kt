@@ -270,6 +270,7 @@ class MeshForegroundService : Service() {
     private suspend fun stopMeshCore() {
         discoveryJob?.cancelAndJoin()
         discoveryJob = null
+        socketManager.cancelPendingConnect()
         connectionJobs.cancelAndJoinAll()
         runtime.stop()
         connectedPeersCount = 0
