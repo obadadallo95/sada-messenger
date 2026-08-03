@@ -9,6 +9,8 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.net.ConnectivityManager
+import android.net.Network
 import android.os.BatteryManager
 import android.os.Build
 import android.os.IBinder
@@ -59,6 +61,8 @@ class MeshForegroundService : Service() {
         private const val BURST_DISCOVERY_INTERVAL_MS = 2500L
         private const val BACKOFF_DISCOVERY_INTERVAL_MS = 20000L
         private const val TCP_PORT = 8888
+        private const val NETWORK_RECOVERY_DELAY_MS = 2000L
+        private const val NETWORK_RECOVERY_COOLDOWN_MS = 10000L
 
         private const val ACTION_START = "org.sada.messenger.action.START_MESH_SERVICE"
         private const val ACTION_PAUSE = "org.sada.messenger.action.PAUSE_MESH_SERVICE"
@@ -108,6 +112,15 @@ class MeshForegroundService : Service() {
 
     private var discoveryJob: Job? = null
     private var statusMonitorJob: Job? = null
+    private var networkRecoveryJob: Job? = null
+    private lateinit var connectivityManager: ConnectivityManager
+    private val networkRecoveryGate = NetworkRecoveryGate(NETWORK_RECOVERY_COOLDOWN_MS)
+    private var networkCallbackRegistered = false
+    private val networkCallback = object : ConnectivityManager.NetworkCallback() {
+        override fun onAvailable(network: Network) {
+            scheduleNetworkRecovery()
+        }
+    }
     private val lastConnectAttemptAt = ConcurrentHashMap<String, Long>()
     private val firstSeenAt = ConcurrentHashMap<String, Long>()
     private val lastSeenAt = ConcurrentHashMap<String, Long>()
@@ -145,6 +158,11 @@ class MeshForegroundService : Service() {
         database = runtime.database
         bleMeshManager = runtime.bleMeshManager
         wifiDirectManager = runtime.wifiDirectManager
+        connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        runCatching {
+            connectivityManager.registerDefaultNetworkCallback(networkCallback)
+            networkCallbackRegistered = true
+        }.onFailure { Log.w(TAG, "Default-network monitoring unavailable", it) }
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -207,12 +225,33 @@ class MeshForegroundService : Service() {
         ownedServiceJob.cancel()
         statusMonitorJob = null
         discoveryJob = null
+        networkRecoveryJob?.cancel()
+        networkRecoveryJob = null
+        if (networkCallbackRegistered) {
+            runCatching { connectivityManager.unregisterNetworkCallback(networkCallback) }
+            networkCallbackRegistered = false
+        }
         shutdownScope.launch {
             runCatching { ownedRuntime.stop() }
                 .onFailure { Log.e(TAG, "Runtime shutdown failed", it) }
             ownedServiceJob.join()
         }
         super.onDestroy()
+    }
+
+    private fun scheduleNetworkRecovery() {
+        if (!networkRecoveryGate.tryAcquire()) return
+        networkRecoveryJob?.cancel()
+        networkRecoveryJob = serviceScope.launch {
+            delay(NETWORK_RECOVERY_DELAY_MS)
+            if (!runtime.isStarted || paused || socketManager.isSocketConnected()) return@launch
+            runtime.diagnosticsRecorder.record("runtime", "network_recovery_requested", "started")
+            wifiDirectManager.recoverAfterNetworkChange {
+                udpBroadcastManager.refreshInterface()
+                burstUntilMs = System.currentTimeMillis() + BURST_DURATION_MS
+                discoveryMode = DiscoveryMode.BURST
+            }
+        }
     }
 
     private fun requestMeshStart() {

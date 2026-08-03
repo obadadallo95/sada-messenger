@@ -246,7 +246,9 @@ class MainActivity : AppCompatActivity() {
 
                         val startDestination = if (isRegistered) "main" else "onboarding"
 
-                        Scaffold() { innerPadding ->
+                        Scaffold(
+                            contentWindowInsets = WindowInsets(0, 0, 0, 0)
+                        ) { innerPadding ->
                             NavHost(
                                 navController = navController,
                                 startDestination = startDestination,

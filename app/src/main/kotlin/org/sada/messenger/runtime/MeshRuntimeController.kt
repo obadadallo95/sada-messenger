@@ -11,6 +11,10 @@ interface MeshRuntimeController {
     val isStarted: Boolean
 
     fun diagnostics(): Map<String, Any>
+    fun diagnosticEvents(): List<DiagnosticEvent>
+    fun clearDiagnosticEvents()
+    suspend fun forceDirectConnection(): String
+    suspend fun forceDirectConnectionAsOwner(createAsOwner: Boolean): String
     fun ownershipSnapshot(): MeshRuntimeOwnershipSnapshot
 }
 

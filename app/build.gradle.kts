@@ -31,6 +31,9 @@ val hasReleaseSigning = requiredReleaseSigningProperties.all { key ->
 
 android {
     namespace = "org.sada.messenger"
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+    }
     compileSdk = 35
 
     defaultConfig {
@@ -93,9 +96,6 @@ android {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
-        jniLibs {
-            useLegacyPackaging = true
-        }
     }
 }
 
@@ -143,10 +143,11 @@ dependencies {
     // Security & Encryption
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
     implementation("androidx.biometric:biometric:1.1.0")
-    implementation("com.goterl:lazysodium-android:5.1.0") {
+    implementation("com.goterl:lazysodium-android:5.2.0") {
         exclude(group = "net.java.dev.jna", module = "jna")
     }
-    implementation("net.java.dev.jna:jna:5.14.0@aar")
+    implementation("net.java.dev.jna:jna:5.17.0@aar")
+    implementation("androidx.graphics:graphics-path:1.1.0")
 
     // Database (Room)
     val roomVersion = "2.6.1"

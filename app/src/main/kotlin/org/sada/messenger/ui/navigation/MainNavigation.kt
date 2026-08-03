@@ -43,6 +43,7 @@ fun MainTabsHost(
     val scope = rememberCoroutineScope()
     val tabRoutes = listOf("home", "chats", "groups", "contacts", "settings")
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
             SadaBottomBar(
                 currentRoute = tabRoutes[pagerState.currentPage],

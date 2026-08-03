@@ -11,11 +11,15 @@ import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
 import android.content.Context
+import android.content.BroadcastReceiver
+import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.ParcelUuid
 import android.util.Log
 import androidx.core.content.ContextCompat
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,6 +28,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.util.UUID
+import org.sada.messenger.runtime.DiagnosticsRecorder
 
 /**
  * BLE Mesh Manager - True P2P Discovery (Zero-Data)
@@ -31,7 +36,8 @@ import java.util.UUID
  */
 class BleMeshManager(
     private val context: Context,
-    private val localPeerId: String
+    private val localPeerId: String,
+    private val diagnosticsRecorder: DiagnosticsRecorder? = null
 ) {
     companion object {
         private const val TAG = "BleMeshManager"
@@ -43,6 +49,7 @@ class BleMeshManager(
         private const val CYCLE_ACTIVE_MS = 100L      // 100ms active (advertise + scan)
         private const val CYCLE_IDLE_MS = 4900L       // 4.9s idle (sleep) = 5s total cycle
         private const val CYCLE_IDLE_LOW_POWER_MS = 29000L // 29s idle for low power mode
+        private const val READINESS_RETRY_MS = 5000L
     }
 
     private val bluetoothManager: BluetoothManager? = context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
@@ -60,6 +67,24 @@ class BleMeshManager(
     private val discoveredPeers = mutableMapOf<String, Int>() // PeerId -> Last RSSI
     private var onPeerDiscovered: ((String, Int) -> Unit)? = null
     private var lastDiscoveredPeerId: String? = null
+    private var lastError: String = "none"
+    private val isStateReceiverRegistered = AtomicBoolean(false)
+    private var readinessRetryJob: kotlinx.coroutines.Job? = null
+    private var lastReadinessEventReason: String? = null
+
+    private val bluetoothStateReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action != BluetoothAdapter.ACTION_STATE_CHANGED) return
+            when (intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR)) {
+                BluetoothAdapter.STATE_ON -> ensureRunning()
+                BluetoothAdapter.STATE_OFF -> {
+                    _isAdvertising.value = false
+                    _isScanning.value = false
+                    lastError = "bluetooth_disabled"
+                }
+            }
+        }
+    }
     
     // Power management state
     private var adaptiveCycleJob: kotlinx.coroutines.Job? = null
@@ -75,14 +100,68 @@ class BleMeshManager(
         onPeerDiscovered = null
     }
 
+    fun start(scope: CoroutineScope) {
+        if (isStateReceiverRegistered.compareAndSet(false, true)) {
+            ContextCompat.registerReceiver(
+                context,
+                bluetoothStateReceiver,
+                IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED),
+                ContextCompat.RECEIVER_NOT_EXPORTED
+            )
+        }
+        ensureRunning()
+        readinessRetryJob?.cancel()
+        readinessRetryJob = scope.launch {
+            while (isActive) {
+                delay(READINESS_RETRY_MS)
+                ensureRunning()
+            }
+        }
+    }
+
+    fun stop() {
+        readinessRetryJob?.cancel()
+        readinessRetryJob = null
+        if (isStateReceiverRegistered.compareAndSet(true, false)) {
+            runCatching { context.unregisterReceiver(bluetoothStateReceiver) }
+        }
+        stopAdvertising()
+        stopScanning()
+    }
+
+    @Synchronized
+    private fun ensureRunning() {
+        val unavailableReason = unavailableReason()
+        if (unavailableReason != null) {
+            lastError = unavailableReason
+            if (lastReadinessEventReason != unavailableReason) {
+                diagnosticsRecorder?.record("ble", "ble_readiness_waiting", "waiting", unavailableReason, transport = "BLE")
+                lastReadinessEventReason = unavailableReason
+            }
+            return
+        }
+        lastReadinessEventReason = null
+        if (!_isAdvertising.value) startAdvertising()
+        if (!_isScanning.value) startScanning()
+    }
+
+    private fun unavailableReason(): String? = when {
+        !hasPermissions() -> "permissions_missing"
+        bluetoothAdapter == null -> "bluetooth_unavailable"
+        bluetoothAdapter.isEnabled != true -> "bluetooth_disabled"
+        else -> null
+    }
+
     fun startAdvertising() {
         if (!hasPermissions() || bluetoothAdapter?.isEnabled != true) {
+            lastError = unavailableReason() ?: "bluetooth_not_ready"
             Log.e(TAG, "Cannot start BLE Advertising: Missing permissions or Bluetooth disabled.")
             return
         }
 
         val advertiser = bluetoothAdapter.bluetoothLeAdvertiser
         if (advertiser == null) {
+            lastError = "advertiser_unavailable"
             Log.e(TAG, "BLE Advertising not supported on this device.")
             return
         }
@@ -106,6 +185,7 @@ class BleMeshManager(
             _isAdvertising.value = true
             Log.i(TAG, "BLE Advertising started for peer: $localPeerId")
         } catch (e: SecurityException) {
+            lastError = "security_exception"
             Log.e(TAG, "SecurityException while starting BLE advertising", e)
         }
     }
@@ -122,12 +202,16 @@ class BleMeshManager(
 
     fun startScanning() {
         if (!hasPermissions() || bluetoothAdapter?.isEnabled != true) {
+            lastError = unavailableReason() ?: "bluetooth_not_ready"
+            diagnosticsRecorder?.record("ble", "ble_scan_failed", "failed", lastError, transport = "BLE")
             Log.e(TAG, "Cannot start BLE Scanning: Missing permissions or Bluetooth disabled.")
             return
         }
 
         val scanner = bluetoothAdapter.bluetoothLeScanner
         if (scanner == null) {
+            lastError = "scanner_unavailable"
+            diagnosticsRecorder?.record("ble", "ble_scan_failed", "failed", lastError, transport = "BLE")
             Log.e(TAG, "BLE Scanning not supported on this device.")
             return
         }
@@ -143,18 +227,25 @@ class BleMeshManager(
         try {
             scanner.startScan(listOf(filter), settings, scanCallback)
             _isScanning.value = true
+            lastError = "none"
+            diagnosticsRecorder?.record("ble", "ble_scan_started", "success", transport = "BLE")
             Log.i(TAG, "BLE Scanning started")
         } catch (e: SecurityException) {
+            lastError = "security_exception"
+            diagnosticsRecorder?.record("ble", "ble_scan_failed", "failed", lastError, transport = "BLE")
             Log.e(TAG, "SecurityException while starting BLE scanning", e)
         }
     }
 
     fun stopScanning() {
+        val wasScanning = _isScanning.value
         try {
             bluetoothAdapter?.bluetoothLeScanner?.stopScan(scanCallback)
             _isScanning.value = false
+            if (wasScanning) diagnosticsRecorder?.record("ble", "ble_scan_stopped", "success", transport = "BLE")
             Log.i(TAG, "BLE Scanning stopped")
         } catch (e: SecurityException) {
+            lastError = "security_exception"
             Log.e(TAG, "SecurityException while stopping BLE scanning", e)
         }
     }
@@ -241,6 +332,7 @@ class BleMeshManager(
             super.onStartFailure(errorCode)
             Log.e(TAG, "BLE Advertise failed with error code: $errorCode")
             _isAdvertising.value = false
+            lastError = "advertise_error_$errorCode"
         }
     }
 
@@ -260,6 +352,7 @@ class BleMeshManager(
                             lastDiscoveredPeerId = discoveredPeerId
                             recordPeerDiscovery() // Reset power management timers
                             onPeerDiscovered?.invoke(discoveredPeerId, it.rssi)
+                            diagnosticsRecorder?.record("ble", "ble_peer_discovered", "success", peerId = discoveredPeerId, transport = "BLE")
                         }
                     }
                 }
@@ -270,6 +363,8 @@ class BleMeshManager(
             super.onScanFailed(errorCode)
             Log.e(TAG, "BLE Scan failed with error code: $errorCode")
             _isScanning.value = false
+            lastError = "scan_error_$errorCode"
+            diagnosticsRecorder?.record("ble", "ble_scan_failed", "failed", lastError, transport = "BLE")
         }
     }
 
@@ -296,8 +391,11 @@ class BleMeshManager(
             "discoveredPeersRssi" to discoveredPeers.toMap(),
             "peerIdLength" to BLE_PEER_ID_LENGTH,
             "lastDiscoveredId" to (lastDiscoveredPeerId ?: ""),
+            "lastError" to lastError,
             "cycleActiveMs" to CYCLE_ACTIVE_MS,
             "cycleIdleMs" to calculateIdleDuration()
         )
     }
+
+    fun lastDiscoveredPeerId(): String? = lastDiscoveredPeerId
 }

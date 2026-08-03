@@ -1,8 +1,7 @@
 package org.sada.messenger.ui.screens
 
-import android.content.ClipData
-import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -26,6 +25,9 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import org.sada.messenger.network.MeshEngine
 import org.sada.messenger.runtime.MeshRuntimeController
+import org.sada.messenger.runtime.DiagnosticsExporter
+import org.sada.messenger.runtime.DiagnosticsReportFactory
+import org.sada.messenger.runtime.DiagnosticEvent
 import org.sada.messenger.ui.theme.*
 import org.sada.messenger.ui.utils.tr
 import androidx.activity.compose.BackHandler
@@ -39,6 +41,7 @@ fun MeshDiagnosticsScreen(
 ) {
     val diagnostics = remember { mutableStateOf(meshRuntime.diagnostics()) }
     val udpDiag = remember { mutableStateOf(udpDiagnostics()) }
+    val events = remember { mutableStateOf(meshRuntime.diagnosticEvents()) }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -53,6 +56,7 @@ fun MeshDiagnosticsScreen(
         while(true) {
             diagnostics.value = meshRuntime.diagnostics()
             udpDiag.value = udpDiagnostics()
+            events.value = meshRuntime.diagnosticEvents()
             kotlinx.coroutines.delay(2000)
         }
     }
@@ -67,20 +71,6 @@ fun MeshDiagnosticsScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
                     }
                 },
-                actions = {
-                    IconButton(
-                        onClick = {
-                            val report = buildDiagnosticsReport(diagnostics.value, udpDiag.value)
-                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                            clipboard.setPrimaryClip(ClipData.newPlainText(tr("تقرير تشخيص صدى", "Sada Mesh Diagnostics"), report))
-                            scope.launch {
-                                snackbarHostState.showSnackbar(tr("تم نسخ التقرير", "Report copied"))
-                            }
-                        }
-                    ) {
-                        Icon(Icons.Default.ContentCopy, contentDescription = "Copy Report", tint = Color.White)
-                    }
-                },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black)
             )
         },
@@ -93,6 +83,85 @@ fun MeshDiagnosticsScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            item {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = {
+                        val report = DiagnosticsReportFactory.create(context, diagnostics.value, udpDiag.value, events.value)
+                        val exported = DiagnosticsExporter.export(context, report)
+                        context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
+                            type = "application/json"
+                            putExtra(Intent.EXTRA_STREAM, exported.uri)
+                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        }, tr("مشاركة تقرير التشخيص", "Share diagnostics report")))
+                        scope.launch { snackbarHostState.showSnackbar("File created • ${events.value.size} events • ${report.reportId}") }
+                    }) { Text(tr("تصدير تقرير JSON", "Export JSON Report")) }
+                    OutlinedButton(onClick = {
+                        meshRuntime.clearDiagnosticEvents()
+                        events.value = emptyList()
+                        scope.launch { snackbarHostState.showSnackbar(tr("تم مسح الأحداث", "Events cleared")) }
+                    }) { Text(tr("مسح الأحداث", "Clear Events")) }
+                }
+            }
+            item {
+                Button(
+                    onClick = {
+                        scope.launch {
+                            val result = meshRuntime.forceDirectConnection()
+                            diagnostics.value = meshRuntime.diagnostics()
+                            events.value = meshRuntime.diagnosticEvents()
+                            snackbarHostState.showSnackbar(
+                                when (result) {
+                                    "group_creation_started" -> tr("بدأ إنشاء مجموعة الاتصال المباشر", "Direct group creation started")
+                                    "peer_discovery_started" -> tr("بدأ اكتشاف الاتصال المباشر", "Direct peer discovery started")
+                                    "already_connected" -> tr("الاتصال المباشر قائم بالفعل", "Direct connection already active")
+                                    "no_ble_peer" -> tr("لم يُكتشف جهاز قريب عبر البلوتوث", "No nearby BLE peer detected")
+                                    "framework_not_idle" -> tr("نظام Wi‑Fi Direct ما زال مشغولاً", "Wi-Fi Direct framework is still busy")
+                                    else -> tr("تعذرت محاولة الاتصال المباشر", "Direct connection attempt unavailable")
+                                }
+                            )
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Default.RestartAlt, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text(tr("إعادة ضبط ومحاولة اتصال مباشر", "Reset and Try Direct Connection"))
+                }
+            }
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = {
+                            scope.launch {
+                                val result = meshRuntime.forceDirectConnectionAsOwner(true)
+                                snackbarHostState.showSnackbar(
+                                    if (result == "group_creation_started")
+                                        tr("بدأ الاختبار كمالك المجموعة", "Owner-role test started")
+                                    else tr("تعذر بدء اختبار المالك: $result", "Owner test unavailable: $result")
+                                )
+                            }
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) { Text(tr("اختبار كمالك", "Test as Owner")) }
+
+                    OutlinedButton(
+                        onClick = {
+                            scope.launch {
+                                val result = meshRuntime.forceDirectConnectionAsOwner(false)
+                                snackbarHostState.showSnackbar(
+                                    if (result == "peer_discovery_started")
+                                        tr("بدأ الاختبار كعميل", "Client-role test started")
+                                    else tr("تعذر بدء اختبار العميل: $result", "Client test unavailable: $result")
+                                )
+                            }
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) { Text(tr("اختبار كعميل", "Test as Client")) }
+                }
+            }
             item {
                 DiagSectionHeader(tr("طبقة النقل", "Transport Layer"))
                 TransportStatusCard(diagnostics.value)
@@ -137,23 +206,26 @@ fun MeshDiagnosticsScreen(
                     PeerCard(peerId)
                 }
             }
+
+            item { DiagSectionHeader(tr("الأحداث الأخيرة", "Recent Events")) }
+            if (events.value.isEmpty()) {
+                item { Text(tr("لا توجد أحداث مسجلة", "No recorded events"), color = Color.Gray) }
+            } else {
+                items(events.value.asReversed(), key = { it.sequence }) { event -> DiagnosticEventRow(event) }
+            }
         }
     }
 }
 
-private fun buildDiagnosticsReport(
-    diagnostics: Map<String, Any>,
-    udpDiag: Map<String, Any>
-): String {
-    val sb = StringBuilder()
-    sb.appendLine("Sada Diagnostic Report - Mesh Debug")
-    diagnostics.toSortedMap().forEach { (key, value) ->
-        sb.appendLine("$key: $value")
+@Composable
+private fun DiagnosticEventRow(event: DiagnosticEvent) {
+    DiagnosticCard {
+        Column {
+            Text("#${event.sequence} ${event.component} • ${event.eventType}", color = Color.White, fontWeight = FontWeight.Bold)
+            Text("${event.timestamp} • ${event.outcome}${event.transport?.let { " • $it" } ?: ""}", color = Color.Gray, fontSize = 11.sp)
+            event.reason?.let { Text(it, color = Color.White.copy(alpha = .7f), fontSize = 12.sp) }
+        }
     }
-    udpDiag.toSortedMap().forEach { (key, value) ->
-        sb.appendLine("udp_$key: $value")
-    }
-    return sb.toString()
 }
 
 @Composable
@@ -221,8 +293,9 @@ fun HandshakeStatsCard(diag: Map<String, Any>) {
     DiagnosticCard {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             MetricRow(tr("المحاولات", "Attempts"), diag["handshakeAttempts"].toString(), Icons.Default.Sync)
-            MetricRow(tr("النجاح", "Success"), diag["handshakeAcks"].toString(), Icons.Default.DoneAll, Color.Green)
+            MetricRow(tr("المصافحات المقبولة", "Accepted Handshakes"), diag["handshakeAccepted"].toString(), Icons.Default.DoneAll, Color.Green)
             MetricRow(tr("المهلة", "Timeouts"), diag["handshakeTimeouts"].toString(), Icons.Default.TimerOff, Color.Red)
+            MetricRow(tr("آخر خطأ", "Last Error"), diag["lastHandshakeError"].toString(), Icons.Default.ErrorOutline, Color.Red)
         }
     }
 }
@@ -231,10 +304,11 @@ fun HandshakeStatsCard(diag: Map<String, Any>) {
 fun MeshRoutingCard(diag: Map<String, Any>) {
     DiagnosticCard {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            MetricRow(tr("المعالجة", "Processed"), diag["processedMessagesCount"].toString(), Icons.Default.FactCheck)
+            MetricRow(tr("حجم ذاكرة المعالجة (حد 5000)", "Processed Cache Size (max 5000)"), diag["processedMessagesCount"].toString(), Icons.Default.FactCheck)
             MetricRow(tr("الفلاتر", "Filters"), diag["knownBloomFilters"].toString(), Icons.Default.FilterAlt, CyberBlue)
             MetricRow("Relay Queue Active", diag["relayQueueActiveCount"].toString(), Icons.Default.Inventory2, NeonTeal)
-            MetricRow("Relay Flushed", diag["relayFlushedCount"].toString(), Icons.Default.ForwardToInbox, Color(0xFF90CAF9))
+            MetricRow("Relay Send Attempts", diag["relaySendAttempts"].toString(), Icons.Default.ForwardToInbox, Color(0xFF90CAF9))
+            MetricRow("Relay Sent Successfully", diag["relaySendSucceeded"].toString(), Icons.Default.DoneAll, Color.Green)
             MetricRow("ACK Cleanup", diag["ackCleanupCount"].toString(), Icons.Default.CleaningServices, Color(0xFFA5D6A7))
             MetricRow("Spam Blocked", diag["spamBlockedRequestsCount"].toString(), Icons.Default.Shield, Color(0xFFFFB74D))
         }
@@ -272,12 +346,15 @@ fun AirBridgeDiagnosticsCard(diag: Map<String, Any>) {
             MetricRow("BLE Discovered", diag["service_ble_discoveredPeersCount"].toString(), Icons.Default.FindInPage, Color.Green)
             MetricRow("BLE PeerId Length", diag["service_ble_peerIdLength"]?.toString() ?: "?", Icons.Default.DataObject, Color.White)
             MetricRow("BLE Last Discovered", diag["service_ble_lastDiscoveredId"]?.toString()?.take(20) ?: "", Icons.Default.Fingerprint, CyberBlue)
+            MetricRow("BLE Last Error", diag["service_ble_lastError"]?.toString() ?: "none", Icons.Default.ErrorOutline, Color.Red)
             // Wi-Fi Direct
             MetricRow("WFD Discovering", diag["service_wifidirect_isDiscovering"].toString(), Icons.Default.Podcasts, CyberBlue)
             MetricRow("WFD Connected", diag["service_wifidirect_isConnected"].toString(), if (diag["service_wifidirect_isConnected"] == true) Icons.Default.Wifi else Icons.Default.WifiOff, if (diag["service_wifidirect_isConnected"] == true) Color.Green else Color.Gray)
             MetricRow("WFD Group Formed", diag["service_wifidirect_groupFormed"].toString(), Icons.Default.Group, NeonTeal)
             MetricRow("Is Group Owner", diag["service_wifidirect_isGroupOwner"].toString(), Icons.Default.Domain, Color.White)
             MetricRow("GO IP", diag["service_wifidirect_groupOwnerIp"]?.toString() ?: "none", Icons.Default.Router, Color.Green)
+            MetricRow("WFD Last Error", diag["service_wifidirect_lastError"]?.toString() ?: "none", Icons.Default.ErrorOutline, Color.Red)
+            MetricRow("WFD Operation", diag["service_wifidirect_p2pOperation"]?.toString() ?: "IDLE", Icons.Default.Sync, Color.Yellow)
             // Voice Messages
             MetricRow("Voice Sent", diag["voice_sentCount"]?.toString() ?: "0", Icons.Default.Mic, Color.Green)
             MetricRow("Voice Received", diag["voice_receivedCount"]?.toString() ?: "0", Icons.Default.VolumeUp, NeonTeal)
@@ -285,6 +362,7 @@ fun AirBridgeDiagnosticsCard(diag: Map<String, Any>) {
             MetricRow("Socket Retries", diag["socket_retryAttempts"]?.toString() ?: "0", Icons.Default.Replay, Color.Yellow)
             MetricRow("Socket Delay", diag["socket_lastConnectDelay"]?.toString() ?: "0ms", Icons.Default.Timer, Color.White)
             MetricRow("Server Ready At", diag["socket_serverReadyAt"]?.toString() ?: "0", Icons.Default.Check, Color.Green)
+            MetricRow("TCP Last Error", diag["socket_lastError"]?.toString() ?: "none", Icons.Default.ErrorOutline, Color.Red)
         }
     }
 }

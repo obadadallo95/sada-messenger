@@ -17,14 +17,15 @@ import kotlinx.coroutines.withContext
 /** Single process graph. MeshForegroundService is its only lifecycle caller. */
 class MeshRuntime(context: Context) : MeshRuntimeController {
     private val appContext = context.applicationContext
+    val diagnosticsRecorder = DiagnosticsRecorder()
 
     val database: AppDatabase = AppDatabase.getDatabase(appContext)
     val keyManager = KeyManager(appContext)
     val encryptionManager = EncryptionManager(keyManager)
     val socketManager: SocketManager = SocketManager.getInstance()
     val udpBroadcastManager: UdpBroadcastManager = UdpBroadcastManager.getInstance(appContext)
-    val bleMeshManager = BleMeshManager(appContext, keyManager.getPublicKeyBase64())
-    val wifiDirectManager = WifiDirectManager(appContext, socketManager)
+    val bleMeshManager = BleMeshManager(appContext, keyManager.getPublicKeyBase64(), diagnosticsRecorder)
+    val wifiDirectManager = WifiDirectManager(appContext, socketManager, diagnosticsRecorder)
     val transportManager = TransportManager(appContext, socketManager, wifiDirectManager)
     val loraManager = LoraSerialManager(appContext)
 
@@ -39,8 +40,11 @@ class MeshRuntime(context: Context) : MeshRuntimeController {
         wifiDirectManager = wifiDirectManager,
         transportSend = { bytes -> transportManager.sendFramed(bytes) },
         transportIsConnected = { transportManager.isConnected() },
-        activeTransportProvider = { transportManager.activeTransportLabel() }
+        activeTransportProvider = { transportManager.activeTransportLabel() },
+        diagnosticsRecorder = diagnosticsRecorder
     )
+
+    init { socketManager.setDiagnosticsRecorder(diagnosticsRecorder) }
 
     private val lifecycleGate = RuntimeLifecycleGate()
     private var udpCallbackRegistrations = 0
@@ -56,16 +60,15 @@ class MeshRuntime(context: Context) : MeshRuntimeController {
                 socketManager.startServer()
                 loraManager.start()
                 check(udpBroadcastManager.startListening()) { "UDP listener failed to start" }
-                bleMeshManager.startAdvertising()
-                bleMeshManager.startScanning()
                 wifiDirectManager.start()
+                diagnosticsRecorder.record("runtime", "runtime_started", "success")
             } catch (error: Throwable) {
+                diagnosticsRecorder.record("runtime", "runtime_started", "failed", error.javaClass.simpleName)
                 withContext(NonCancellable) {
                     runCatching { meshEngine.stop() }
                     udpBroadcastManager.clearOnPacketReceived()
                     runCatching { udpBroadcastManager.stop() }
-                    runCatching { bleMeshManager.stopAdvertising() }
-                    runCatching { bleMeshManager.stopScanning() }
+                    runCatching { bleMeshManager.stop() }
                     runCatching { wifiDirectManager.stop() }
                     runCatching { loraManager.stop() }
                     runCatching { socketManager.closeConnections() }
@@ -90,15 +93,22 @@ class MeshRuntime(context: Context) : MeshRuntimeController {
                 cleanup { udpBroadcastManager.clearOnPacketReceived() }
                 cleanup { udpBroadcastManager.stop() }
                 cleanup { bleMeshManager.stopAdaptiveCycling() }
-                cleanup { bleMeshManager.stopAdvertising() }
-                cleanup { bleMeshManager.stopScanning() }
+                cleanup { bleMeshManager.stop() }
                 cleanup { wifiDirectManager.stop() }
                 cleanup { loraManager.stop() }
                 cleanup { socketManager.closeConnections() }
                 failure?.let { throw it }
+                diagnosticsRecorder.record("runtime", "runtime_stopped", "success")
             }
         }
     }
+
+    override fun diagnosticEvents(): List<DiagnosticEvent> = diagnosticsRecorder.snapshot()
+    override fun clearDiagnosticEvents() = diagnosticsRecorder.clear()
+
+    override suspend fun forceDirectConnection(): String = meshEngine.forceDirectConnection()
+    override suspend fun forceDirectConnectionAsOwner(createAsOwner: Boolean): String =
+        meshEngine.forceDirectConnectionAsOwner(createAsOwner)
 
     override fun diagnostics(): Map<String, Any> = meshEngine.getDiagnostics() + mapOf(
         "runtimeStarted" to isStarted,

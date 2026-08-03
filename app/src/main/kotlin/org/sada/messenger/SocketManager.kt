@@ -8,6 +8,7 @@ import java.net.ServerSocket
 import java.net.Socket
 import java.net.SocketException
 import java.util.concurrent.atomic.AtomicReference
+import org.sada.messenger.runtime.DiagnosticsRecorder
 
 /**
  * مدير Socket لإدارة الاتصالات TCP في شبكة Mesh
@@ -55,6 +56,10 @@ class SocketManager private constructor() {
     private var lastRetryAttempts = 0
     private var lastConnectDelayMs = 0L
     private var serverReadyAtMs = 0L
+    private var lastError = "none"
+    private var diagnosticsRecorder: DiagnosticsRecorder? = null
+
+    fun setDiagnosticsRecorder(recorder: DiagnosticsRecorder) { diagnosticsRecorder = recorder }
 
     private fun peerTag(): String = "[peer=${currentPeerId.get()}]"
 
@@ -100,6 +105,8 @@ class SocketManager private constructor() {
                     val socket = serverSocket?.accept() ?: break
                     SecureLogger.d(TAG, "${peerTag()} Client connected: ${socket.remoteSocketAddress}")
                     setupSocket(socket)
+                    lastError = "none"
+                    diagnosticsRecorder?.record("tcp", "connection_succeeded", "success", peerId = currentPeerId.get(), transport = "TCP")
                     notifyConnectionStatus("connected", "Client connected")
                 }
             } catch (e: IOException) {
@@ -125,6 +132,7 @@ class SocketManager private constructor() {
 
     suspend fun connectToHostAndWait(hostAddress: String, peerId: String?): Boolean {
         if (!peerId.isNullOrBlank()) currentPeerId.set(peerId)
+        diagnosticsRecorder?.record("tcp", "connection_started", "started", peerId = peerId, transport = "TCP")
 
         return try {
             currentCoroutineContext().ensureActive()
@@ -152,6 +160,8 @@ class SocketManager private constructor() {
                     }
                     SecureLogger.d(TAG, "${peerTag()} Successfully connected to $hostAddress")
                     setupSocket(socket)
+                    lastError = "none"
+                    diagnosticsRecorder?.record("tcp", "connection_succeeded", "success", peerId = peerId, transport = "TCP")
                     notifyConnectionStatus("connected", "Connected to $hostAddress")
                     return true
                 } catch (e: IOException) {
@@ -164,14 +174,19 @@ class SocketManager private constructor() {
                     } else {
                         SecureLogger.e(TAG, "${peerTag()} Failed to connect after $MAX_RETRY_ATTEMPTS attempts")
                         notifyConnectionStatus("error", "Failed to connect: ${e.message}")
+                        lastError = "io_exception"
+                        diagnosticsRecorder?.record("tcp", "connection_failed", "failed", lastError, peerId, transport = "TCP")
                     }
                 }
             }
             false
         } catch (e: CancellationException) {
+            diagnosticsRecorder?.record("tcp", "connection_failed", "cancelled", "cancelled", peerId, transport = "TCP")
             closeActiveClientConnection()
             throw e
         } catch (e: Exception) {
+            lastError = e.javaClass.simpleName
+            diagnosticsRecorder?.record("tcp", "connection_failed", "failed", lastError, peerId, transport = "TCP")
             SecureLogger.e(TAG, "${peerTag()} Unexpected connection error", e)
             notifyConnectionStatus("error", "Unexpected error: ${e.message}")
             closeActiveClientConnection()
@@ -381,6 +396,7 @@ class SocketManager private constructor() {
     }
 
     private fun closeActiveClientConnection() {
+        val wasConnected = isConnected
         isConnected = false
         readJob?.cancel()
 
@@ -403,6 +419,7 @@ class SocketManager private constructor() {
         inputStream = null
         outputStream = null
         clientSocket = null
+        if (wasConnected) diagnosticsRecorder?.record("tcp", "connection_closed", "success", "connection_ended", peerId = currentPeerId.get(), transport = "TCP")
     }
 
     /**
@@ -423,7 +440,8 @@ class SocketManager private constructor() {
         return mapOf(
             "retryAttempts" to lastRetryAttempts,
             "lastConnectDelay" to "${lastConnectDelayMs}ms",
-            "serverReadyAt" to serverReadyAtMs
+            "serverReadyAt" to serverReadyAtMs,
+            "lastError" to lastError
         )
     }
 

@@ -37,6 +37,7 @@ import java.util.*
 import org.sada.messenger.utils.DateUtils
 import org.sada.messenger.ui.utils.tr
 import org.sada.messenger.runtime.RestartableCoroutineGeneration
+import org.sada.messenger.runtime.DiagnosticsRecorder
 import java.io.FileOutputStream
 import java.io.File
 import android.util.Base64
@@ -57,7 +58,8 @@ class MeshEngine(
     val wifiDirectManager: WifiDirectManager,
     private val transportSend: (ByteArray) -> Boolean = { false },
     private val transportIsConnected: () -> Boolean = { false },
-    private val activeTransportProvider: () -> String = { "NONE" }
+    private val activeTransportProvider: () -> String = { "NONE" },
+    private val diagnosticsRecorder: DiagnosticsRecorder? = null
 ) {
     private val loraPacketizer = LoraPacketizer()
     private val groupProtocol = GroupProtocol(keyManager, encryptionManager)
@@ -79,8 +81,11 @@ class MeshEngine(
     private var handshakeAttempts = 0
     private var handshakeAcks = 0
     private var handshakeTimeouts = 0
+    private var handshakeAccepted = 0
+    private var handshakeRejected = 0
     private var lastSocketRemoteIp: String? = null
     private var lastHandshakeReason: String = "none"
+    private var lastHandshakeError: String = "none"
     private var pendingHandshakeAtMs: Long? = null
     private val peerHandshakeState = mutableMapOf<String, String>()
     private val peerHandshakeReason = mutableMapOf<String, String>()
@@ -92,6 +97,11 @@ class MeshEngine(
         private set
     private var relayQueueActiveCount = 0
     private var relayFlushedCount = 0L
+    private var relaySendAttempts = 0L
+    private var duplicateIgnoredCount = 0L
+    private var packetReceivedCount = 0L
+    private var ackSentCount = 0L
+    private var ackReceivedCount = 0L
     private var ackCleanupCount = 0L
     private var gossipCount = 0L
     
@@ -155,6 +165,7 @@ class MeshEngine(
         setupSocketCallbacks()
         setupLoraCallbacks()
         setupP2pManagers()
+        bleMeshManager.start(scope)
         refreshTransportConnected()
         startRelayPump()
         startPeriodicGossip()
@@ -174,6 +185,7 @@ class MeshEngine(
             detach { socketManager.clearCallbacks() }
             detach { loraInterface?.clearOnDataReceived() }
             detach { bleMeshManager.clearOnPeerDiscoveredListener() }
+            detach { bleMeshManager.stop() }
             detach { wifiDirectManager.clearConnectionCallbacks() }
         } finally {
             lifecycleGeneration.stop()
@@ -214,6 +226,26 @@ class MeshEngine(
     fun startAirBridge() {
         bleMeshManager.startAdvertising()
         bleMeshManager.startScanning()
+    }
+
+    suspend fun forceDirectConnection(): String {
+        val peerId = bleMeshManager.lastDiscoveredPeerId()
+            ?: return "no_ble_peer"
+        val localId = keyManager.getPublicKeyBase64().take(BleMeshManager.BLE_PEER_ID_LENGTH)
+        val createAsOwner = localId < peerId
+        return wifiDirectManager.forceResetAndRetry(createAsOwner)
+    }
+
+    suspend fun forceDirectConnectionAsOwner(createAsOwner: Boolean): String {
+        if (bleMeshManager.lastDiscoveredPeerId() == null) return "no_ble_peer"
+        diagnosticsRecorder?.record(
+            "wifi_direct",
+            "manual_role_selected",
+            "started",
+            reason = if (createAsOwner) "owner" else "client",
+            transport = "WIFI_DIRECT"
+        )
+        return wifiDirectManager.forceResetAndRetry(createAsOwner)
     }
 
     fun stopAirBridge() {
@@ -258,6 +290,7 @@ class MeshEngine(
                     lastHandshakeReason = "socket_disconnected"
                 } else {
                     lastHandshakeReason = "socket_error_${message.take(64)}"
+                    lastHandshakeError = "socket_error"
                 }
                 refreshTransportConnected()
             }
@@ -347,7 +380,11 @@ class MeshEngine(
     }
 
     private suspend fun refreshRelayQueueCount() {
+        val previous = relayQueueActiveCount
         relayQueueActiveCount = database.relayQueueDao().countActive(Date())
+        if (previous != relayQueueActiveCount) diagnosticsRecorder?.record(
+            "relay", "relay_queue_count_changed", "success", "$previous->$relayQueueActiveCount"
+        )
     }
 
     private fun rememberSeenInMemory(messageId: String) {
@@ -674,6 +711,7 @@ class MeshEngine(
         handshakeAttempts++
         pendingHandshakeAtMs = System.currentTimeMillis()
         lastHandshakeReason = "handshake_sent_waiting_ack"
+        diagnosticsRecorder?.record("handshake", "handshake_started", "started", transport = activeTransportProvider())
         val myId = keyManager.getPublicKeyBase64()
         val myBf = createBloomFilter()
         
@@ -694,6 +732,8 @@ class MeshEngine(
                 peerHandshakeState[myId] != "peer_ready") {
                 handshakeTimeouts++
                 lastHandshakeReason = "handshake_ack_timeout"
+                lastHandshakeError = "ack_timeout"
+                diagnosticsRecorder?.record("handshake", "handshake_timed_out", "failed", "ack_timeout", transport = activeTransportProvider())
             }
         }
     }
@@ -711,6 +751,9 @@ class MeshEngine(
             peerHandshakeState[peerId] = "blocked_rejected"
             peerHandshakeReason[peerId] = "peer_is_blocked"
             lastHandshakeReason = "blocked_peer_rejected"
+            lastHandshakeError = "blocked_peer"
+            handshakeRejected++
+            diagnosticsRecorder?.record("handshake", "handshake_rejected", "failed", "blocked_peer", peerId, transport = activeTransportProvider())
             socketManager.closeConnections()
             return
         }
@@ -744,6 +787,8 @@ class MeshEngine(
         peerHandshakeState[peerId] = "peer_ready"
         peerHandshakeReason[peerId] = "accepted_incoming_handshake"
         lastHandshakeReason = "incoming_handshake_accepted"
+        handshakeAccepted++
+        diagnosticsRecorder?.record("handshake", "handshake_accepted", "success", peerId = peerId, transport = activeTransportProvider())
         syncPublicGroupsCatalog()
         syncPendingPackets(peerId)
     }
@@ -760,6 +805,8 @@ class MeshEngine(
             peerHandshakeState[peerId] = "peer_ready"
             peerHandshakeReason[peerId] = "ack_received"
             lastHandshakeReason = "handshake_ack_accepted"
+            handshakeAccepted++
+            diagnosticsRecorder?.record("handshake", "handshake_accepted", "success", peerId = peerId, transport = activeTransportProvider())
             
             // Parse Bloom Filter
             val bfBase64 = json.optString("bloomFilter")
@@ -777,6 +824,9 @@ class MeshEngine(
             peerHandshakeState[peerId] = "handshake_rejected"
             peerHandshakeReason[peerId] = "ack_rejected"
             lastHandshakeReason = "handshake_ack_rejected"
+            lastHandshakeError = "ack_rejected"
+            handshakeRejected++
+            diagnosticsRecorder?.record("handshake", "handshake_rejected", "failed", "ack_rejected", peerId, transport = activeTransportProvider())
         }
     }
 
@@ -786,7 +836,13 @@ class MeshEngine(
         // Update peer metrics if this is from a known contact
         updatePeerMetrics(message.originalSenderId, rssi, snr)
 
-        if (isSeen(message.messageId)) return
+        packetReceivedCount++
+        diagnosticsRecorder?.record("packet", "packet_received", "success", peerId = message.originalSenderId, messageId = message.messageId, transport = activeTransportProvider())
+        if (isSeen(message.messageId)) {
+            duplicateIgnoredCount++
+            diagnosticsRecorder?.record("packet", "duplicate_ignored", "success", peerId = message.originalSenderId, messageId = message.messageId, transport = activeTransportProvider())
+            return
+        }
         if (!message.isValid(myId)) return
 
         markSeen(message.messageId)
@@ -1176,6 +1232,7 @@ class MeshEngine(
             )
         )
         refreshRelayQueueCount()
+        diagnosticsRecorder?.record("packet", "packet_queued", "success", peerId = message.finalDestinationId, messageId = message.messageId)
 
         // Smart Relay: Only forward if we have good carriers
         if (shouldForwardImmediately(forwarded)) {
@@ -1368,8 +1425,11 @@ class MeshEngine(
 
         for (relay in ordered) {
             if (peerBf == null || !peerBf.contains(relay.messageId)) {
-                sendRawText(relay.payload)
-                relayFlushedCount++
+                relaySendAttempts++
+                if (sendRawText(relay.payload)) {
+                    relayFlushedCount++
+                    diagnosticsRecorder?.record("relay", "packet_relayed", "success", peerId = peerId, messageId = relay.messageId, transport = activeTransportProvider())
+                }
             }
         }
         refreshRelayQueueCount()
@@ -1511,8 +1571,13 @@ class MeshEngine(
         _connectedPeers.value = current
     }
 
-    private suspend fun sendRawText(text: String) {
-        if (!started) return
+    private suspend fun sendRawText(text: String): Boolean {
+        if (!started) return false
+        val envelope = runCatching { JSONObject(text) }.getOrNull()
+        val messageId = envelope?.optString("messageId")?.takeIf { it.isNotBlank() }
+        val peerId = envelope?.optString("peerId")?.takeIf { it.isNotBlank() }
+            ?: envelope?.optString("senderId")?.takeIf { it.isNotBlank() }
+        diagnosticsRecorder?.record("packet", "packet_send_attempted", "started", peerId = peerId, messageId = messageId, transport = activeTransportProvider())
         val payload = text.toByteArray(Charsets.UTF_8)
         val framed = ByteArray(payload.size + 1)
         framed[0] = 0x00.toByte() // Text Frame
@@ -1521,20 +1586,23 @@ class MeshEngine(
         // Record bandwidth usage
         recordDataSent(framed.size)
         
-        withContext(Dispatchers.IO) {
+        return withContext(Dispatchers.IO) {
             ensureActive()
-            if (!started) return@withContext
+            if (!started) return@withContext false
             val selectedTransport = activeTransportProvider()
             val sent = transportSend(framed)
             if (!sent) {
                 _transportError.value = "send_failed_no_transport"
+                diagnosticsRecorder?.record("packet", "packet_send_failed", "failed", "no_transport", peerId, messageId, selectedTransport)
             } else {
                 if (selectedTransport.startsWith("Nearby", ignoreCase = true)) {
                     transportSentNearby++
                 } else {
                     transportSentLan++
                 }
+                diagnosticsRecorder?.record("packet", "packet_send_succeeded", "success", peerId = peerId, messageId = messageId, transport = selectedTransport)
             }
+            sent
         }
     }
 
@@ -1571,13 +1639,18 @@ class MeshEngine(
             put("messageId", messageId)
             put("senderId", keyManager.getPublicKeyBase64())
         }
-        sendRawText(ack.toString())
+        if (sendRawText(ack.toString())) {
+            ackSentCount++
+            diagnosticsRecorder?.record("ack", "ack_sent", "success", peerId = peerId, messageId = messageId, transport = activeTransportProvider())
+        }
     }
 
     private fun handleMessageAck(json: JSONObject) {
         val messageId = json.getString("messageId")
         val ackSenderId = json.optString("senderId", "unknown")
         val myId = keyManager.getPublicKeyBase64()
+        ackReceivedCount++
+        diagnosticsRecorder?.record("ack", "ack_received", "success", peerId = ackSenderId, messageId = messageId, transport = activeTransportProvider())
         
         scope.launch {
             // Check if this is an ACK for a message I sent
@@ -2326,7 +2399,10 @@ class MeshEngine(
             "handshakeAttempts" to handshakeAttempts,
             "handshakeAcks" to handshakeAcks,
             "handshakeTimeouts" to handshakeTimeouts,
+            "handshakeAccepted" to handshakeAccepted,
+            "handshakeRejected" to handshakeRejected,
             "lastHandshakeReason" to lastHandshakeReason,
+            "lastHandshakeError" to lastHandshakeError,
             "peerHandshakeState" to peerHandshakeState.toMap(),
             "peerHandshakeReason" to peerHandshakeReason.toMap(),
             "processedMessagesCount" to processedMessageIds.size,
@@ -2341,6 +2417,12 @@ class MeshEngine(
             "transportReceivedLan" to transportReceivedLan,
             "relayQueueActiveCount" to relayQueueActiveCount,
             "relayFlushedCount" to relayFlushedCount,
+            "relaySendAttempts" to relaySendAttempts,
+            "relaySendSucceeded" to relayFlushedCount,
+            "duplicateIgnoredCount" to duplicateIgnoredCount,
+            "packetReceivedCount" to packetReceivedCount,
+            "ackSentCount" to ackSentCount,
+            "ackReceivedCount" to ackReceivedCount,
             "ackCleanupCount" to ackCleanupCount,
             "spamBlockedRequestsCount" to spamBlockedRequestsCount,
             "voice_sentCount" to voiceMessagesSent,
@@ -2351,16 +2433,23 @@ class MeshEngine(
             "service_ble_discoveredPeersCount" to (bleDiag["discoveredPeersCount"] ?: 0),
             "service_ble_peerIdLength" to (bleDiag["peerIdLength"] ?: 0),
             "service_ble_lastDiscoveredId" to (bleDiag["lastDiscoveredId"] ?: ""),
+            "service_ble_discoveredPeersRssi" to (bleDiag["discoveredPeersRssi"] ?: emptyMap<String, Int>()),
+            "service_ble_lastError" to (bleDiag["lastError"] ?: "none"),
             // Wi-Fi Direct diagnostics
             "service_wifidirect_isDiscovering" to (wfdDiag["isDiscovering"] ?: false),
             "service_wifidirect_isConnected" to (wfdDiag["isConnected"] ?: false),
             "service_wifidirect_groupFormed" to (wfdDiag["groupFormed"] ?: false),
             "service_wifidirect_isGroupOwner" to (wfdDiag["isGroupOwner"] ?: false),
             "service_wifidirect_groupOwnerIp" to (wfdDiag["groupOwnerIp"] ?: "none"),
+            "service_wifidirect_clientConnectedAt" to (wfdDiag["clientConnectedAt"] ?: 0L),
+            "service_wifidirect_lastError" to (wfdDiag["lastError"] ?: "none"),
+            "service_wifidirect_p2pOperation" to (wfdDiag["p2pOperation"] ?: "IDLE"),
+            "service_wifidirect_operationInFlight" to (wfdDiag["operationInFlight"] ?: false),
             // Socket diagnostics
             "socket_retryAttempts" to (socketDiag["retryAttempts"] ?: 0),
             "socket_lastConnectDelay" to (socketDiag["lastConnectDelay"] ?: "0ms"),
-            "socket_serverReadyAt" to (socketDiag["serverReadyAt"] ?: 0L)
+            "socket_serverReadyAt" to (socketDiag["serverReadyAt"] ?: 0L),
+            "socket_lastError" to (socketDiag["lastError"] ?: "none")
         )
     }
 
